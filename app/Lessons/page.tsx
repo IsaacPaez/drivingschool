@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Poppins } from "next/font/google";
 import { scrollToSection } from "./scrollToSection";
 import DrivingTestSection from "./DrivingTestSection";
+import CorporatePrograms from "./CorporatePrograms";
 
 // Fuente elegante y moderna
 const poppins = Poppins({
@@ -37,11 +38,11 @@ const LessonsPage = () => {
               <span className="text-[#27ae60]">MASTER</span> YOUR <br />
               DRIVING <span className="text-[#0056b3]">SKILLS</span>
             </h2>
-            <p className="text-lg text-gray-700 leading-relaxed">
+            <p className="text-lg text-black leading-relaxed">
               With over 25 years of experience, we go beyond preparing students for the DMV test.
               Our training covers real-world traffic scenarios, defensive driving, and high-speed highways like I-95.
             </p>
-            <p className="text-lg text-gray-700 leading-relaxed">
+            <p className="text-lg text-black leading-relaxed">
               Our step-by-step approach ensures confidence, safety, and responsible driving skills for all students.
             </p>
 
@@ -67,7 +68,7 @@ const LessonsPage = () => {
             <motion.button
               animate={{ y: [1.5, -1.5, 1.5] }}
               transition={bounceAnimation}
-              className="bg-[#27ae60] text-white font-semibold py-3 px-8 text-lg rounded-full shadow-lg 
+              className="bg-[#27ae60] hover:bg-[#0056b3] text-white font-semibold py-3 px-8 text-lg rounded-full shadow-lg 
                 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl"
               onClick={() => scrollToSection("driving-test-section")}
             >
@@ -77,8 +78,9 @@ const LessonsPage = () => {
             <motion.button
               animate={{ y: [1.5, -1.5, 1.5] }}
               transition={bounceAnimation}
-              className="border-2 border-gray-700 text-gray-800 font-semibold py-3 px-8 text-lg rounded-full 
+              className="border-2 border-gray-700 text-gray-800 hover:bg-[#0056b3] hover:text-white font-semibold py-3 px-8 text-lg rounded-full 
                 shadow-lg transition-all duration-500 transform hover:scale-105 hover:shadow-2xl"
+              onClick={() => scrollToSection("corporate-programs-section")}
             >
               Corporate Programs
             </motion.button>
@@ -102,6 +104,9 @@ const LessonsPage = () => {
 
       {/* Sección de Driving Test */}
       <DrivingTestSection />
+      
+      {/* Sección de Corporate Programs */}
+      <CorporatePrograms />
     </section>
   );
 };

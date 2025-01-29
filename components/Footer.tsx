@@ -24,7 +24,7 @@ const Footer = () => {
             </h2>
             <Link
               href="/book-now"
-              className="bg-blue-600 text-white font-bold px-6 py-2 mt-4 rounded-full inline-block hover:bg-[#4CAF50]"
+              className="bg-blue-600 text-white font-bold px-6 py-2 mt-4 rounded-full inline-block hover:bg-[#27ae60]"
             >
               Book Now
             </Link>
