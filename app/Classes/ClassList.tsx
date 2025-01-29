@@ -23,17 +23,19 @@ const ClassList: React.FC<ClassListProps> = ({
   ];
 
   return (
-    <div className="w-[300px] bg-gray-100 p-4 rounded-xl shadow-md">
-      <h3 className="text-xl font-semibold text-center mb-4">Class List</h3>
+    <div className="w-full md:w-[290px] bg-white p-6 rounded-lg shadow-lg">
+      <h3 className="text-2xl font-semibold text-center mb-4 text-gray-900">
+        Class List
+      </h3>
       <ul className="space-y-3">
         {classes.map(({ name, key }) => (
           <li
             key={key}
-            className={`p-3 rounded-lg cursor-pointer transition text-center 
+            className={`p-3 rounded-lg cursor-pointer transition text-center font-medium text-gray-900 shadow-md
               ${
                 selectedClass === key
-                  ? "bg-[#27ae60] text-white font-semibold"
-                  : "bg-green-200 text-black hover:bg-gray-200"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg"
+                  : "bg-gray-100 hover:bg-gray-200"
               }`}
             onClick={() => setSelectedClass(key)}
           >

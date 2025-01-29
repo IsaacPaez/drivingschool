@@ -10,8 +10,8 @@ import ADIClass from "./ADIClass";
 import AggressiveClass from "./AggressiveClass";
 import CrashClass from "./CrashClass";
 import SeniorInsuranceDiscount from "./SeniorInsuranceDiscount";
-import MultiDayADIClass from "./MultiDayADIClass"; // Ensure the file exists and the path is correct
-// Agrega más clases conforme las vayas creando
+import MultiDayADIClass from "./MultiDayADIClass";
+import Image from "next/image";
 
 const classComponents: { [key: string]: React.ReactNode } = {
   trafficLaw: <TrafficLawClass />,
@@ -21,32 +21,39 @@ const classComponents: { [key: string]: React.ReactNode } = {
   aggressiveClass: <AggressiveClass />,
   crashClass: <CrashClass />,
   seniorDiscount: <SeniorInsuranceDiscount />,
-  multiDayClass: <MultiDayADIClass />, // Nueva clase agregada
-  // Agrega más clases conforme las vayas creando
+  multiDayClass: <MultiDayADIClass />,
 };
 
 const ClassesPage: React.FC = () => {
-  const [selectedClass, setSelectedClass] = useState("trafficLaw"); // Estado inicial
+  const [selectedClass, setSelectedClass] = useState("trafficLaw");
 
   return (
-    <section className="bg-white py-16 px-8">
-      <div className="max-w-7xl mx-auto flex gap-12">
-        {/* 📌 Lista de clases a la izquierda (sticky en lugar de fixed) */}
+    <section className="bg-gray-100 py-16 px-8">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-12">
+        {/* 📌 Imagen superior en dispositivos móviles */}
+        <div className="w-full md:hidden mb-6">
+          <Image
+            src="/DD.jpg" // Imagen nueva sugerida
+            alt="Driving Education"
+            width={1200}
+            height={500}
+            className="rounded-lg shadow-lg"
+          />
+        </div>
+
+        {/* 📌 Lista de clases a la izquierda */}
         <motion.div
-          className="w-[300px] sticky top-34 self-start"
+          className="w-full md:w-[340px] bg-white p-6 rounded-lg shadow-lg"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <ClassList
-            selectedClass={selectedClass}
-            setSelectedClass={setSelectedClass}
-          />
+          <ClassList selectedClass={selectedClass} setSelectedClass={setSelectedClass} />
         </motion.div>
 
         {/* 📌 Contenido dinámico a la derecha */}
         <motion.div
-          className="flex-1"
+          className="flex-1 bg-white p-6 rounded-lg shadow-lg"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
