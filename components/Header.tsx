@@ -45,24 +45,18 @@ const Header = () => {
               </Link>
             </li>
             <li>
-              <Link
-                href="/Lessons"
-                className="text-black hover:text-[#4CAF50]"
-              >
+              <Link href="/Lessons" className="text-black hover:text-[#4CAF50]">
                 Lessons
               </Link>
             </li>
             <li>
-              <Link
-                href="/Classes"
-                className="text-black hover:text-[#4CAF50]"
-              >
+              <Link href="/Classes" className="text-black hover:text-[#4CAF50]">
                 Classes
               </Link>
             </li>
             <li>
               <Link
-                href="/Online-Courses"
+                href="/OnlineCourses"
                 className="text-black hover:text-[#4CAF50]"
               >
                 Online Courses
@@ -77,10 +71,7 @@ const Header = () => {
               </Link>
             </li>
             <li>
-              <Link
-                href="/FAQ"
-                className="text-black hover:text-[#4CAF50]"
-              >
+              <Link href="/FAQ" className="text-black hover:text-[#4CAF50]">
                 FAQ
               </Link>
             </li>
