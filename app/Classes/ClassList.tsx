@@ -16,6 +16,7 @@ const ClassList: React.FC<ClassListProps> = ({
     { name: "4 hr (BDI) Basic Driving Improvement Class", key: "bdiClass" },
     { name: "8hr Court Ordered IDI Intermediate Class", key: "idiClass" },
     { name: "12hr (ADI) Advanced Driving Improvement", key: "adiClass" },
+    {name:"4 hr / 8 hr Youthful Offender Class",key:"yocClass"},
     { name: "8 hr Aggressive Driving Improvement", key: "aggressiveClass" },
     { name: "3 Crashes in 3 Years", key: "crashClass" },
     { name: "Senior Insurance Discount", key: "seniorDiscount" },

@@ -28,7 +28,7 @@ const DrivingTestSection = () => {
         variants={fadeIn}
         viewport={{ once: true }}
       >
-        <span className="text-[#27ae60]">DRIVING</span> <span className="text-black">TEST</span> <span className="text-[#0056b3]">REQUIREMENTS</span>
+        <span className="text-[#27ae60]">DRIVING</span> <span className="text-black">TEST</span>
       </motion.h2>
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start">

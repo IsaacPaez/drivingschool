@@ -11,6 +11,7 @@ import AggressiveClass from "./AggressiveClass";
 import CrashClass from "./CrashClass";
 import SeniorInsuranceDiscount from "./SeniorInsuranceDiscount";
 import MultiDayADIClass from "./MultiDayADIClass";
+import YOCClass from "./YOCClass";
 import Image from "next/image";
 
 const classComponents: { [key: string]: React.ReactNode } = {
@@ -22,6 +23,7 @@ const classComponents: { [key: string]: React.ReactNode } = {
   crashClass: <CrashClass />,
   seniorDiscount: <SeniorInsuranceDiscount />,
   multiDayClass: <MultiDayADIClass />,
+  yocClass:<YOCClass/>, // Agregar componente YOCClass
 };
 
 const ClassesPage: React.FC = () => {

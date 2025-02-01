@@ -4,14 +4,14 @@ import React from "react";
 
 const DVDZipRequest: React.FC = () => {
   return (
-    <section className="py-16 px-8 bg-gray-900 text-white">
+    <section className="py-16 px-8 bg-yellow-50 text-black">
       <div className="max-w-6xl mx-auto">
         {/* 🌟 Título */}
         <h2 className="text-4xl font-extrabold text-center mb-6">
           Request Your Course Materials
         </h2>
-        <p className="text-lg text-gray-300 text-center max-w-2xl mx-auto">
-          Choose how you'd like to receive your course. You can pick up a DVD at
+        <p className="text-lg text-black text-center max-w-2xl mx-auto">
+          Choose how you did like to receive your course. You can pick up a DVD at
           our location or receive a downloadable ZIP/PDF with the course
           materials.
         </p>
@@ -19,7 +19,7 @@ const DVDZipRequest: React.FC = () => {
         {/* 📦 Opciones de Solicitud */}
         <div className="mt-10 flex flex-col md:flex-row items-center justify-center gap-8">
           {/* 🎥 Opción DVD */}
-          <div className="bg-gray-800 rounded-xl p-6 w-full md:w-1/2 text-center shadow-lg">
+          <div className="bg-blue-400 rounded-xl p-6 w-full md:w-1/2 text-center shadow-lg">
             <h3 className="text-2xl font-bold mb-3">📀 Pick Up Your DVD</h3>
             <p className="text-gray-300 mb-4">
               Visit our office during business hours to collect your course DVD.
