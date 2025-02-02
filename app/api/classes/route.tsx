@@ -13,10 +13,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "No hay clases registradas." }, { status: 404 });
     }
 
-    console.log("✅ Clases obtenidas:", classes);
     return NextResponse.json(classes);
   } catch (error) {
-    console.error("❌ Error en API /api/classes:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { message: "Error en el servidor al obtener clases", error: errorMessage },
