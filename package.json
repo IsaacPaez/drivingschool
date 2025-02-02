@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.10.6",
     "autoprefixer": "^10.4.20",
     "framer-motion": "^12.0.6",
     "mongoose": "^8.9.6",

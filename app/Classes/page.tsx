@@ -5,38 +5,51 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 
 const ClassesPage: React.FC = () => {
-  const [classList, setClassList] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState<any | null>(null);
+  const [classList, setClassList] = useState<Class[]>([]);
+  interface Class {
+    _id: string;
+    title: string;
+    alsoKnownAs?: string[];
+    image?: string;
+    length?: number;
+    price?: number;
+    overview: string;
+    objectives?: string[];
+    contact?: string;
+    buttonLabel?: string;
+  }
+
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
 
   useEffect(() => {
     const fetchClasses = async () => {
       try {
         const res = await fetch("/api/classes");
         const data = await res.json();
-        setClassList(data.sort((a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title))); // Ordenar alfabéticamente
+        setClassList(data.sort((a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title)));
 
         if (data.length > 0) {
-          setSelectedClass(data[0]); // Primera clase por defecto
+          setSelectedClass(data[0]); // Selecciona la primera clase por defecto
         }
-      } catch (error) {
-        console.error("Error al obtener las clases:", error);
-      }
+      } catch {}
     };
     fetchClasses();
   }, []);
 
   return (
-    <section className="bg-gray-100 pt-[150px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row flex-wrap gap-8">
+    <section className="bg-gray-100 pt-[120px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row flex-wrap gap-8 mt-10">
         
-        {/* 📌 COLUMNA IZQUIERDA: Lista de Clases */}
+        {/* 📌 Lista de Clases */}
         <motion.div
           className="w-full md:w-1/4 bg-white p-4 sm:p-6 rounded-xl shadow-lg border border-gray-200"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-900 text-center md:text-left">Available Classes</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-900 text-center md:text-left">
+            Available Classes
+          </h2>
           <div className="flex flex-col space-y-2">
             {classList.map((cls) => {
               const isSelected = selectedClass && selectedClass._id === cls._id;
@@ -44,12 +57,11 @@ const ClassesPage: React.FC = () => {
                 <button
                   key={cls._id}
                   onClick={() => setSelectedClass(cls)}
-                  className={`w-full text-left py-3 px-5 rounded-lg transition-all duration-200 border text-base sm:text-lg
-                    ${
-                      isSelected
-                        ? "bg-blue-600 text-white font-semibold border-blue-800 shadow-md"
-                        : "bg-gray-50 text-gray-800 hover:bg-blue-100 border-gray-200"
-                    }`}
+                  className={`w-full text-left py-3 px-5 rounded-lg transition-all duration-200 border text-base sm:text-lg ${
+                    isSelected
+                      ? "bg-blue-600 text-white font-semibold border-blue-800 shadow-md"
+                      : "bg-gray-50 text-gray-800 hover:bg-blue-100 border-gray-200"
+                  }`}
                 >
                   {cls.title}
                 </button>
@@ -58,9 +70,9 @@ const ClassesPage: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* 📌 COLUMNA DERECHA: Detalles de la Clase */}
+        {/* 📌 Detalles de la Clase */}
         <motion.div
-          className="flex-1 bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200"
+          className="flex-1 bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 mt-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -73,10 +85,9 @@ const ClassesPage: React.FC = () => {
               </h1>
 
               {/* 📌 TAMBIÉN CONOCIDO COMO */}
-              {selectedClass.alsoKnownAs?.length > 0 && (
+              {(selectedClass.alsoKnownAs?.length ?? 0) > 0 && (
                 <p className="text-base sm:text-lg text-gray-700 mb-2">
-                  <strong className="text-gray-900">Also Know Us:</strong>{" "}
-                  {selectedClass.alsoKnownAs.join(", ")}
+                  <strong className="text-gray-900">Also Know Us:</strong> {selectedClass.alsoKnownAs?.join(", ") ?? ""}
                 </p>
               )}
 
@@ -115,11 +126,11 @@ const ClassesPage: React.FC = () => {
               </p>
 
               {/* 📌 OBJETIVOS */}
-              {selectedClass.objectives?.length > 0 && (
+              {(selectedClass.objectives?.length ?? 0) > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">🎯 Class Objectives:</h3>
                   <ul className="list-disc pl-5 text-gray-700">
-                    {selectedClass.objectives.map((obj: string, index: number) => (
+                    {selectedClass.objectives?.map((obj: string, index: number) => (
                       <li key={index} className="mb-1">
                         {obj}
                       </li>

@@ -75,7 +75,7 @@ const HaverhillPage = ({ locationName = "Haverhill" }: { locationName?: string }
               </li>
               <li>
                 <Link href="/courses/senior-insurance-discount" className="text-blue-600 hover:underline">
-                  Senior's Insurance Discount Course
+                  Senior Insurance Discount Course
                 </Link>
               </li>
               <li>
