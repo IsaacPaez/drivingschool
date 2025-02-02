@@ -17,7 +17,7 @@ const Header = () => {
 
         {/* Botón de Login con Clerk */}
         <SignedOut>
-          <SignInButton>
+          <SignInButton mode="modal">
             <button className="bg-blue-800 text-white px-6 py-2 rounded-full font-semibold transition duration-300 hover:bg-green-500">
               Login
             </button>
