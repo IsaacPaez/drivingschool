@@ -4,21 +4,30 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ActionButton from "./ActionButton";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 
 const Header = () => {
   return (
     <header className="fixed top-0 left-0 w-full z-50">
       {/* Top Row with Phone and Login */}
       <div className="bg-transparent flex justify-center gap-4 items-center px-6 py-2 text-sm font-sans">
-        <span className="text-white">
+        <span className="text-blue-800 font-semibold">
           Phone: <strong className="font-semibold">561 330 7007</strong>
         </span>
-        <Link
-          href="/login"
-          className="text-blue-500 font-semibold hover:underline"
-        >
-          Login
-        </Link>
+
+        {/* Botón de Login con Clerk */}
+        <SignedOut>
+          <SignInButton>
+            <button className="bg-blue-800 text-white px-6 py-2 rounded-full font-semibold transition duration-300 hover:bg-green-500">
+              Login
+            </button>
+          </SignInButton>
+        </SignedOut>
+
+        {/* Menú de usuario cuando está autenticado */}
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" />
+        </SignedIn>
       </div>
 
       {/* Bottom Row with Logo and Navigation */}
