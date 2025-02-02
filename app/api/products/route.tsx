@@ -6,14 +6,14 @@ export async function GET(req: Request) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const category = searchParams.get("category"); // Obtiene el parámetro "category"
+    const category = searchParams.get("category"); 
 
     let products;
 
     if (category) {
-      products = await Product.find({ category }); // Filtrar por categoría si se proporciona
+      products = await Product.find({ category }).select("title description price buttonLabel media");
     } else {
-      products = await Product.find(); // Si no hay categoría, devuelve todo
+      products = await Product.find().select("title description price buttonLabel media");
     }
 
     console.log(`✅ Productos obtenidos (Categoría: ${category || "Todas"}):`, products);

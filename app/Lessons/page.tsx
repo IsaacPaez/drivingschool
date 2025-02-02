@@ -2,9 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Poppins } from "next/font/google";
-import { scrollToSection } from "./scrollToSection";
 import DrivingTestSection from "./DrivingTestSection";
 import CorporatePrograms from "./CorporatePrograms";
 import Link from "next/link";
@@ -17,16 +15,7 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-// Definir animación de rebote para los botones
-const bounceAnimation = {
-  y: [0, -10, 0], // Movimiento de rebote
-  transition: {
-    duration: 0.6,
-    repeat: Infinity,
-    repeatType: "loop",
-    ease: "easeInOut",
-  },
-};
+
 
 const LessonsPage = () => {
   return (
@@ -76,28 +65,7 @@ const LessonsPage = () => {
           {/* Sección de Learn Road Skills desde MongoDB */}
           <DrivingLessons category="Road Skills for Life" />
 
-          {/* 🎯 Botones animados alineados abajo con rebote corregido */}
-          <div className="mt-6 flex space-x-4 items-end">
-            <motion.button
-              animate={{ y: [1.5, -1.5, 1.5] }}
-              transition={bounceAnimation}
-              className="bg-[#27ae60] hover:bg-[#0056b3] text-white font-semibold py-3 px-8 text-lg rounded-full shadow-lg 
-                transition-all duration-500 transform hover:scale-105 hover:shadow-2xl"
-              onClick={() => scrollToSection("driving-test-section")}
-            >
-              Book Driving Test
-            </motion.button>
-
-            <motion.button
-              animate={{ y: [1.5, -1.5, 1.5] }}
-              transition={bounceAnimation}
-              className="border-2 border-gray-700 text-gray-800 hover:bg-[#0056b3] hover:text-white font-semibold py-3 px-8 text-lg rounded-full 
-                shadow-lg transition-all duration-500 transform hover:scale-105 hover:shadow-2xl"
-              onClick={() => scrollToSection("corporate-programs-section")}
-            >
-              Corporate Programs
-            </motion.button>
-          </div>
+          
         </div>
 
         {/* 🖼 Imagen con animación sutil y nueva disposición */}

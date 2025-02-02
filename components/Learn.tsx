@@ -43,30 +43,32 @@ const Learn = () => {
   ];
 
   return (
-    <section className="bg-white pt-4 pb-16">
-      {/* Ajustamos el margen del título para estar más arriba */}
-      <h2 className="text-4xl font-extrabold text-black text-center mb-14">
-        Why Learn With Us?
+    <section className="bg-white pt-10 pb-16">
+      {/* Título con margen superior para mejor separación */}
+      <h2 className="text-5xl text-center font-extrabold text-[#222] leading-tight mb-12">
+        <span className="text-[#27ae60]">WHY </span> LEARN WITH{" "}
+        <span className="text-[#0056b3]">US?</span>
       </h2>
-      {/* Ajustamos los cuadros para que ocupen más espacio */}
-      <div className="grid grid-cols-3 grid-rows-2 gap-8 max-w-7xl mx-auto">
+
+      {/* Contenedor flexible y responsive */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto px-6">
         {features.map((feature, index) => (
           <div
             key={index}
-            className="relative rounded-lg overflow-hidden shadow-lg group"
-            style={{
-              backgroundImage: `url(${feature.image})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              height: "250px", // Mantiene proporción rectangular
-              width: "100%", // Ajusta el ancho al contenedor
-            }}
+            className="relative rounded-lg overflow-hidden shadow-xl group transition-transform transform hover:scale-105"
           >
-            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="text-center text-white px-4">
-                <h3 className="text-lg font-bold">{feature.title}</h3>
-                <p className="text-sm">{feature.description}</p>
-              </div>
+            {/* Imagen de fondo ajustada para mejorar la visibilidad */}
+            <div
+              className="w-full h-56 sm:h-64 md:h-72 lg:h-80 bg-cover bg-center"
+              style={{
+                backgroundImage: `url(${feature.image})`,
+              }}
+            ></div>
+
+            {/* Superposición negra con animación de opacidad */}
+            <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col justify-center items-center text-center text-white p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <h3 className="text-lg font-bold">{feature.title}</h3>
+              <p className="text-sm mt-2">{feature.description}</p>
             </div>
           </div>
         ))}

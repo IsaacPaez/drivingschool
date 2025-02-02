@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import ActionButton from "./ActionButton";
 
 const Header = () => {
   return (
@@ -58,9 +57,13 @@ const Header = () => {
         </nav>
 
         {/* Book Now Button (con ID especial pero sin cambiar el texto) */}
-        <div className="">
-          <ActionButton type="book" id="Book Now Header" />
-        </div>
+        <div className="hidden md:block text-left">
+              <Link href="/Book-Now" passHref>
+                <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
+                  Book Now
+                </div>
+              </Link>
+            </div>
       </div>
     </header>
   );

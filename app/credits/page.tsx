@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 const CreditosBotopia = () => {
   
@@ -33,16 +34,17 @@ const CreditosBotopia = () => {
           >
             prueba
           </a>
-        </div>
       </div>
 
       {/* Decoración o ícono */}
-      <div className="mt-8 sm:mt-12">
-        <img
+        <Image
           src="/botopia.svg"
           alt="Botopia Logo"
-          className="mx-auto w-16 h-auto"
+          width={64}
+          height={64}
+          className="mx-auto"
         />
+        
       </div>
     </div>
   );
