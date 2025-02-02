@@ -56,7 +56,7 @@ const Page: React.FC = () => {
   return (
     <section className="bg-gray-100 pt-[170px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-12">
-        {/* Sidebar - Filtros */}
+        {/* 📌 SIDEBAR - FILTROS */}
         <motion.div
           className="w-full md:w-1/4 bg-white p-6 rounded-xl shadow-lg border border-gray-200"
           initial={{ opacity: 0, x: -20 }}
@@ -67,7 +67,7 @@ const Page: React.FC = () => {
 
           <button
             onClick={() => setSelectedCategory("all")}
-            className={`w-full text-left py-3 px-5 rounded-lg transition-all duration-200 border text-lg ${
+            className={`w-full text-left py-3 px-5 rounded-lg transition-all duration-200 border text-lg mb-3 ${
               selectedCategory === "all"
                 ? "bg-blue-600 text-white font-semibold border-blue-800 shadow-md"
                 : "bg-gray-50 text-gray-800 hover:bg-blue-100 border-gray-200"
@@ -76,12 +76,12 @@ const Page: React.FC = () => {
             All
           </button>
 
-          {/* Generar secciones dinámicamente según categorías */}
+          {/* 📌 GENERAR SECCIONES DINÁMICAMENTE SEGÚN CATEGORÍAS */}
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`w-full text-left py-3 px-5 rounded-lg transition-all duration-200 border text-lg ${
+              className={`w-full text-left py-3 px-5 rounded-lg transition-all duration-200 border text-lg mb-3 ${
                 selectedCategory === category
                   ? "bg-blue-600 text-white font-semibold border-blue-800 shadow-md"
                   : "bg-gray-50 text-gray-800 hover:bg-blue-100 border-gray-200"
@@ -91,7 +91,7 @@ const Page: React.FC = () => {
             </button>
           ))}
 
-          {/* Input de búsqueda */}
+          {/* 📌 INPUT DE BÚSQUEDA */}
           <div className="mt-6 relative">
             <input
               type="text"
@@ -104,14 +104,14 @@ const Page: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Resultados - Tarjetas */}
+        {/* 📌 RESULTADOS - TARJETAS */}
         <motion.div
           className="flex-1"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Grid de tarjetas */}
+          {/* 📌 GRID DE TARJETAS */}
           <motion.div
             className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
             initial={{ opacity: 0 }}
@@ -123,9 +123,9 @@ const Page: React.FC = () => {
                 key={item._id}
                 className="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex flex-col justify-between min-h-[500px] cursor-pointer hover:shadow-lg transition"
                 whileHover={{ scale: 1.05 }}
-                onClick={() => setSelectedItem(item)} // Abrir popup
+                onClick={() => setSelectedItem(item)} // 📌 ABRIR POPUP AL HACER CLIC
               >
-                {/* Imagen */}
+                {/* 📌 IMAGEN */}
                 <div className="relative w-full h-44 flex justify-center">
                   {item.media && item.media.length > 0 ? (
                     <Image
@@ -140,7 +140,7 @@ const Page: React.FC = () => {
                   )}
                 </div>
 
-                {/* Contenido */}
+                {/* 📌 CONTENIDO */}
                 <div className="flex-1 flex flex-col justify-between">
                   <h2 className="text-lg font-semibold text-center mt-3 text-gray-900">
                     {item.title}
@@ -148,7 +148,7 @@ const Page: React.FC = () => {
                   <p className="text-xl font-bold text-blue-600 mt-2">${item.price.toFixed(2)}</p>
                 </div>
 
-                {/* Botón dentro de la tarjeta */}
+                {/* 📌 BOTÓN DENTRO DE LA TARJETA */}
                 <button
                   className="mt-4 bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-blue-700 transition text-lg w-full"
                 >
@@ -160,7 +160,7 @@ const Page: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Popup modal */}
+      {/* 📌 POPUP MODAL */}
       {selectedItem && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <motion.div
@@ -176,7 +176,7 @@ const Page: React.FC = () => {
               <FaTimes size={24} />
             </button>
 
-            {/* Imagen en el popup */}
+            {/* 📌 IMAGEN EN EL POPUP */}
             {selectedItem.media && selectedItem.media.length > 0 && (
               <Image
                 src={selectedItem.media[0]}
