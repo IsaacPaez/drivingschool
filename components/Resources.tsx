@@ -2,17 +2,19 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
+
 
 const Resources = () => {
   const resources = [
-    { title: "FAQ", image: "/pregunta.png" },
-    { title: "FL Drivers License Check", image: "/lupa.jpg" },
+    { title: "FAQ", image: "/pregunta.png", href: "/FAQ" }, // 📌 Agregamos href para FAQ
+    { title: "FL Drivers License Check", image: "/lupa.jpg", href: "https://services.flhsmv.gov/DLCheck/" },
     { title: "License & ID Requirements", image: "/licenciajpg.jpg" },
-    { title: "Florida DMV", image: "/bucle.jpg" },
-    { title: "DMV Appointment", image: "/conojpg.jpg" },
+    { title: "Florida DMV", image: "/bucle.jpg", href: "https://www.flhsmv.gov/" },
+    { title: "DMV Appointment", image: "/conojpg.jpg", href: "https://www.flhsmv.gov/locations/" },
     { title: "FL Drivers License Handbook (ENG)", image: "/Manuales1.jpg" },
     { title: "FL Manual De Manejo (ESP)", image: "/manual2.1.jpg" },
-    { title: "Forms", image: "/forms1.jpg" },
+    { title: "Forms", image: "/forms1.jpg", href: "https://www.flhsmv.gov/forms/" },
   ];
 
   return (
@@ -30,14 +32,23 @@ const Resources = () => {
               <Image
                 src={resource.image}
                 alt={resource.title}
-                width={100} // Ajusta el tamaño de las imágenes según sea necesario
+                width={100}
                 height={100}
                 className="object-contain"
               />
             </div>
-            <h3 className="text-lg font-bold text-black hover:text-[#0056b3] transition-colors duration-300">
-              {resource.title}
-            </h3>
+            {/* 📌 Si el recurso es FAQ, lo envolvemos en un Link */}
+            {resource.href ? (
+              <Link href={resource.href} scroll={true}>
+                <h3 className="text-lg font-bold text-black hover:text-[#0056b3] transition-colors duration-300 cursor-pointer">
+                  {resource.title}
+                </h3>
+              </Link>
+            ) : (
+              <h3 className="text-lg font-bold text-black hover:text-[#0056b3] transition-colors duration-300">
+                {resource.title}
+              </h3>
+            )}
           </div>
         ))}
       </div>
