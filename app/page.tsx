@@ -12,7 +12,9 @@ export default function Home() {
       <Hero />
       <Body />
       <Learn />
+      <div className="bg-gray-500">
       <DrivingLessons category="General" />
+      </div>
       <TrafficCourses />
       <Resources />
       <AreasWeServe />
