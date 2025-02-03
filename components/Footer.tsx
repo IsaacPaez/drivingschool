@@ -3,104 +3,100 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { FaFacebook, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
 
 const Footer = () => {
   return (
-    <footer className="bg-[#f8f9fa] py-1">
-      <div className="max-w-6xl mx-auto px-5">
-        {/* Contenedor Principal */}
-        <div className="flex flex-wrap justify-between items-center md:space-y-0">
-          {/* Sección Izquierda */}
-          <div className="text-center flex flex-col items-center mt-4">
-            <Image
-              src="/DV-removebg-preview.png"
-              alt="Logo"
-              width={100}
-              height={100}
-              className="mx-auto"
-            />
-            <h2 className="text-xl font-bold mt-2 text-black leading-tight text-center">
-              Affordable Driving <br /> Traffic School
-            </h2>
-            <Link
-              href="/book-now"
-              className="bg-blue-600 text-white font-bold px-6 py-2 mt-4 rounded-full inline-block hover:bg-[#27ae60]"
-            >
-              Book Now
-            </Link>
-          </div>
+    <footer className="relative bg-gradient-to-br from-[#0056b3] to-black text-white py-12">
+      {/* 🔹 Fondo con efecto Glassmorphism (Margen inferior añadido) */}
+      <div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-3xl mx-6 mt-6 mb-6 shadow-lg border border-white/20"></div>
 
-          {/* Sección Central */}
-          <div className="text-center md:text-left mt-6 md:mt-0">
-            <h3 className="text-lg font-bold mb-4 text-black">Navigation</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/lessons"
-                  className="text-black hover:underline hover:text-blue-600"
-                >
-                  Lessons
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/courses"
-                  className="text-black hover:underline hover:text-blue-600"
-                >
-                  Courses
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/terms-of-service"
-                  className="text-black hover:underline hover:text-blue-600"
-                >
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/privacy-policy"
-                  className="text-black hover:underline hover:text-blue-600"
-                >
-                  Privacy Policy
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Sección Derecha */}
-          <div className="text-center md:text-left mt-6 md:mt-0">
-            <h3 className="text-lg font-bold mb-4 text-black">Contact Us</h3>
-            <ul className="space-y-2 text-black">
-              <li>West Palm Beach, FL</li>
-              <li>
-                <a
-                  href="mailto:info@drivingschoolpalmbeach.com"
-                  className="text-black hover:underline hover:text-blue-600"
-                >
-                  info@drivingschoolpalmbeach.com
-                </a>
-              </li>
-              <li>561 330 7007</li>
-              <li>
-                <a
-                  href="https://www.facebook.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-black hover:underline hover:text-blue-600"
-                >
-                  Facebook
-                </a>
-              </li>
-            </ul>
-          </div>
+      <div className="relative max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10 items-center z-10">
+        {/* 🔹 Sección Izquierda - Logo y Booking */}
+        <div className="flex flex-col items-center text-center">
+          <Image
+            src="/DV-removebg-preview.png"
+            alt="Logo"
+            width={120}
+            height={120}
+            className="mb-4 brightness-110 drop-shadow-lg"
+          />
+          <h2 className="text-2xl font-extrabold tracking-widest text-white">
+            Affordable Driving <br /> Traffic School
+          </h2>
+          <Link
+            href="/book-now"
+            className="mt-6 bg-gradient-to-r from-[#0056b3] to-[#27ae60] text-white font-bold px-6 py-3 rounded-full transition-all duration-500 transform hover:scale-105 hover:shadow-lg hover:shadow-[#27ae60]"
+          >
+            Book Now
+          </Link>
         </div>
 
-        {/* Línea Inferior */}
-        <div className="mt-4 text-center text-sm text-gray-600">
-          Powered by BookingTimes.com
+        {/* 🔹 Sección Central - Navegación con efecto Glow */}
+        <div className="text-center">
+          <h3 className="text-xl font-bold mb-4 uppercase tracking-widest text-[#27ae60]">
+            Navigation
+          </h3>
+          <ul className="space-y-3 text-lg">
+            <li>
+              <Link href="/lessons" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
+                Lessons
+              </Link>
+            </li>
+            <li>
+              <Link href="/courses" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
+                Courses
+              </Link>
+            </li>
+            <li>
+              <Link href="/terms-of-service" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
+                Terms of Service
+              </Link>
+            </li>
+            <li>
+              <Link href="/privacy-policy" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
+                Privacy Policy
+              </Link>
+            </li>
+          </ul>
         </div>
+
+        {/* 🔹 Sección Derecha - Contacto y Redes Sociales con Neon Effect */}
+        <div className="text-center">
+          <h3 className="text-xl font-bold mb-4 uppercase tracking-widest text-[#27ae60]">
+            Contact Us
+          </h3>
+          <ul className="space-y-3 text-lg">
+            <li>West Palm Beach, FL</li>
+            <li>
+              <a href="mailto:info@drivingschoolpalmbeach.com" className="hover:text-[#00d4ff] transition-all duration-300">
+                info@drivingschoolpalmbeach.com
+              </a>
+            </li>
+            <li>📞 561 330 7007</li>
+          </ul>
+
+          {/* 🔹 Redes Sociales con efecto Glow */}
+          <div className="flex justify-center space-x-5 mt-5">
+            <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#3b5998] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
+              <FaFacebook />
+            </a>
+            <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#E1306C] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
+              <FaInstagram />
+            </a>
+            <a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#1DA1F2] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
+              <FaTwitter />
+            </a>
+            <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#FF0000] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
+              <FaYoutube />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* 🔹 Derechos de Autor (Centrado completamente en el contenedor) */}
+      <div className="relative text-center text-gray-400 text-sm mt-10 pb-4">
+        &copy; {new Date().getFullYear()} Powered By Botopia Technology S.A.S
       </div>
     </footer>
   );
