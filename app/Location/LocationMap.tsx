@@ -4,14 +4,13 @@ import React from "react";
 
 const LocationMap: React.FC = () => {
   return (
-    <div className="w-full md:w-3/4 h-96 rounded-lg overflow-hidden shadow-lg">
+    <div>
       <iframe
         title="Driving School Locations"
-        src="https://www.google.com/maps/d/embed?mid=1dJlI4dwjiHGmIot1V3yn9zEcefOkMEg&ehbc=2E312F&noprof=1"
-        width="100%"
-        height="100%"
+        src="https://www.google.co.nz/maps/d/embed?mid=1YX9aMhL_FOvws9x6haE02QOE_mYtvpYQ&ehbc=2E312F"
+        width="540"
+        height="480"
         className="border-0"
-        allowFullScreen
       ></iframe>
       <p className="text-center text-sm text-blue-600 mt-2">
         <a
