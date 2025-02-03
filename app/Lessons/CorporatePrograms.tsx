@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { Poppins } from "next/font/google";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 // Fuente moderna y elegante
 const poppins = Poppins({
@@ -67,19 +68,19 @@ const CorporatePrograms = () => {
           <div className="flex flex-col space-y-6">
             {/* 🔹 Contacto con enlace azul SOLO en "Contact us" */}
             <p className="text-base font-semibold text-black">
-              <a href="#contact" className="text-[#0056b3] hover:underline">
+              <Link href="/contact" className="text-[#0056b3] hover:underline">
                 Contact us
-              </a>{" "}
+              </Link>{" "}
               for more information
             </p>
 
-            {/* 🔹 Botón con más margen */}
-            <a
-              href="#contact"
+            {/* Botón de "Inquire Now" */}
+            <Link
+              href="/contact"
               className="bg-[#0056b3] text-white font-semibold px-6 py-2 w-fit rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
             >
               Inquire Now
-            </a>
+            </Link>
           </div>
         </motion.div>
 

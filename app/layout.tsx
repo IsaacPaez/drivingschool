@@ -4,6 +4,7 @@ import "./globals.css";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { ClerkProvider } from "@clerk/nextjs";
+import { CartProvider } from "@/app/context/CartContext";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -27,16 +28,18 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
-        <body className="antialiased">
-          <Header /> {/* Encabezado con navegación */}
-          <main className="min-h-screen">
-            {children}{" "}
-            {/* Aquí se carga el contenido dinámico de cada página */}
-          </main>
-          <Footer /> {/* Pie de página */}
-        </body>
-      </html>
+      <CartProvider>
+        <html lang="en">
+          <body className="antialiased">
+            <Header /> {/* Encabezado con navegación */}
+            <main className="min-h-screen">
+              {children}{" "}
+              {/* Aquí se carga el contenido dinámico de cada página */}
+            </main>
+            <Footer /> {/* Pie de página */}
+          </body>
+        </html>
+      </CartProvider>
     </ClerkProvider>
   );
 }
