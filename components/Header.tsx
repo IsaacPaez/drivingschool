@@ -4,13 +4,15 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
-
+import { usePathname } from "next/navigation"; // Importamos usePathname para saber la ruta actual
 
 const Header = () => {
+  const pathname = usePathname(); // Obtenemos la ruta actual
+
   return (
     <header className="fixed top-0 left-0 w-full z-50">
       {/* Top Row with Phone and Login */}
-      <div className="bg-transparent flex justify-center gap-4 items-center px-6 py-2 text-sm font-sans">
+      <div className="bg-transparent flex justify-center gap-4 items-center px-6 py-1 text-sm font-sans">
         <span className="text-blue-800 font-semibold">
           Phone: <strong className="font-semibold">561 330 7007</strong>
         </span>
@@ -18,9 +20,11 @@ const Header = () => {
         {/* Botón de Login con Clerk */}
         <SignedOut>
           <SignInButton>
-            <button className="bg-blue-800 text-white px-6 py-2 rounded-full font-semibold transition duration-300 hover:bg-green-500">
+          <div className="hidden md:block text-left">
+            <button className="bg-[#0056b3] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
               Login
             </button>
+          </div>
           </SignInButton>
         </SignedOut>
 
@@ -59,21 +63,25 @@ const Header = () => {
             <Link
               key={item.href}
               href={item.href}
-              className="text-gray-800 font-medium hover:text-green-600 transition"
+              className={`font-medium transition ${
+                pathname === item.href
+                  ? "text-[#27ae60] font-bold" // Si la ruta es la actual, poner en verde y en negrita
+                  : "text-gray-800 hover:text-green-600"
+              }`}
             >
               {item.name}
             </Link>
           ))}
         </nav>
 
-        {/* Book Now Button (con ID especial pero sin cambiar el texto) */}
+        {/* Book Now Button */}
         <div className="hidden md:block text-left">
-              <Link href="/Book-Now" passHref>
-                <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
-                  Book Now
-                </div>
-              </Link>
+          <Link href="/Book-Now" passHref>
+            <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
+              Book Now
             </div>
+          </Link>
+        </div>
       </div>
     </header>
   );
