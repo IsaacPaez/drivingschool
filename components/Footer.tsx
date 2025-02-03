@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { FaFacebook, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
+import { FaFacebook, FaInstagram, } from "react-icons/fa";
 
 const Footer = () => {
   return (
@@ -39,22 +39,22 @@ const Footer = () => {
           </h3>
           <ul className="space-y-3 text-lg">
             <li>
-              <Link href="/lessons" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
+              <Link href="/Lessons" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
                 Lessons
               </Link>
             </li>
             <li>
-              <Link href="/courses" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
+              <Link href="/Classes" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
                 Courses
               </Link>
             </li>
             <li>
-              <Link href="/terms-of-service" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
+              <Link href="/TermsOfServices" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
                 Terms of Service
               </Link>
             </li>
             <li>
-              <Link href="/privacy-policy" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
+              <Link href="/PrivacyPolicy" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
                 Privacy Policy
               </Link>
             </li>
@@ -67,9 +67,13 @@ const Footer = () => {
             Contact Us
           </h3>
           <ul className="space-y-3 text-lg">
-            <li>West Palm Beach, FL</li>
             <li>
-              <a href="mailto:info@drivingschoolpalmbeach.com" className="hover:text-[#00d4ff] transition-all duration-300">
+              <a href="/Location" className="hover:text-[#27ae60] transition-all duration-300">
+              West Palm Beach, FL
+              </a>
+              </li>
+            <li>
+              <a href="/contact" className="hover:text-[#27ae60] transition-all duration-300">
                 info@drivingschoolpalmbeach.com
               </a>
             </li>
@@ -78,18 +82,13 @@ const Footer = () => {
 
           {/* 🔹 Redes Sociales con efecto Glow */}
           <div className="flex justify-center space-x-5 mt-5">
-            <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#3b5998] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
+            <a href="https://www.facebook.com/AffordableDrivingTrafficSchool/" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#3b5998] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
               <FaFacebook />
             </a>
-            <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#E1306C] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
+            <a href="https://www.instagram.com/adtrafficschool/" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#E1306C] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
               <FaInstagram />
             </a>
-            <a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#1DA1F2] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
-              <FaTwitter />
-            </a>
-            <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" className="text-white text-2xl hover:text-[#FF0000] transition duration-300 hover:scale-125 hover:drop-shadow-lg">
-              <FaYoutube />
-            </a>
+           
           </div>
         </div>
       </div>
