@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import OnlineCourses from "@/models/OnlineCourses";
 
-export async function GET(_req: Request) {
+export async function GET() {  // <-- Eliminamos el parámetro no utilizado
   try {
     await connectDB();
 
-    // Obtiene solo los campos relevantes del modelo
     const courses = await OnlineCourses.find(
       {},
       "title description image hasPrice price type buttonLabel"

@@ -1,17 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import LocationMap from "./LocationMap";
 import Modal from "@/components/Modal";
 
-/** Interfaz para un instructor */
 interface Instructor {
   _id: string;
   name: string;
   image?: string;
 }
 
-/** Interfaz para las Zonas/Lugares */
 interface Zone {
   _id: string;
   title: string;
@@ -21,17 +20,10 @@ interface Zone {
   instructors?: Instructor[];
 }
 
-/** El componente principal */
 const LocationPage: React.FC = () => {
-  // Tipamos el estado como "Zone | null"
   const [location, setLocation] = useState<Zone | null>(null);
-
-  // Tipamos el estado como "Zone[]"
   const [zones, setZones] = useState<Zone[]>([]);
-
-  // Tipamos el estado como "Zone | null"  
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
-
   const [showZones, setShowZones] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +31,6 @@ const LocationPage: React.FC = () => {
     const fetchLocation = async () => {
       try {
         const res = await fetch("/api/locations");
-        // Tipamos la respuesta como Zone[] si sabemos que es un array de objetos "Zone"
         const data: Zone[] = await res.json();
 
         if (Array.isArray(data) && data.length > 0) {
@@ -64,9 +55,7 @@ const LocationPage: React.FC = () => {
         ) : (
           location && (
             <>
-              {/* Tu contenido principal, usando 'location', 'zones', etc. */}
               <div className="flex flex-col md:flex-row gap-8">
-                {/* Ejemplo del mapa y datos */}
                 <div className="w-full md:w-1/2 flex items-center">
                   <div className="w-full h-64 md:h-[400px] rounded-lg overflow-hidden">
                     <LocationMap />
@@ -138,14 +127,12 @@ const LocationPage: React.FC = () => {
                 </div>
               )}
 
-              {/* EJEMPLO DE MODAL */}
               {selectedZone && (
                 <Modal
                   isOpen={selectedZone !== null}
                   onClose={() => setSelectedZone(null)}
                 >
                   <div className="p-6 bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto relative">
-                    {/* Botón de cierre */}
                     <button
                       className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-2xl"
                       onClick={() => setSelectedZone(null)}
@@ -153,16 +140,18 @@ const LocationPage: React.FC = () => {
                       ×
                     </button>
 
-                    {/* Imagen principal */}
                     {selectedZone.locationImage && (
-                      <img
-                        src={selectedZone.locationImage}
-                        alt={selectedZone.title}
-                        className="w-full h-72 object-cover rounded-lg shadow-md"
-                      />
+                      <div className="w-full h-72 relative rounded-lg shadow-md">
+                        <Image
+                          src={selectedZone.locationImage}
+                          alt={selectedZone.title}
+                          fill
+                          className="object-cover rounded-lg"
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                        />
+                      </div>
                     )}
 
-                    {/* Contenido */}
                     <div className="p-4">
                       <h2 className="text-3xl font-bold text-gray-900 text-center mt-4 mb-6">
                         {selectedZone.title}
@@ -173,16 +162,13 @@ const LocationPage: React.FC = () => {
                           {selectedZone.description}
                         </p>
 
-                        {/* Información de Contacto + Horarios */}
                         <div className="p-5 bg-gray-50 rounded-lg shadow-md border border-gray-200">
                           <h3 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
                             📍 Location Info
                           </h3>
-                          {/* ... etc ... */}
                         </div>
                       </div>
 
-                      {/* Mapa */}
                       <div className="w-full h-64 md:h-80 rounded-lg overflow-hidden border border-gray-300 shadow-md mt-6">
                         <iframe
                           src={`https://www.google.com/maps?q=${encodeURIComponent(
@@ -195,7 +181,6 @@ const LocationPage: React.FC = () => {
                         ></iframe>
                       </div>
 
-                      {/* Instructores */}
                       <div className="mt-6">
                         <h3 className="text-2xl font-semibold text-gray-900 text-center mb-4">
                           Instructors
@@ -206,15 +191,19 @@ const LocationPage: React.FC = () => {
                               key={instructor._id}
                               className="text-center p-4 border rounded-lg shadow-sm bg-white flex flex-col items-center"
                             >
-                              <img
-                                src={instructor.image || "/default-avatar.png"}
-                                alt={instructor.name}
-                                className="w-24 h-24 mx-auto rounded-full border border-gray-300 shadow-sm"
-                              />
+                              <div className="w-24 h-24 mx-auto relative">
+                                <Image
+                                  src={instructor.image || "/default-avatar.png"}
+                                  alt={instructor.name}
+                                  width={96}
+                                  height={96}
+                                  className="rounded-full border border-gray-300 shadow-sm object-cover"
+                                  sizes="(max-width: 768px) 96px, 96px"
+                                />
+                              </div>
                               <p className="text-gray-900 mt-2 font-semibold text-center min-h-[3rem] flex items-center justify-center">
                                 {instructor.name}
                               </p>
-                              {/* Botón de Book */}
                               <button className="mt-auto w-full max-w-[160px] h-[50px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center">
                                 <span>Book</span>
                                 <span>{instructor.name.split(" ")[0]}</span>
