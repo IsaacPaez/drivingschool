@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Classes from "@/models/Classes";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     await connectDB();
-
-    // Obtiene todos los campos del modelo, incluyendo los arrays
-    const classes = await Classes.find({}, "title alsoKnownAs length price overview objectives contact image buttonLabel");
+    const classes = await Classes.find(
+      {},
+      "title alsoKnownAs length price overview objectives contact image buttonLabel"
+    );
 
     if (!classes || classes.length === 0) {
       return NextResponse.json({ message: "No hay clases registradas." }, { status: 404 });
@@ -22,3 +23,4 @@ export async function GET(req: Request) {
     );
   }
 }
+
