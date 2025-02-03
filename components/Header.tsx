@@ -23,10 +23,12 @@ const Header = () => {
 
         {/* Botón de Login con Clerk */}
         <SignedOut>
-          <SignInButton mode="modal">
-            <button className="bg-blue-800 text-white px-6 py-2 rounded-full font-semibold transition duration-300 hover:bg-green-500">
-              Login
-            </button>
+          <SignInButton>
+            <div className="hidden md:block text-left">
+              <button className="bg-[#0056b3] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
+                Login
+              </button>
+            </div>
           </SignInButton>
         </SignedOut>
 
@@ -68,13 +70,18 @@ const Header = () => {
             <Link
               key={item.href}
               href={item.href}
-              className="text-gray-800 font-medium hover:text-green-600 transition"
+              className={`font-medium transition ${
+                pathname === item.href
+                  ? "text-[#27ae60] font-bold" // Si la ruta es la actual, poner en verde y en negrita
+                  : "text-gray-800 hover:text-green-600"
+              }`}
             >
               {item.name}
             </Link>
           ))}
         </nav>
 
+        {/* Book Now Button */}
         {/* Book Now Button */}
         <div className="hidden md:block text-left">
           <Link href="/Book-Now" passHref>

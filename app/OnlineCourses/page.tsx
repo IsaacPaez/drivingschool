@@ -6,9 +6,17 @@ import { motion } from "framer-motion";
 import { FaTimes } from "react-icons/fa";
 
 const OnlineCoursesPage: React.FC = () => {
-  const [courses, setCourses] = useState<any[]>([]);
+  interface Course {
+    _id: string;
+    image?: string;
+    title: string;
+    description: string;
+    buttonLabel?: string;
+  }
+
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
   useEffect(() => {
     const fetchCourses = async () => {

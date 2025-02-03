@@ -1,10 +1,13 @@
 import mongoose from "mongoose";
 
-const LearnRoadSchema = new mongoose.Schema({
-  title: String,
-  description: String,
-  price: Number,
-  buttonLabel: String,
-}, { collection: "learnroad" }); // 🔹 Nombre de la colección en MongoDB
+const CollectionSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  price: { type: Number, required: true },
+  buttonLabel: { type: String, default: "Buy Now" },
+  media: { type: [String], default: [] },
+});
 
-export default mongoose.models.LearnRoad || mongoose.model("LearnRoad", LearnRoadSchema);
+const Collection = mongoose.models.Collection || mongoose.model("Collection", CollectionSchema);
+
+export default Collection;

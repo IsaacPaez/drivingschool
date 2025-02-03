@@ -1,6 +1,11 @@
 "use client";
 
 import React from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Pagination, Autoplay, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
 
 const Learn = () => {
   const features = [
@@ -50,28 +55,54 @@ const Learn = () => {
         <span className="text-[#0056b3]">US?</span>
       </h2>
 
-      {/* Contenedor flexible y responsive */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto px-6">
-        {features.map((feature, index) => (
-          <div
-            key={index}
-            className="relative rounded-lg overflow-hidden shadow-xl group transition-transform transform hover:scale-105"
-          >
-            {/* Imagen de fondo ajustada para mejorar la visibilidad */}
-            <div
-              className="w-full h-56 sm:h-64 md:h-72 lg:h-80 bg-cover bg-center"
-              style={{
-                backgroundImage: `url(${feature.image})`,
-              }}
-            ></div>
+      {/* Swiper Carrusel */}
+      <div className="max-w-7xl mx-auto px-6 relative">
+        <Swiper
+          modules={[Pagination, Autoplay, Navigation]}
+          spaceBetween={20}
+          slidesPerView={1}
+          breakpoints={{
+            640: { slidesPerView: 1 },
+            768: { slidesPerView: 2 },
+            1024: { slidesPerView: 3 },
+          }}
+          pagination={{ clickable: true }}
+          autoplay={{ delay: 3000, disableOnInteraction: false }}
+          navigation={{
+            nextEl: ".swiper-button-next-custom",
+            prevEl: ".swiper-button-prev-custom",
+          }}
+          loop
+          className="w-full"
+        >
+          {features.map((feature, index) => (
+            <SwiperSlide key={index}>
+              <div className="relative rounded-lg overflow-hidden shadow-xl group transition-transform transform hover:scale-105">
+                {/* Imagen de fondo */}
+                <div
+                  className="w-full h-56 sm:h-64 md:h-72 lg:h-80 bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${feature.image})`,
+                  }}
+                ></div>
 
-            {/* Superposición negra con animación de opacidad */}
-            <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col justify-center items-center text-center text-white p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <h3 className="text-lg font-bold">{feature.title}</h3>
-              <p className="text-sm mt-2">{feature.description}</p>
-            </div>
-          </div>
-        ))}
+                {/* Superposición negra con animación de opacidad */}
+                <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col justify-center items-center text-center text-white p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <h3 className="text-lg font-bold">{feature.title}</h3>
+                  <p className="text-sm mt-2">{feature.description}</p>
+                </div>
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+
+        {/* Flechas minimalistas */}
+        <div className="swiper-button-prev-custom absolute left-0 top-1/2 transform -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition">
+          <span className="text-2xl text-[#0056b3] hover:text-white font-bold">‹</span>
+        </div>
+        <div className="swiper-button-next-custom absolute right-0 top-1/2 transform -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition">
+          <span className="text-2xl text-[#0056b3] hover:text-white font-bold">›</span>
+        </div>
       </div>
     </section>
   );
