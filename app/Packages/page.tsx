@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { FaSearch, FaTimes } from "react-icons/fa";
+import AuthenticatedButton from "@/components/AuthenticatedButton"; // ✅ Importamos el botón autenticado
 
 const Page: React.FC = () => {
   const [data, setData] = useState<any[]>([]);
@@ -46,7 +47,8 @@ const Page: React.FC = () => {
 
     if (selectedCategory !== "all") {
       filtered = filtered.filter(
-        (item) => item.category?.toLowerCase() === selectedCategory.toLowerCase()
+        (item) =>
+          item.category?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
@@ -136,7 +138,9 @@ const Page: React.FC = () => {
                       className="rounded-lg object-cover w-full h-full"
                     />
                   ) : (
-                    <p className="text-gray-500 italic text-sm">No image available</p>
+                    <p className="text-gray-500 italic text-sm">
+                      No image available
+                    </p>
                   )}
                 </div>
 
@@ -145,57 +149,26 @@ const Page: React.FC = () => {
                   <h2 className="text-lg font-semibold text-center mt-3 text-gray-900">
                     {item.title}
                   </h2>
-                  <p className="text-xl font-bold text-blue-600 mt-2">${item.price.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-blue-600 mt-2">
+                    ${item.price.toFixed(2)}
+                  </p>
                 </div>
 
                 {/* 📌 BOTÓN DENTRO DE LA TARJETA */}
-                <button
-                  className="mt-4 bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-blue-700 transition text-lg w-full"
-                >
-                  {item.buttonLabel || "Add to Cart"}
-                </button>
+                <AuthenticatedButton
+                  type="buy"
+                  actionData={{
+                    itemId: item._id,
+                    title: item.title,
+                    price: item.price,
+                  }}
+                  label={item.buttonLabel || "Add to Cart"}
+                />
               </motion.div>
             ))}
           </motion.div>
         </motion.div>
       </div>
-
-      {/* 📌 POPUP MODAL */}
-      {selectedItem && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <motion.div
-            className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md relative"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
-              onClick={() => setSelectedItem(null)}
-            >
-              <FaTimes size={24} />
-            </button>
-
-            {/* 📌 IMAGEN EN EL POPUP */}
-            {selectedItem.media && selectedItem.media.length > 0 && (
-              <Image
-                src={selectedItem.media[0]}
-                alt={selectedItem.title}
-                width={400}
-                height={250}
-                className="rounded-lg object-cover w-full mb-4"
-              />
-            )}
-
-            <h2 className="text-2xl font-bold text-gray-900">{selectedItem.title}</h2>
-            <p className="text-lg text-gray-700 mt-2">${selectedItem.price.toFixed(2)}</p>
-
-            <button className="mt-4 bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition w-full">
-              {selectedItem.buttonLabel || "Add to Cart"}
-            </button>
-          </motion.div>
-        </div>
-      )}
     </section>
   );
 };

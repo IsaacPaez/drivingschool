@@ -7,7 +7,7 @@ const LocationMap: React.FC = () => {
     <div className="w-full md:w-3/4 h-96 rounded-lg overflow-hidden shadow-lg">
       <iframe
         title="Driving School Locations"
-        src="https://www.google.com/maps/d/u/0/embed?mid=17fL0-npFO8UAPBJw1y2o-6wNpus9FNE&ehbc=2E312F"
+        src="https://www.google.com/maps/d/embed?mid=1dJlI4dwjiHGmIot1V3yn9zEcefOkMEg&ehbc=2E312F&noprof=1"
         width="100%"
         height="100%"
         className="border-0"
