@@ -7,7 +7,7 @@ export async function GET(req: Request) {
     await connectDB();
 
     // Obtener todos los paquetes con los campos necesarios
-    const packages = await Packages.find({}, "title media price category type buttonLabel");
+    const packages = await Packages.find({}, "title description media price category type buttonLabel");
 
     if (!packages || packages.length === 0) {
       return NextResponse.json({ message: "No packages found." }, { status: 404 });

@@ -14,7 +14,8 @@ export async function GET(req: Request) {
       query = { zone: decodeURIComponent(zone) };
     }
 
-    const locations = await Locations.find(query);
+    // ✅ Aseguramos que se obtienen todos los datos correctamente
+    const locations = await Locations.find(query).lean();
 
     if (!locations || locations.length === 0) {
       return NextResponse.json({ message: "No locations found." }, { status: 404 });
