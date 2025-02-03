@@ -6,12 +6,21 @@ import { motion } from "framer-motion";
 import { FaSearch, FaTimes } from "react-icons/fa";
 
 const Page: React.FC = () => {
-  const [data, setData] = useState<any[]>([]);
-  const [filteredData, setFilteredData] = useState<any[]>([]);
+  interface Package {
+    _id: string;
+    title: string;
+    category: string;
+    media: string[];
+    price: number;
+    buttonLabel?: string;
+  }
+
+  const [data, setData] = useState<Package[]>([]);
+  const [filteredData, setFilteredData] = useState<Package[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Package | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
