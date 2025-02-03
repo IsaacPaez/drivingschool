@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
+import AuthenticatedButton from "@/components/AuthenticatedButton"; // ✅ Botón autenticado
 
 const Page: React.FC = () => {
   interface Package {
@@ -16,11 +17,11 @@ const Page: React.FC = () => {
   }
 
   const [data, setData] = useState<Package[]>([]);
+
   const [filteredData, setFilteredData] = useState<Package[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedItem, setSelectedItem] = useState<Package | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,7 +39,9 @@ const Page: React.FC = () => {
           );
           setCategories(uniqueCategories);
         }
-      } catch {}
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
     };
     fetchData();
   }, []);
@@ -61,6 +64,11 @@ const Page: React.FC = () => {
 
     setFilteredData(filtered);
   }, [searchQuery, selectedCategory, data]);
+
+  const setSelectedItem = (item: Package) => {
+    // Implement the function logic here
+    console.log("Selected item:", item);
+  };
 
   return (
     <section className="bg-gray-100 pt-[170px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
@@ -130,9 +138,10 @@ const Page: React.FC = () => {
             {filteredData.map((item) => (
               <motion.div
                 key={item._id}
-                className="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex flex-col justify-between min-h-[500px] cursor-pointer hover:shadow-lg transition"
+                className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 cursor-pointer"
                 whileHover={{ scale: 1.05 }}
-                onClick={() => setSelectedItem(item)} // 📌 ABRIR POPUP AL HACER CLIC
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedItem(item)}
               >
                 {/* 📌 IMAGEN */}
                 <div className="relative w-full h-44 flex justify-center">
@@ -145,7 +154,9 @@ const Page: React.FC = () => {
                       className="rounded-lg object-cover w-full h-full"
                     />
                   ) : (
-                    <p className="text-gray-500 italic text-sm">No image available</p>
+                    <p className="text-gray-500 italic text-sm">
+                      No image available
+                    </p>
                   )}
                 </div>
 
@@ -154,57 +165,26 @@ const Page: React.FC = () => {
                   <h2 className="text-lg font-semibold text-center mt-3 text-gray-900">
                     {item.title}
                   </h2>
-                  <p className="text-xl font-bold text-blue-600 mt-2">${item.price.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-blue-600 mt-2">
+                    ${typeof item.price === "number" ? item.price.toFixed(2) : "0.00"}
+                  </p>
                 </div>
 
                 {/* 📌 BOTÓN DENTRO DE LA TARJETA */}
-                <button
-                  className="mt-4 bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-blue-700 transition text-lg w-full"
-                >
-                  {item.buttonLabel || "Add to Cart"}
-                </button>
+                <AuthenticatedButton
+                  type="buy"
+                  actionData={{
+                    itemId: item._id,
+                    title: item.title,
+                    price: item.price,
+                  }}
+                  label={item.buttonLabel || "Add to Cart"}
+                />
               </motion.div>
             ))}
           </motion.div>
         </motion.div>
       </div>
-
-      {/* 📌 POPUP MODAL */}
-      {selectedItem && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <motion.div
-            className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md relative"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
-              onClick={() => setSelectedItem(null)}
-            >
-              <FaTimes size={24} />
-            </button>
-
-            {/* 📌 IMAGEN EN EL POPUP */}
-            {selectedItem.media && selectedItem.media.length > 0 && (
-              <Image
-                src={selectedItem.media[0]}
-                alt={selectedItem.title}
-                width={400}
-                height={250}
-                className="rounded-lg object-cover w-full mb-4"
-              />
-            )}
-
-            <h2 className="text-2xl font-bold text-gray-900">{selectedItem.title}</h2>
-            <p className="text-lg text-gray-700 mt-2">${selectedItem.price.toFixed(2)}</p>
-
-            <button className="mt-4 bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition w-full">
-              {selectedItem.buttonLabel || "Add to Cart"}
-            </button>
-          </motion.div>
-        </div>
-      )}
     </section>
   );
 };
