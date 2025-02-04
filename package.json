@@ -12,6 +12,7 @@
     "@clerk/nextjs": "^6.10.6",
     "autoprefixer": "^10.4.20",
     "framer-motion": "^12.0.6",
+    "heatmap.js": "^2.0.5",
     "mongoose": "^8.9.6",
     "next": "15.1.5",
     "react": "^19.0.0",

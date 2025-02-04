@@ -87,11 +87,10 @@ const Header = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`font-medium transition ${
-                pathname === item.href
-                  ? "text-[#27ae60] font-bold"
-                  : "text-gray-800 hover:text-green-600"
-              }`}
+              className={`font-medium transition ${pathname === item.href
+                ? "text-[#27ae60] font-bold"
+                : "text-gray-800 hover:text-green-600"
+                }`}
             >
               {item.name}
             </Link>
@@ -109,32 +108,38 @@ const Header = () => {
 
         {/* Navegación Móvil (Dropdown) */}
         {isOpen && (
-          <div className="absolute top-full left-0 w-full bg-white shadow-lg rounded-b-lg mt-2 py-4 md:hidden flex flex-col items-center space-y-4">
-            {/* Links de navegación en modo móvil */}
-            <nav className="flex flex-col items-center space-y-3">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)} // Cerrar al hacer clic
-                  className={`font-medium transition ${
-                    pathname === item.href
-                      ? "text-[#27ae60] font-bold"
-                      : "text-gray-800 hover:text-green-600"
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
+          <div className="absolute top-full right-0  z-50">
+            <div className="max-w-4xl  px-6 py-4
+                  bg-white/90 backdrop-blur-lg shadow-md  rounded-lg
+                  
+                  md:hidden flex flex-col items-center space-y-4"
+            >
+              {/* Links de navegación en modo móvil */}
+              <nav className="flex flex-col items-center space-y-3">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)} // Cerrar al hacer clic
+                       className={`font-medium transition ${
+                           pathname === item.href
+                              ? "text-[#27ae60] font-bold"
+                             : "text-black hover:text-gray-200"
+                          }`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </nav>
 
-            {/* Botón Book Now en móvil */}
-            <div className="text-left">
-              <Link href="/Book-Now" passHref>
-                <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
-                  Book Now
-                </div>
-              </Link>
+              {/* Botón Book Now en móvil */}
+              <div className="text-left">
+                <Link href="/Book-Now" passHref>
+                  <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
+                    Book Now
+                  </div>
+                </Link>
+              </div>
             </div>
           </div>
         )}
