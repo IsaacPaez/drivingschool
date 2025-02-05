@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.10.6",
+    "@supabase/supabase-js": "^2.48.1",
     "autoprefixer": "^10.4.20",
     "framer-motion": "^12.0.6",
     "heatmap.js": "^2.0.5",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/heatmap.js": "^2.0.41",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
