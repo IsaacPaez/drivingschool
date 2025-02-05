@@ -18,18 +18,20 @@ export default function HeatmapTracker() {
     const handleEvent = useCallback(
         (event: MouseEvent | KeyboardEvent | FocusEvent, eventType: string, key_pressed?: string) => {
             let x = 0, y = 0;
-
+    
             if (event instanceof MouseEvent) {
-                x = event.clientX;
-                y = event.clientY;
+                x = event.clientX || 0; // ✅ Si no hay coordenadas, usa 0
+                y = event.clientY || 0;
             } else if (eventType === "scroll") {
-                y = window.scrollY;
+                y = window.scrollY || 0;
             }
-
-            requestAnimationFrame(() => registerEvent(x, y, eventType, key_pressed));
+    
+            // ✅ Enviar los datos inmediatamente
+            registerEvent(x, y, eventType, key_pressed);
         },
-        [] // ✅ `useCallback` hace que esta función sea estable en cada render
+        []
     );
+    
 
     // ✅ Asegurar que el heatmap no bloquee clics
     useEffect(() => {
@@ -60,6 +62,21 @@ export default function HeatmapTracker() {
             console.error("🔥 Error inicializando Heatmap.js:", error);
         }
 
+        // ✅ Verifica que los eventos están bien definidos
+        const handleMouseMove = (e: MouseEvent) => {
+            handleEvent(e, "mousemove");
+        };
+
+        const handleClick = (e: MouseEvent) => {
+            handleEvent(e, "click");
+        };
+    
+        window.addEventListener("click", handleClick);
+    
+        return () => {
+            window.removeEventListener("click", handleClick);
+        };      
+
         // 🚀 **Usamos `{ passive: true }` para mejorar la fluidez**
         window.addEventListener("click", handleEvent as EventListener, { passive: true });
         window.addEventListener("scroll", () => handleEvent(new MouseEvent("scroll"), "scroll"), { passive: true });
@@ -67,6 +84,7 @@ export default function HeatmapTracker() {
         window.addEventListener("focus", handleEvent as EventListener, { passive: true });
         window.addEventListener("keydown", (e) => handleEvent(e, "keydown", e.key), { passive: true });
         window.addEventListener("beforeunload", handleUnload);
+        window.addEventListener("mousemove", handleMouseMove);
 
         return () => {
             window.removeEventListener("click", handleEvent as EventListener);
@@ -111,8 +129,12 @@ export default function HeatmapTracker() {
     };
 
     const registerEvent = (x: number, y: number, event_type: string, key_pressed?: string) => {
-        const { device, deviceModel, browser } = getDeviceInfo();
+        if (!event_type) {
+            console.warn("🚨 Evento sin tipo detectado, ignorando:", { x, y });
+            return; // 🔴 No enviar si event_type está ausente
+        }
 
+        const { device, deviceModel, browser } = getDeviceInfo();
         const screen_width = window.innerWidth;
         const screen_height = window.innerHeight;
 
@@ -122,18 +144,17 @@ export default function HeatmapTracker() {
         // ✅ Agrega los datos inmediatamente al heatmap sin esperar la API
         heatmapInstance.current?.addData({ x: x.toString(), y: y.toString(), value: 1 } as unknown as h337.DataPoint<string>);
 
-
         // 🚀 **Optimización 1**: Ejecutar la solicitud API sin bloquear la UI
         if ("requestIdleCallback" in window) {
             requestIdleCallback(() => sendDataToAPI({
-                x, y, pathname, event_type, screen_width, screen_height,
+                x, y, pathname, event_type: event_type || "unknown", screen_width, screen_height,
                 device, device_model: deviceModel, browser,
                 key_pressed: key_pressed || null, user_id: user ? user.id : null,
             }));
         } else {
             // 🚀 **Optimización 2**: Ejecutar en segundo plano con `setTimeout`
             setTimeout(() => sendDataToAPI({
-                x, y, pathname, event_type, screen_width, screen_height,
+                x, y, pathname, event_type: event_type || "unknown", screen_width, screen_height,
                 device, device_model: deviceModel, browser,
                 key_pressed: key_pressed || null, user_id: user ? user.id : null,
             }), 0);
