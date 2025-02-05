@@ -1,6 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import h337 from "heatmap.js";
 import { useUser } from "@clerk/nextjs";
 
@@ -11,22 +11,25 @@ export default function HeatmapTracker() {
 
     const { user } = useUser();
 
-    const handleUnload = () => {
+    const handleUnload = useCallback(() => {
         registerEvent(0, 0, "time_spent");
-    };
+    }, []); // ✅ `useCallback` hace que la función no cambie en cada render
 
-    const handleEvent = (event: MouseEvent | KeyboardEvent | FocusEvent, eventType: string, key_pressed?: string) => {
-        let x = 0, y = 0;
+    const handleEvent = useCallback(
+        (event: MouseEvent | KeyboardEvent | FocusEvent, eventType: string, key_pressed?: string) => {
+            let x = 0, y = 0;
 
-        if (event instanceof MouseEvent) {
-            x = event.clientX;
-            y = event.clientY;
-        } else if (eventType === "scroll") {
-            y = window.scrollY;
-        }
+            if (event instanceof MouseEvent) {
+                x = event.clientX;
+                y = event.clientY;
+            } else if (eventType === "scroll") {
+                y = window.scrollY;
+            }
 
-        registerEvent(x, y, eventType, key_pressed);
-    };
+            requestAnimationFrame(() => registerEvent(x, y, eventType, key_pressed));
+        },
+        [] // ✅ `useCallback` hace que esta función sea estable en cada render
+    );
 
     // ✅ Asegurar que el heatmap no bloquee clics
     useEffect(() => {
@@ -73,7 +76,7 @@ export default function HeatmapTracker() {
             window.removeEventListener("keydown", (e) => handleEvent(e, "keydown", e.key));
             window.removeEventListener("beforeunload", handleUnload);
         };
-    }, [pathname, user, handleEvent, handleUnload]); // ✅ Agregar `handleEvent` y `handleUnload` como dependencias
+    }, [handleEvent, handleUnload]); // ✅ Agregar `handleEvent` y `handleUnload` como dependencias
 
     const getDeviceInfo = () => {
         const userAgent = navigator.userAgent;
@@ -139,7 +142,7 @@ export default function HeatmapTracker() {
 
 
 
-    async function sendDataToAPI(data: any) {
+    async function sendDataToAPI(data: Record<string, unknown>) {
         try {
             const response = await fetch("/api/heatmap", {
                 method: "POST",
