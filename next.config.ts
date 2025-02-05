@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "frame-ancestors 'self' http://localhost:3000 https://driving-school-mocha.vercel.app",
+            value: "frame-ancestors 'self' http://localhost:3000 https://dashboard-ds-flax.vercel.app/",
           },
         ],
       },
