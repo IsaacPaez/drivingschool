@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider allowedRedirectOrigins={['https://dashboard-ds-flax.vercel.app']}>
       <CartProvider>
         <html lang="en">
           <body className={`antialiased`}>
