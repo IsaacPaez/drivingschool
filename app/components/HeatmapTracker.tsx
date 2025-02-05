@@ -7,63 +7,12 @@ import { useUser } from "@clerk/nextjs";
 export default function HeatmapTracker() {
     const pathname = usePathname();
     const heatmapRef = useRef<HTMLDivElement | null>(null);
-    const heatmapInstance = useRef<any>(null);
+    const heatmapInstance = useRef<h337.Heatmap<any, any, any> | null>(null);
     const { user } = useUser();
-    const [startTime] = useState(Date.now());
 
-    // ✅ Asegurar que el heatmap no bloquee clics
-    useEffect(() => {
-        if (!heatmapRef.current) {
-            console.warn("❌ Heatmap container no encontrado.");
-            return;
-        }
-
-        try {
-            heatmapInstance.current = h337.create({
-                container: heatmapRef.current,
-                radius: 20,
-                maxOpacity: 0.6,
-                minOpacity: 0.1,
-                blur: 0.75,
-            });
-
-            // ✅ Ajustes para evitar que el heatmap bloquee clics
-            heatmapRef.current.style.position = "absolute";
-            heatmapRef.current.style.top = "0";
-            heatmapRef.current.style.left = "0";
-            heatmapRef.current.style.width = "100%";
-            heatmapRef.current.style.height = "100%";
-            heatmapRef.current.style.pointerEvents = "none"; // No bloquea clics
-            heatmapRef.current.style.opacity = "0";
-            heatmapRef.current.style.zIndex = "-1"; // Evita superposición
-
-        } catch (error) {
-            console.error("🔥 Error inicializando Heatmap.js:", error);
-        }
-
-        // ✅ Agregar y eliminar eventos correctamente
-        const handleClick = (e: MouseEvent) => handleEvent(e, "click");
-        const handleScroll = () => handleEvent(new MouseEvent("scroll"), "scroll");
-        const handleMouseMove = (e: MouseEvent) => handleEvent(e, "mousemove");
-        const handleFocus = (e: FocusEvent) => handleEvent(e, "focus");
-        const handleKeyDown = (e: KeyboardEvent) => handleEvent(e, "keydown", e.key);
-
-        window.addEventListener("click", handleClick);
-        window.addEventListener("scroll", handleScroll);
-        window.addEventListener("mousemove", handleMouseMove);
-        window.addEventListener("focus", handleFocus);
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("beforeunload", handleUnload);
-
-        return () => {
-            window.removeEventListener("click", handleClick);
-            window.removeEventListener("scroll", handleScroll);
-            window.removeEventListener("mousemove", handleMouseMove);
-            window.removeEventListener("focus", handleFocus);
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("beforeunload", handleUnload);
-        };
-    }, [pathname, user]);
+    const handleUnload = () => {
+        registerEvent(0, 0, "time_spent");
+    };
 
     const handleEvent = (event: MouseEvent | KeyboardEvent | FocusEvent, eventType: string, key_pressed?: string) => {
         let x = 0, y = 0;
@@ -77,6 +26,52 @@ export default function HeatmapTracker() {
 
         registerEvent(x, y, eventType, key_pressed);
     };
+
+    // ✅ Asegurar que el heatmap no bloquee clics
+    useEffect(() => {
+        if (!heatmapRef.current) {
+            console.warn("❌ Heatmap container no encontrado.");
+            return;
+        }
+    
+        try {
+            heatmapInstance.current = h337.create({
+                container: heatmapRef.current,
+                radius: 20,
+                maxOpacity: 0.6,
+                minOpacity: 0.1,
+                blur: 0.75,
+            });
+    
+            heatmapRef.current.style.position = "absolute";
+            heatmapRef.current.style.top = "0";
+            heatmapRef.current.style.left = "0";
+            heatmapRef.current.style.width = "100%";
+            heatmapRef.current.style.height = "100%";
+            heatmapRef.current.style.pointerEvents = "none";
+            heatmapRef.current.style.opacity = "0";
+            heatmapRef.current.style.zIndex = "-1";
+    
+        } catch (error) {
+            console.error("🔥 Error inicializando Heatmap.js:", error);
+        }
+    
+        window.addEventListener("click", handleEvent as EventListener);
+        window.addEventListener("scroll", () => handleEvent(new MouseEvent("scroll"), "scroll"));
+        window.addEventListener("mousemove", handleEvent as EventListener);
+        window.addEventListener("focus", handleEvent as EventListener);
+        window.addEventListener("keydown", (e) => handleEvent(e, "keydown", e.key));
+        window.addEventListener("beforeunload", handleUnload);
+    
+        return () => {
+            window.removeEventListener("click", handleEvent as EventListener);
+            window.removeEventListener("scroll", () => handleEvent(new MouseEvent("scroll"), "scroll"));
+            window.removeEventListener("mousemove", handleEvent as EventListener);
+            window.removeEventListener("focus", handleEvent as EventListener);
+            window.removeEventListener("keydown", (e) => handleEvent(e, "keydown", e.key));
+            window.removeEventListener("beforeunload", handleUnload);
+        };
+    }, [pathname, user, handleEvent, handleUnload]); // ✅ Agregar `handleEvent` y `handleUnload` como dependencias
 
     const getDeviceInfo = () => {
         const userAgent = navigator.userAgent;
@@ -139,9 +134,7 @@ export default function HeatmapTracker() {
         }
     };
     
-    const handleUnload = () => {
-        registerEvent(0, 0, "time_spent");
-    };
+    
 
     async function sendDataToAPI(data: any) {
         try {
