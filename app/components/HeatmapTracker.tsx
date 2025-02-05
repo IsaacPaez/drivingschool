@@ -1,13 +1,14 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import h337 from "heatmap.js";
 import { useUser } from "@clerk/nextjs";
 
 export default function HeatmapTracker() {
     const pathname = usePathname();
     const heatmapRef = useRef<HTMLDivElement | null>(null);
-    const heatmapInstance = useRef<h337.Heatmap<any, any, any> | null>(null);
+    const heatmapInstance = useRef<h337.Heatmap<string, string, string> | null>(null);
+
     const { user } = useUser();
 
     const handleUnload = () => {
@@ -33,7 +34,7 @@ export default function HeatmapTracker() {
             console.warn("❌ Heatmap container no encontrado.");
             return;
         }
-    
+
         try {
             heatmapInstance.current = h337.create({
                 container: heatmapRef.current,
@@ -42,7 +43,7 @@ export default function HeatmapTracker() {
                 minOpacity: 0.1,
                 blur: 0.75,
             });
-    
+
             heatmapRef.current.style.position = "absolute";
             heatmapRef.current.style.top = "0";
             heatmapRef.current.style.left = "0";
@@ -51,18 +52,19 @@ export default function HeatmapTracker() {
             heatmapRef.current.style.pointerEvents = "none";
             heatmapRef.current.style.opacity = "0";
             heatmapRef.current.style.zIndex = "-1";
-    
+
         } catch (error) {
             console.error("🔥 Error inicializando Heatmap.js:", error);
         }
-    
-        window.addEventListener("click", handleEvent as EventListener);
-        window.addEventListener("scroll", () => handleEvent(new MouseEvent("scroll"), "scroll"));
-        window.addEventListener("mousemove", handleEvent as EventListener);
-        window.addEventListener("focus", handleEvent as EventListener);
-        window.addEventListener("keydown", (e) => handleEvent(e, "keydown", e.key));
+
+        // 🚀 **Usamos `{ passive: true }` para mejorar la fluidez**
+        window.addEventListener("click", handleEvent as EventListener, { passive: true });
+        window.addEventListener("scroll", () => handleEvent(new MouseEvent("scroll"), "scroll"), { passive: true });
+        window.addEventListener("mousemove", handleEvent as EventListener, { passive: true });
+        window.addEventListener("focus", handleEvent as EventListener, { passive: true });
+        window.addEventListener("keydown", (e) => handleEvent(e, "keydown", e.key), { passive: true });
         window.addEventListener("beforeunload", handleUnload);
-    
+
         return () => {
             window.removeEventListener("click", handleEvent as EventListener);
             window.removeEventListener("scroll", () => handleEvent(new MouseEvent("scroll"), "scroll"));
@@ -75,19 +77,19 @@ export default function HeatmapTracker() {
 
     const getDeviceInfo = () => {
         const userAgent = navigator.userAgent;
-    
+
         // 🔹 Detectar el tipo de dispositivo
         let device = "desktop";
         if (/Mobi|Android/i.test(userAgent)) device = "mobile";
         else if (/Tablet|iPad/i.test(userAgent)) device = "tablet";
-    
+
         // 🔹 Extraer modelo del dispositivo desde el User-Agent
         let deviceModel = "Unknown";
         const modelMatch = userAgent.match(/\(([^)]+)\)/);
         if (modelMatch && modelMatch[1]) {
             deviceModel = modelMatch[1].split(";")[0]; // Toma solo la primera parte
         }
-    
+
         // 🔹 Detectar el navegador
         let browser = "Unknown";
         if (userAgent.includes("Chrome") && !userAgent.includes("Edg")) {
@@ -101,22 +103,23 @@ export default function HeatmapTracker() {
         } else if (userAgent.includes("Opera") || userAgent.includes("OPR")) {
             browser = "Opera";
         }
-    
+
         return { device, deviceModel, browser };
     };
-    
+
     const registerEvent = (x: number, y: number, event_type: string, key_pressed?: string) => {
         const { device, deviceModel, browser } = getDeviceInfo();
-    
+
         const screen_width = window.innerWidth;
         const screen_height = window.innerHeight;
-    
+
         if (!heatmapInstance.current) return;
         if (isNaN(x) || isNaN(y) || x < 0 || y < 0 || x > screen_width || y > screen_height) return;
-    
+
         // ✅ Agrega los datos inmediatamente al heatmap sin esperar la API
-        heatmapInstance.current.addData({ x, y, value: 1 });
-    
+        heatmapInstance.current?.addData({ x: x.toString(), y: y.toString(), value: 1 } as unknown as h337.DataPoint<string>);
+
+
         // 🚀 **Optimización 1**: Ejecutar la solicitud API sin bloquear la UI
         if ("requestIdleCallback" in window) {
             requestIdleCallback(() => sendDataToAPI({
@@ -133,8 +136,8 @@ export default function HeatmapTracker() {
             }), 0);
         }
     };
-    
-    
+
+
 
     async function sendDataToAPI(data: any) {
         try {
@@ -143,20 +146,20 @@ export default function HeatmapTracker() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
             });
-    
+
             // ✅ Si la respuesta no es válida, lanzar error antes de intentar parsear JSON
             if (!response.ok) {
                 console.error(`🚨 Error HTTP ${response.status} en API Heatmap`);
                 return;
             }
-    
+
             // ✅ Verificar si hay contenido antes de parsearlo
             const text = await response.text();
             if (!text) {
                 console.warn("🚨 Respuesta vacía desde API Heatmap");
                 return;
             }
-    
+
             const jsonResponse = JSON.parse(text);
             if (!jsonResponse.success) {
                 console.error("🚨 Error en API Heatmap:", jsonResponse);
@@ -165,7 +168,7 @@ export default function HeatmapTracker() {
             console.error("🚨 Error al enviar datos a API Heatmap:", error);
         }
     }
-    
+
 
     return <div ref={heatmapRef} className="absolute inset-0 z-50 pointer-events-none" />;
 }
