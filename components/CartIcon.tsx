@@ -75,17 +75,27 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             <p className="text-gray-500 text-center">Tu carrito está vacío.</p>
           ) : (
             <>
-              <ul>
+              {/* Lista de productos en el carrito */}
+              <ul className="divide-y divide-gray-300">
                 {cart.map((item) => (
                   <li
-                    key={item.id} // 🔹 Se asegura de usar una key válida
-                    className="flex justify-between py-2 border-b"
+                    key={item.id}
+                    className="flex items-center justify-between py-2 px-2"
                   >
-                    <span>{item.title}</span>
-                    <span className="font-bold">${item.price}</span>
+                    {/* Nombre del producto alineado a la izquierda */}
+                    <span className="w-2/3 truncate text-left">
+                      {item.title}
+                    </span>
+
+                    {/* Precio alineado a la derecha en una columna */}
+                    <span className="w-1/6 text-right font-bold">
+                      ${item.price}
+                    </span>
+
+                    {/* Botón de eliminar a la derecha */}
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="text-red-500 text-sm"
+                      className="w-1/6 text-red-500 text-lg hover:text-red-700 transition"
                     >
                       ❌
                     </button>
