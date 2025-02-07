@@ -2,8 +2,6 @@
 
 import React from "react";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
-import CheckoutForm from "./CheckoutForm"; // 🔹 Importamos el formulario de pago
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
 
@@ -24,9 +22,7 @@ const StripeModal = ({
         <h2 className="text-xl font-semibold text-center">
           Complete Your Payment
         </h2>
-        <Elements stripe={stripePromise}>
-          <CheckoutForm items={items} onClose={onClose} />
-        </Elements>
+
         <button
           className="w-full bg-gray-500 text-white mt-4 py-2 rounded-lg"
           onClick={onClose}
