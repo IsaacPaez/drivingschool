@@ -4,15 +4,49 @@ import React, { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
 import { FaShoppingCart } from "react-icons/fa";
 import { motion } from "framer-motion";
-import Link from "next/link";
 
 interface CartIconProps {
-  color?: string; // ✅ Aseguramos que `color` sea una propiedad opcional
+  color?: string;
 }
 
 const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
   const { cart, removeFromCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      alert("❌ No hay productos en el carrito.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: cart }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Error en la respuesta del servidor.");
+      }
+
+      const { url } = await res.json();
+
+      if (url) {
+        window.location.href = url; // 🔹 Redirigir a Stripe Checkout
+      } else {
+        alert("❌ Error al procesar el pago.");
+      }
+    } catch (error) {
+      console.error("❌ Error en la solicitud:", error);
+      alert("❌ Hubo un error al procesar el pago. Inténtalo de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="relative">
@@ -41,28 +75,40 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             <p className="text-gray-500 text-center">Tu carrito está vacío.</p>
           ) : (
             <>
-              <ul>
+              {/* Lista de productos en el carrito */}
+              <ul className="divide-y divide-gray-300">
                 {cart.map((item) => (
                   <li
                     key={item.id}
-                    className="flex justify-between py-2 border-b"
+                    className="flex items-center justify-between py-2 px-2"
                   >
-                    <span>{item.title}</span>
-                    <span className="font-bold">${item.price}</span>
+                    {/* Nombre del producto alineado a la izquierda */}
+                    <span className="w-2/3 truncate text-left">
+                      {item.title}
+                    </span>
+
+                    {/* Precio alineado a la derecha en una columna */}
+                    <span className="w-1/6 text-right font-bold">
+                      ${item.price}
+                    </span>
+
+                    {/* Botón de eliminar a la derecha */}
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="text-red-500 text-sm"
+                      className="w-1/6 text-red-500 text-lg hover:text-red-700 transition"
                     >
                       ❌
                     </button>
                   </li>
                 ))}
               </ul>
-              <Link href="/checkout">
-                <button className="w-full bg-green-500 text-white mt-4 py-2 rounded-lg">
-                  Checkout
-                </button>
-              </Link>
+              <button
+                onClick={handleCheckout}
+                className="w-full bg-green-500 text-white mt-4 py-2 rounded-lg"
+                disabled={loading}
+              >
+                {loading ? "Procesando..." : "Checkout"}
+              </button>
             </>
           )}
         </div>

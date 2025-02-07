@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* Config options here */
+  serverExternalPackages: ["stripe"], // ✅ Nueva opción para Next.js 15
   images: {
     remotePatterns: [
       {
@@ -31,3 +31,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
