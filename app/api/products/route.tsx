@@ -16,7 +16,6 @@ export async function GET(req: Request) {
       products = await Product.find().select("title description price buttonLabel media");
     }
 
-    console.log(`✅ Productos obtenidos (Categoría: ${category || "Todas"}):`, products);
     return NextResponse.json(products);
   } catch (error) {
     console.error("❌ Error al obtener productos:", error);

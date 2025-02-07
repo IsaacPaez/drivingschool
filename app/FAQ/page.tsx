@@ -2,13 +2,12 @@
 
 import React, { useState } from "react";
 import { FaChevronDown } from "react-icons/fa";
-import Image from "next/image";
 
 const faqs = [
   {
-    question: "Do I need a learner's permit or a license to take lessons?",
+    question: "Do I need a learners permit or a license to take lessons?",
     answer:
-      "Yes, you need a learner's permit or a valid driver's license to take lessons with us.",
+      "Yes, you need a learners permit or a valid drivers license to take lessons with us.",
   },
   {
     question: "Do I have to drive myself to your Driving School?",
@@ -23,10 +22,10 @@ const faqs = [
   {
     question: "Can I schedule Lessons without my parents?",
     answer:
-      "Yes, as long as you meet the age requirements and have a valid learner’s permit.",
+      "Yes, as long as you meet the age requirements and have a valid learners permit.",
   },
   {
-    question: "Can I get picked up at home even if my parents aren't there?",
+    question: "Can I get picked up at home even if my parents arent there?",
     answer: "Yes, we offer home pick-up services for eligible students.",
   },
   {
@@ -80,33 +79,11 @@ const FAQSection = () => {
 const ContactSupport = () => {
   return (
     <section className="mt-12 text-center">
-      <h3 className="text-2xl font-semibold">Didn't find an answer?</h3>
+      <h3 className="text-2xl font-semibold">Didn&#39;t find an answer?</h3>
       <p className="text-gray-600 mb-6">
         Our team is just an email away and ready to assist you.
       </p>
-      <div className="flex justify-center space-x-6 mb-6">
-        <Image
-          src="/support1.jpg"
-          alt="Support"
-          width={80}
-          height={80}
-          className="rounded-full"
-        />
-        <Image
-          src="/support2.jpg"
-          alt="Support"
-          width={80}
-          height={80}
-          className="rounded-full"
-        />
-        <Image
-          src="/support3.jpg"
-          alt="Support"
-          width={80}
-          height={80}
-          className="rounded-full"
-        />
-      </div>
+      {/* Aquí estaban las imágenes, se han eliminado */}
       <button className="bg-blue-600 text-white px-6 py-3 rounded-md shadow-md hover:bg-blue-700 transition">
         Contact Us
       </button>

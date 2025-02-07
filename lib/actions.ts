@@ -1,24 +1,41 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useVerifySession } from "@/app/utils/auth";
 import { saveActionData } from "@/app/utils/actions";
 
-export const handleAction = async (
-  type: "buy" | "book" | "contact",
-  data: any
-) => {
-  const isAuthenticated = await useVerifySession();
-  if (!isAuthenticated) {
-    alert("❌ Debes iniciar sesión para continuar.");
-    return;
-  }
+// Mejoramos la interfaz con tipos más específicos
+export type ActionType = "buy" | "book" | "contact";
 
-  try {
-    await saveActionData(type, data);
-  } catch (error) {
-    console.error("Error guardando la acción:", error);
-    return;
-  }
+export interface ActionData {
+  itemId?: string;
+  title?: string;
+  description?: string;
+  price?: number;
+  // Agregamos más propiedades si son necesarias
+}
+
+export function useHandleAction() {
+  const router = useRouter();
+  const isAuthenticated = useVerifySession();
+
+  // Tipamos explícitamente los parámetros
+  const handleAction = async (type: ActionType, data: ActionData) => {
+    if (!isAuthenticated) {
+      alert("❌ Debes iniciar sesión para continuar.");
+      return;
+    }
+
+    try {
+      await saveActionData(type, data);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error guardando la acción:", error.message);
+      } else {
+        console.error("Error desconocido al guardar la acción");
+      }
+      return;
+    }
 
   if (type === "buy") {
     const res = await fetch("/api/checkout", {
@@ -42,3 +59,6 @@ export const handleAction = async (
     window.location.href = "/contact-confirmation";
   }
 };
+
+  return { handleAction };
+}

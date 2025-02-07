@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const PackageSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
+    description: { type: String, required: true },
     media: { type: [String], default: [] }, // Array de URLs de imágenes o videos
     price: { type: Number, required: true },
     category: { type: String, default: "General" }, // Ejemplo: "General", "Auto", etc.
