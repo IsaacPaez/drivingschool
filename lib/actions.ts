@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useVerifySession } from "@/app/utils/auth";
 import { saveActionData } from "@/app/utils/actions";
 
@@ -16,7 +15,6 @@ export interface ActionData {
 }
 
 export function useHandleAction() {
-  const router = useRouter();
   const isAuthenticated = useVerifySession();
 
   // Tipamos explícitamente los parámetros
@@ -37,28 +35,28 @@ export function useHandleAction() {
       return;
     }
 
-  if (type === "buy") {
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: data }), // Enviar productos del carrito
-    });
+    if (type === "buy") {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: data }), // Enviar productos del carrito
+      });
 
-    const responseData = await res.json();
+      const responseData = await res.json();
 
-    if (responseData.url) {
-      // ✅ Redirigir directamente a Stripe Checkout
-      window.location.href = responseData.url;
+      if (responseData.url) {
+        // ✅ Redirigir directamente a Stripe Checkout
+        window.location.href = responseData.url;
+      } else {
+        console.error("❌ Error creando la sesión de Checkout:", responseData);
+        alert("Hubo un error al procesar el pago.");
+      }
+    } else if (type === "book") {
+      window.location.href = "/schedule-confirmation";
     } else {
-      console.error("❌ Error creando la sesión de Checkout:", responseData);
-      alert("Hubo un error al procesar el pago.");
+      window.location.href = "/contact-confirmation";
     }
-  } else if (type === "book") {
-    window.location.href = "/schedule-confirmation";
-  } else {
-    window.location.href = "/contact-confirmation";
-  }
-};
+  };
 
   return { handleAction };
 }
