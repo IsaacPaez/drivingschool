@@ -31,8 +31,12 @@ export async function POST(req: Request) {
     );
     console.log(`✅ Webhook recibido: ${event.type}`);
     console.log("🔍 Evento completo:", JSON.stringify(event, null, 2));
-  } catch (err: any) {
-    console.error("⚠️ Error en el Webhook:", err.message);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("⚠️ Error en el Webhook:", err.message);
+    } else {
+      console.error("⚠️ Error en el Webhook:", err);
+    }
     return NextResponse.json({ error: "Webhook Error" }, { status: 400 });
   }
 
