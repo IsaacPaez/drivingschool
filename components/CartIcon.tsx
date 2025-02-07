@@ -4,15 +4,49 @@ import React, { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
 import { FaShoppingCart } from "react-icons/fa";
 import { motion } from "framer-motion";
-import Link from "next/link";
 
 interface CartIconProps {
-  color?: string; // ✅ Aseguramos que `color` sea una propiedad opcional
+  color?: string;
 }
 
 const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
   const { cart, removeFromCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      alert("❌ No hay productos en el carrito.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: cart }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Error en la respuesta del servidor.");
+      }
+
+      const { url } = await res.json();
+
+      if (url) {
+        window.location.href = url; // 🔹 Redirigir a Stripe Checkout
+      } else {
+        alert("❌ Error al procesar el pago.");
+      }
+    } catch (error) {
+      console.error("❌ Error en la solicitud:", error);
+      alert("❌ Hubo un error al procesar el pago. Inténtalo de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="relative">
@@ -44,7 +78,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
               <ul>
                 {cart.map((item) => (
                   <li
-                    key={item.id}
+                    key={item.id} // 🔹 Se asegura de usar una key válida
                     className="flex justify-between py-2 border-b"
                   >
                     <span>{item.title}</span>
@@ -58,11 +92,13 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                   </li>
                 ))}
               </ul>
-              <Link href="/checkout">
-                <button className="w-full bg-green-500 text-white mt-4 py-2 rounded-lg">
-                  Checkout
-                </button>
-              </Link>
+              <button
+                onClick={handleCheckout}
+                className="w-full bg-green-500 text-white mt-4 py-2 rounded-lg"
+                disabled={loading}
+              >
+                {loading ? "Procesando..." : "Checkout"}
+              </button>
             </>
           )}
         </div>

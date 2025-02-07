@@ -2,14 +2,11 @@
 
 import { useVerifySession } from "@/app/utils/auth";
 import { saveActionData } from "@/app/utils/actions";
-import { useRouter } from "next/navigation";
 
 export const handleAction = async (
   type: "buy" | "book" | "contact",
   data: any
 ) => {
-  const router = useRouter();
-
   const isAuthenticated = await useVerifySession();
   if (!isAuthenticated) {
     alert("❌ Debes iniciar sesión para continuar.");
@@ -24,10 +21,24 @@ export const handleAction = async (
   }
 
   if (type === "buy") {
-    router.push("/checkout");
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: data }), // Enviar productos del carrito
+    });
+
+    const responseData = await res.json();
+
+    if (responseData.url) {
+      // ✅ Redirigir directamente a Stripe Checkout
+      window.location.href = responseData.url;
+    } else {
+      console.error("❌ Error creando la sesión de Checkout:", responseData);
+      alert("Hubo un error al procesar el pago.");
+    }
   } else if (type === "book") {
-    router.push("/schedule-confirmation");
+    window.location.href = "/schedule-confirmation";
   } else {
-    router.push("/contact-confirmation");
+    window.location.href = "/contact-confirmation";
   }
 };

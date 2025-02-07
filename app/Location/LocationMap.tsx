@@ -11,6 +11,7 @@ const LocationMap: React.FC = () => {
         width="540"
         height="480"
         className="border-0"
+        allowFullScreen
       ></iframe>
       <p className="text-center text-sm text-blue-600 mt-2">
         <a

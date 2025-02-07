@@ -9,17 +9,21 @@ if (!MONGODB_URI) {
 // 🔹 Mantener `connectDB` para no afectar `products`
 export const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) {
-    return;
+    return mongoose.connection.db; // ✅ Retornar la conexión
   }
   try {
     await mongoose.connect(MONGODB_URI, {
-      dbName: "DrivingSchool_Admin", // 🔹 Forzar conexión a la base de datos correcta
+      dbName: "DrivingSchool_Admin",
     });
-    console.log("✅ Conectado a MongoDB Atlas - Base de datos: DrivingSchool_Admin");
+    console.log(
+      "✅ Conectado a MongoDB Atlas - Base de datos: DrivingSchool_Admin"
+    );
+    return mongoose.connection.db; // ✅ Ahora devuelve el `Db`
   } catch (error) {
     console.error("❌ Error conectando a MongoDB Atlas:", error);
+    throw error; // Re-lanzar el error para evitar fallos silenciosos
   }
 };
 
-// 🔹 Nueva función `connectToDatabase` para `collections`
-export const connectToDatabase = connectDB; // ✅ Alias para evitar modificar `products`
+// 🔹 Alias para evitar modificar `products`
+export const connectToDatabase = connectDB;
