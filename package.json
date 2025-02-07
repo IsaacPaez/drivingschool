@@ -17,6 +17,7 @@
     "mongoose": "^8.9.6",
     "next": "15.1.5",
     "react": "^19.0.0",
+    "react-calendar": "^5.1.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.4.0",
     "swiper": "^11.2.2"
@@ -26,6 +27,7 @@
     "@types/heatmap.js": "^2.0.41",
     "@types/node": "^20",
     "@types/react": "^19",
+    "@types/react-calendar": "^3.9.0",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.1.5",
