@@ -20,3 +20,20 @@ body {
   font-family: Arial, sans-serif;
   
 }
+/* Estilos para react-calendar */
+.react-calendar {
+  @apply rounded-lg shadow-md border border-gray-200 bg-white p-4;
+}
+
+.react-calendar__tile {
+  @apply relative text-center text-base text-gray-800;
+}
+
+.react-calendar__tile--active {
+  @apply bg-green-600 text-white;
+}
+
+.dot {
+  @apply w-2 h-2 bg-green-600 rounded-full absolute bottom-1 left-1/2 transform -translate-x-1/2;
+}
+
