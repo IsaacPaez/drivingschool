@@ -6,7 +6,10 @@ import { Poppins } from "next/font/google";
 import DrivingTestSection from "./DrivingTestSection";
 import CorporatePrograms from "./CorporatePrograms";
 import Link from "next/link";
-import useDrivingLessons from "@/app/hooks/useDrivingLessons"; // Importación corregida
+import useDrivingLessons from "@/app/hooks/useDrivingLessons";
+import { useCart } from "@/app/context/CartContext";
+import { useVerifySession } from "@/app/utils/auth";
+import AuthenticatedButton from "@/components/AuthenticatedButton";
 
 // Fuente moderna
 const poppins = Poppins({
@@ -17,6 +20,49 @@ const poppins = Poppins({
 
 const LessonsPage = () => {
   const lessons = useDrivingLessons("Road Skills for Life");
+  const { addToCart } = useCart();
+  const isAuthenticated = useVerifySession();
+  const [loading, setLoading] = React.useState<string | null>(null);
+
+  const handleAddToCart = async (lesson: {
+    _id: string;
+    title: string;
+    price: number;
+  }) => {
+    if (!isAuthenticated) {
+      alert("❌ Debes iniciar sesión para agregar al carrito.");
+      return;
+    }
+
+    setLoading(lesson._id);
+
+    try {
+      // Agregar al carrito
+      addToCart({
+        id: lesson._id,
+        title: lesson.title,
+        price: lesson.price,
+        quantity: 1,
+      });
+
+      // Guardar en la base de datos de pagos
+      await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lessonId: lesson._id,
+          title: lesson.title,
+          price: lesson.price,
+        }),
+      });
+
+      alert("✅ Agregado al carrito.");
+    } catch (error) {
+      console.error("❌ Error al guardar en la base de datos:", error);
+    } finally {
+      setLoading(null);
+    }
+  };
 
   return (
     <section className={`${poppins.variable} bg-[#f5f5f5] py-24 px-8 relative`}>
@@ -39,9 +85,10 @@ const LessonsPage = () => {
                 SKILLS <span className="text-[#0056b3]">FOR LIFE</span>
               </h2>
               <p className="text-lg text-black leading-relaxed">
-                With over 25 years of experience, we go beyond preparing students
-                for the DMV test. Our training covers real-world traffic
-                scenarios, defensive driving, and high-speed highways like I-95.
+                With over 25 years of experience, we go beyond preparing
+                students for the DMV test. Our training covers real-world
+                traffic scenarios, defensive driving, and high-speed highways
+                like I-95.
               </p>
 
               {/* Segunda descripción agregada */}
@@ -88,17 +135,31 @@ const LessonsPage = () => {
           {/* Grid para mostrar las lecciones correctamente */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {lessons.map((lesson) => (
-              <div key={lesson._id} className="p-6 bg-white rounded-xl shadow-md border border-gray-300 flex flex-col items-center">
-                <h3 className="text-lg text-black font-semibold text-center">{lesson.title}</h3>
-                <p className="text-sm text-black text-center">{lesson.description}</p>
+              <div
+                key={lesson._id}
+                className="p-6 bg-white rounded-xl shadow-md border border-gray-300 flex flex-col items-center"
+              >
+                <h3 className="text-lg text-black font-semibold text-center">
+                  {lesson.title}
+                </h3>
+                <p className="text-sm text-black text-center">
+                  {lesson.description}
+                </p>
                 <p className="text-xl font-bold text-[#27ae60] text-center mt-2">
                   ${lesson.price}
                 </p>
                 {/* Contenedor flex para centrar el botón */}
                 <div className="flex justify-center w-full mt-3">
-                  <button className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
-                    {lesson.buttonLabel || "Buy Now"}
-                  </button>
+                  <AuthenticatedButton
+                    type="buy"
+                    actionData={{
+                      itemId: lesson._id,
+                      title: lesson.title,
+                      price: lesson.price,
+                    }}
+                    label={lesson.buttonLabel || "Add to Cart"}
+                    className="w-full bg-[#27ae60] text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition duration-300"
+                  />
                 </div>
               </div>
             ))}

@@ -72,7 +72,9 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
       {isOpen && (
         <div className="absolute right-0 mt-2 bg-white shadow-lg p-4 rounded-lg w-72 z-50">
           {cart.length === 0 ? (
-            <p className="text-gray-500 text-center">Tu carrito está vacío.</p>
+            <p className="text-gray-500 text-center dark-text-black">
+              Tu carrito está vacío.
+            </p>
           ) : (
             <>
               {/* Lista de productos en el carrito */}
@@ -83,12 +85,12 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                     className="flex items-center justify-between py-2 px-2"
                   >
                     {/* Nombre del producto alineado a la izquierda */}
-                    <span className="w-2/3 truncate text-left">
+                    <span className="w-2/3 truncate text-left dark:text-black">
                       {item.title}
                     </span>
 
                     {/* Precio alineado a la derecha en una columna */}
-                    <span className="w-1/6 text-right font-bold">
+                    <span className="w-1/6 text-right font-bold dark:text-black">
                       ${item.price}
                     </span>
 

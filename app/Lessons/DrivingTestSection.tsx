@@ -5,6 +5,9 @@ import Image from "next/image";
 import { Poppins } from "next/font/google";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useCart } from "@/app/context/CartContext";
+import { useVerifySession } from "@/app/utils/auth";
+import AuthenticatedButton from "@/components/AuthenticatedButton";
 
 // Fuente moderna y elegante
 const poppins = Poppins({
@@ -31,6 +34,9 @@ interface CollectionItem {
 
 const DrivingTestSection = () => {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
+  const { addToCart } = useCart();
+  const isAuthenticated = useVerifySession();
+  const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -45,6 +51,42 @@ const DrivingTestSection = () => {
 
     fetchCollections();
   }, []);
+
+  const handleAddToCart = async (item: CollectionItem) => {
+    if (!isAuthenticated) {
+      alert("❌ Debes iniciar sesión para agregar al carrito.");
+      return;
+    }
+
+    setLoading(item._id);
+
+    try {
+      // Agregar al carrito
+      addToCart({
+        id: item._id,
+        title: item.title,
+        price: item.price,
+        quantity: 1,
+      });
+
+      // Guardar en la base de datos de pagos
+      await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: item._id,
+          title: item.title,
+          price: item.price,
+        }),
+      });
+
+      alert("✅ Agregado al carrito.");
+    } catch (error) {
+      console.error("❌ Error al guardar en la base de datos:", error);
+    } finally {
+      setLoading(null);
+    }
+  };
 
   return (
     <section
@@ -105,7 +147,7 @@ const DrivingTestSection = () => {
             Affordable Driving Traffic School is a Third Party Agency authorized
             by the Florida Department of Highway Safety and Motor Vehicles to
             issue the Road Test. There is no need to wait weeks to book an
-            appoinment at the DMV for testing. We have availability with in a
+            appointment at the DMV for testing. We have availability within a
             week to take your test with us.
           </p>
 
@@ -124,7 +166,7 @@ const DrivingTestSection = () => {
               You must bring:
             </h3>
             <ul className="list-disc list-inside text-black mt-3 space-y-2">
-              <li>Learner is permit</li>
+              <li>Learner's permit</li>
               <li>
                 Required documentation (if under 18 year old, parent consent
                 form)
@@ -154,9 +196,16 @@ const DrivingTestSection = () => {
                 ${item.price}
               </p>
               <div className="flex justify-center w-full mt-3">
-                <button className="bg-[#27ae60] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
-                  {item.buttonLabel || "Buy Now"}
-                </button>
+                <AuthenticatedButton
+                  type="buy"
+                  actionData={{
+                    itemId: item._id,
+                    title: item.title,
+                    price: item.price,
+                  }}
+                  label={item.buttonLabel || "Add to Cart"}
+                  className="w-full bg-[#27ae60] text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition duration-300"
+                />
               </div>
             </div>
           ))}

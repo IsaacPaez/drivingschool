@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { useCart } from "@/app/context/CartContext";
+import { useVerifySession } from "@/app/utils/auth";
+import AuthenticatedButton from "@/components/AuthenticatedButton";
 
 interface Lesson {
   _id: string;
@@ -14,6 +17,9 @@ interface Lesson {
 
 const DrivingLessons = ({ category }: { category: string }) => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const { addToCart } = useCart();
+  const isAuthenticated = useVerifySession();
+  const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLessons = async () => {
@@ -28,6 +34,42 @@ const DrivingLessons = ({ category }: { category: string }) => {
 
     fetchLessons();
   }, [category]);
+
+  const handleAddToCart = async (lesson: Lesson) => {
+    if (!isAuthenticated) {
+      alert("❌ Debes iniciar sesión para agregar al carrito.");
+      return;
+    }
+
+    setLoading(lesson._id);
+
+    try {
+      // Agregar al carrito usando la misma función de Packages
+      addToCart({
+        id: lesson._id,
+        title: lesson.title,
+        price: lesson.price,
+        quantity: 1,
+      });
+
+      // Guardar en la base de datos de pagos
+      await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lessonId: lesson._id,
+          title: lesson.title,
+          price: lesson.price,
+        }),
+      });
+
+      alert("✅ Agregado al carrito.");
+    } catch (error) {
+      console.error("❌ Error al guardar en la base de datos:", error);
+    } finally {
+      setLoading(null);
+    }
+  };
 
   return (
     <section className="bg-white py-16">
@@ -47,7 +89,7 @@ const DrivingLessons = ({ category }: { category: string }) => {
           {lessons.map((lesson) => (
             <div
               key={lesson._id}
-              className="w-[280px] h-[320px] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col items-center px-6 py-5 transform transition-transform duration-300 hover:-translate-y-2 border-4 border-[#0056b3]"
+              className="w-[280px] h-[340px] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col items-center px-6 py-5 transform transition-transform duration-300 hover:-translate-y-2 border-4 border-[#0056b3]"
             >
               {/* Imagen ajustada al centro */}
               {lesson.media && lesson.media.length > 0 && (
@@ -78,10 +120,17 @@ const DrivingLessons = ({ category }: { category: string }) => {
                     ${lesson.price}
                   </p>
 
-                  {/* Botón con efecto hover */}
-                  <button className="bg-[#0056b3] text-white font-bold text-md py-2 px-5 rounded-full shadow-md shadow-gray-700 hover:shadow-lg hover:bg-[#27ae60] hover:-translate-y-1 transition duration-300 ease-in-out mt-3">
-                    {lesson.buttonLabel || "Buy Now"}
-                  </button>
+                  {/* Usamos AuthenticatedButton como en Packages */}
+                  <AuthenticatedButton
+                    type="buy"
+                    actionData={{
+                      itemId: lesson._id,
+                      title: lesson.title,
+                      price: lesson.price,
+                    }}
+                    label={lesson.buttonLabel || "Add to Cart"}
+                    className="w-full bg-[#0056b3] text-white font-bold text-sm py-2 px-4 rounded-full shadow-md hover:bg-[#27ae60] transition duration-300 ease-in-out mt-3"
+                  />
                 </div>
               </div>
             </div>

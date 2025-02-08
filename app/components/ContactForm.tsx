@@ -13,6 +13,9 @@ const ContactPage = () => {
     inquiry: "",
   });
 
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
   const subjects = [
     "General Inquiry",
     "Account Inquiry",
@@ -41,17 +44,45 @@ const ContactPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form Submitted", formData);
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        throw new Error("Error sending contact form");
+      }
+
+      setMessage("✅ Form submitted successfully!");
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        city: "",
+        subject: "General Inquiry",
+        inquiry: "",
+      });
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      setMessage("❌ Failed to submit. Try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-6 py-10">
-      {/* 📌 CONTENEDOR PRINCIPAL CON DOS SECCIONES */}
+      {/* 📌 CONTENEDOR PRINCIPAL EN DOS COLUMNAS */}
       <div className="flex flex-col md:flex-row items-start justify-between gap-8 w-full max-w-5xl">
-        {/* 🔹 Contenedor del Formulario */}
-        <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md border border-gray-300">
+        {/* 🔹 Formulario */}
+        <div className="bg-white shadow-md rounded-lg p-6 w-full md:w-1/2 border border-gray-300">
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
             {/* Name */}
             <div className="flex flex-col">
@@ -138,37 +169,59 @@ const ContactPage = () => {
               <button
                 type="submit"
                 className="bg-[#27ae60] text-white font-bold py-2 px-6 rounded-md shadow-lg hover:shadow-black hover:bg-[#0056b3] transition hover:-translate-y-3 duration-300 ease-out cursor-pointer active:translate-y-1"
+                disabled={loading}
               >
-                Send
+                {loading ? "Sending..." : "Send"}
               </button>
             </div>
+
+            {message && (
+              <p className="text-center font-semibold mt-4">{message}</p>
+            )}
           </form>
         </div>
 
-        {/* 🔹 Contenedor de Información de Contacto */}
-        <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-lg border border-gray-300 flex flex-col items-center">
-          <Image src="/DV-removebg-preview.png" alt="Logo" width={120} height={120} className="mb-2" />
-          <h3 className="text-lg font-bold text-[#0056b3]">Affordable Driving Traffic School</h3>
+        {/* 🔹 Información de Contacto */}
+        <div className="bg-white shadow-md rounded-lg p-6 w-full md:w-1/2 border border-gray-300 flex flex-col items-center">
+          <Image
+            src="/DV-removebg-preview.png"
+            alt="Logo"
+            width={120}
+            height={120}
+            className="mb-2"
+          />
+          <h3 className="text-lg font-bold text-[#0056b3]">
+            Affordable Driving Traffic School
+          </h3>
 
           <p className="text-gray-600 flex items-center mt-3">
             📞 <span className="font-bold text-black ml-2">561 735 1615</span>
           </p>
           <p className="text-gray-600 mt-2">
-            ✉️ <a href="mailto:info@drivingschoolpalmbeach.com" className="text-[#0056b3] hover:underline">info@drivingschoolpalmbeach.com</a>
+            ✉️{" "}
+            <a
+              href="mailto:info@drivingschoolpalmbeach.com"
+              className="text-[#0056b3] hover:underline"
+            >
+              info@drivingschoolpalmbeach.com
+            </a>
           </p>
 
           <div className="text-left mt-4">
             <p className="text-black font-bold">Phone:</p>
             <p className="text-[#0056b3] font-bold">561 330 7007</p>
             <p className="text-black font-bold mt-2">Address:</p>
-            <p className="text-black">3167 Forest Hill Blvd West, Palm Beach, Florida 33406</p>
+            <p className="text-black">
+              3167 Forest Hill Blvd West, Palm Beach, Florida 33406
+            </p>
             <p className="text-black font-bold mt-2">Email:</p>
             <p className="text-[#0056b3] hover:underline">
-              <a href="mailto:info@drivingschoolpalmbeach.com">info@drivingschoolpalmbeach.com</a>
+              <a href="mailto:info@drivingschoolpalmbeach.com">
+                info@drivingschoolpalmbeach.com
+              </a>
             </p>
           </div>
         </div>
-        
       </div>
     </div>
   );

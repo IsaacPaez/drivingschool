@@ -15,22 +15,25 @@ const LearnRoadList = () => {
 
   useEffect(() => {
     const fetchItems = async () => {
-        try {
-          const response = await fetch("/api/products?category=Road Skills for Life"); // Filtra "Road Skills for Life"
-          const data = await response.json();
-          setItems(data);
-        } catch (error) {
-          console.error("Error fetching Learn Road items:", error);
-        }
-      };
-      
+      try {
+        const response = await fetch(
+          "/api/products?category=Road Skills for Life"
+        ); // Filtra "Road Skills for Life"
+        const data = await response.json();
+        setItems(data);
+      } catch (error) {
+        console.error("Error fetching Learn Road items:", error);
+      }
+    };
 
     fetchItems();
   }, []);
 
   return (
-    <section className="bg-cover bg-center py-20" style={{ backgroundImage: "url('/LearnRoad.jpg')" }}>
-    
+    <section
+      className="bg-cover bg-center py-20"
+      style={{ backgroundImage: "url('/LearnRoad.jpg')" }}
+    >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto px-6">
         {items.map((item) => (
           <div
