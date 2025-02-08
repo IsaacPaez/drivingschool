@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { useCart } from "@/app/context/CartContext";
-import { useVerifySession } from "@/app/utils/auth";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
 
 interface Lesson {

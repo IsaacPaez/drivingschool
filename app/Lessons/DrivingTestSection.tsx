@@ -5,8 +5,6 @@ import Image from "next/image";
 import { Poppins } from "next/font/google";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useCart } from "@/app/context/CartContext";
-import { useVerifySession } from "@/app/utils/auth";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
 
 // Fuente moderna y elegante

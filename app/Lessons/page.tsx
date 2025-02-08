@@ -7,8 +7,6 @@ import DrivingTestSection from "./DrivingTestSection";
 import CorporatePrograms from "./CorporatePrograms";
 import Link from "next/link";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
-import { useCart } from "@/app/context/CartContext";
-import { useVerifySession } from "@/app/utils/auth";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
 
 // Fuente moderna
