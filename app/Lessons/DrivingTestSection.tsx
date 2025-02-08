@@ -34,8 +34,6 @@ interface CollectionItem {
 
 const DrivingTestSection = () => {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
-  const { addToCart } = useCart();
-  const isAuthenticated = useVerifySession();
 
   useEffect(() => {
     const fetchCollections = async () => {

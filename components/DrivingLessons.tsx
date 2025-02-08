@@ -17,9 +17,6 @@ interface Lesson {
 
 const DrivingLessons = ({ category }: { category: string }) => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const { addToCart } = useCart();
-  const isAuthenticated = useVerifySession();
-  const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLessons = async () => {
@@ -35,7 +32,7 @@ const DrivingLessons = ({ category }: { category: string }) => {
     fetchLessons();
   }, [category]);
 
-  const handleAddToCart = async (lesson: Lesson) => {
+  /*const handleAddToCart = async (lesson: Lesson) => {
     if (!isAuthenticated) {
       alert("❌ Debes iniciar sesión para agregar al carrito.");
       return;
@@ -69,7 +66,7 @@ const DrivingLessons = ({ category }: { category: string }) => {
     } finally {
       setLoading(null);
     }
-  };
+  };*/
 
   return (
     <section className="bg-white py-16">

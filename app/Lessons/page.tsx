@@ -20,10 +20,8 @@ const poppins = Poppins({
 
 const LessonsPage = () => {
   const lessons = useDrivingLessons("Road Skills for Life");
-  const { addToCart } = useCart();
-  const isAuthenticated = useVerifySession();
 
-  const handleAddToCart = async (lesson: {
+  /*const handleAddToCart = async (lesson: {
     _id: string;
     title: string;
     price: number;
@@ -57,7 +55,7 @@ const LessonsPage = () => {
     } catch (error) {
       console.error("❌ Error al guardar en la base de datos:", error);
     }
-  };
+  };*/
 
   return (
     <section className={`${poppins.variable} bg-[#f5f5f5] py-24 px-8 relative`}>
