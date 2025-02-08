@@ -19,42 +19,6 @@ const poppins = Poppins({
 const LessonsPage = () => {
   const lessons = useDrivingLessons("Road Skills for Life");
 
-  /*const handleAddToCart = async (lesson: {
-    _id: string;
-    title: string;
-    price: number;
-  }) => {
-    if (!isAuthenticated) {
-      alert("❌ Debes iniciar sesión para agregar al carrito.");
-      return;
-    }
-
-    try {
-      // Agregar al carrito
-      addToCart({
-        id: lesson._id,
-        title: lesson.title,
-        price: lesson.price,
-        quantity: 1,
-      });
-
-      // Guardar en la base de datos de pagos
-      await fetch("/api/payments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lessonId: lesson._id,
-          title: lesson.title,
-          price: lesson.price,
-        }),
-      });
-
-      alert("✅ Agregado al carrito.");
-    } catch (error) {
-      console.error("❌ Error al guardar en la base de datos:", error);
-    }
-  };*/
-
   return (
     <section className={`${poppins.variable} bg-[#f5f5f5] py-24 px-8 relative`}>
       <div className="max-w-7xl mx-auto">
@@ -128,35 +92,42 @@ const LessonsPage = () => {
         <div className="mt-14">
           {/* Grid para mostrar las lecciones correctamente */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {lessons.map((lesson) => (
-              <div
-                key={lesson._id}
-                className="p-6 bg-white rounded-xl shadow-md border border-gray-300 flex flex-col items-center"
-              >
-                <h3 className="text-lg text-black font-semibold text-center">
-                  {lesson.title}
-                </h3>
-                <p className="text-sm text-black text-center">
-                  {lesson.description}
-                </p>
-                <p className="text-xl font-bold text-[#27ae60] text-center mt-2">
-                  ${lesson.price}
-                </p>
-                {/* Contenedor flex para centrar el botón */}
-                <div className="flex justify-center w-full mt-3">
-                  <AuthenticatedButton
-                    type="buy"
-                    actionData={{
-                      itemId: lesson._id,
-                      title: lesson.title,
-                      price: lesson.price,
-                    }}
-                    label={lesson.buttonLabel || "Add to Cart"}
-                    className="w-full bg-[#27ae60] text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition duration-300"
-                  />
+            {lessons.map((lesson) => {
+              // Determinar si el botón es de tipo "book" o "buy" usando buttonLabel
+              const isBooking = lesson.buttonLabel
+                ?.toLowerCase()
+                .includes("book");
+
+              return (
+                <div
+                  key={lesson._id}
+                  className="p-6 bg-white rounded-xl shadow-md border border-gray-300 flex flex-col items-center"
+                >
+                  <h3 className="text-lg text-black font-semibold text-center">
+                    {lesson.title}
+                  </h3>
+                  <p className="text-sm text-black text-center">
+                    {lesson.description}
+                  </p>
+                  <p className="text-xl font-bold text-[#27ae60] text-center mt-2">
+                    ${lesson.price}
+                  </p>
+                  {/* Contenedor flex para centrar el botón */}
+                  <div className="flex justify-center w-full mt-3">
+                    <AuthenticatedButton
+                      type={isBooking ? "book" : "buy"}
+                      actionData={{
+                        itemId: lesson._id,
+                        title: lesson.title,
+                        price: lesson.price,
+                      }}
+                      label={lesson.buttonLabel || "Add to Cart"}
+                      className="w-full bg-[#27ae60] text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition duration-300"
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
