@@ -9,7 +9,8 @@ const Hero = () => {
       className="relative min-h-screen flex items-center px-6 md:px-12 pt-32 sm:pt-0 bg-no-repeat bg-center sm:bg-cover"
       style={{
         backgroundImage: "url('/BMW2.jpg')",
-        backgroundSize: "contain", // Ajuste para móviles
+        backgroundSize: "cover", // Ajuste para evitar franjas negras
+        backgroundPosition: "center", // Centrar correctamente
       }}
     >
       {/* Imagen de fondo para pantallas grandes */}
