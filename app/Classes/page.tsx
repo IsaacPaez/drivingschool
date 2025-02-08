@@ -36,6 +36,13 @@ const ClassesPage: React.FC = () => {
     fetchClasses();
   }, []);
 
+  const handleScrollToUpcoming = () => {
+    const upcomingSection = document.getElementById("upcoming-contact");
+    if (upcomingSection) {
+      upcomingSection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <section className="bg-gray-100 pt-[120px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row flex-wrap gap-8 mt-10">
@@ -79,6 +86,20 @@ const ClassesPage: React.FC = () => {
         >
           {selectedClass ? (
             <>
+              {/* 📌 Botón para Scrollear */}
+              <div className="flex justify-between items-center mb-6">
+                <button onClick={handleScrollToUpcoming} className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition text-lg sm:text-xl">
+                  {selectedClass.buttonLabel}
+                </button>
+              </div>
+              
+              {/* 📌 IMAGEN */}
+              {selectedClass.image && (
+                <div className="mb-6 flex justify-center">
+                  <Image src={selectedClass.image} alt={selectedClass.title} width={800} height={400} className="rounded-lg shadow-lg border border-gray-300 w-full max-h-[300px] object-cover" />
+                </div>
+              )}
+
               {/* 📌 TÍTULO */}
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 text-center md:text-left">
                 {selectedClass.title}
@@ -86,74 +107,27 @@ const ClassesPage: React.FC = () => {
 
               {/* 📌 TAMBIÉN CONOCIDO COMO */}
               {(selectedClass.alsoKnownAs?.length ?? 0) > 0 && (
-                <p className="text-base sm:text-lg text-gray-700 mb-2">
-                  <strong className="text-gray-900">Also Know Us:</strong> {selectedClass.alsoKnownAs?.join(", ") ?? ""}
-                </p>
-              )}
-
-              {/* 📌 IMAGEN DE LA CLASE */}
-              <div className="mb-6 flex justify-center">
-                {selectedClass.image ? (
-                  <Image
-                    src={selectedClass.image}
-                    alt={selectedClass.title}
-                    width={800}
-                    height={400}
-                    className="rounded-lg shadow-lg border border-gray-300 w-full max-h-[300px] object-cover"
-                  />
-                ) : (
-                  <p className="text-gray-500 italic">Error Image.</p>
-                )}
-              </div>
-
-              {/* 📌 DURACIÓN Y PRECIO */}
-              <div className="flex flex-col sm:flex-row sm:items-center mb-6 text-base sm:text-lg">
-                {selectedClass.length && (
-                  <p className="text-gray-800 flex items-center mb-2 sm:mb-0">
-                    ⏳ <strong className="ml-1">Length:</strong> {selectedClass.length} hours
-                  </p>
-                )}
-                {selectedClass.price && (
-                  <p className="text-gray-800 sm:ml-6 flex items-center">
-                    💰 <strong className="ml-1">Price:</strong> ${selectedClass.price}
-                  </p>
-                )}
-              </div>
-
-              {/* 📌 DESCRIPCIÓN */}
-              <p className="text-base sm:text-lg text-gray-700 leading-relaxed mb-6">
-                <strong className="text-gray-900">Overview:</strong> {selectedClass.overview}
-              </p>
-
-              {/* 📌 OBJETIVOS */}
-              {(selectedClass.objectives?.length ?? 0) > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">🎯 Class Objectives:</h3>
+                <div className="mb-4">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Also known as:</h3>
                   <ul className="list-disc pl-5 text-gray-700">
-                    {selectedClass.objectives?.map((obj: string, index: number) => (
-                      <li key={index} className="mb-1">
-                        {obj}
-                      </li>
+                    {selectedClass.alsoKnownAs?.map((item, index) => (
+                      <li key={index} className="mb-1">{item}</li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              {/* 📌 CONTACTO */}
-              {selectedClass.contact && (
-                <p className="text-base sm:text-lg text-gray-700 leading-relaxed mb-6">
-                  📞 <strong>Contact:</strong> {selectedClass.contact}
-                </p>
-              )}
+              {/* 📌 OVERVIEW */}
+              <p className="text-base sm:text-lg text-gray-700 leading-relaxed text-justify mb-6">
+                <strong className="text-gray-900">Overview:</strong> {selectedClass.overview}
+              </p>
 
-              {/* 📌 BOTÓN DE ACCIÓN */}
-              {selectedClass.buttonLabel && (
-                <div className="mt-6 text-center md:text-left">
-                  <button className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition text-lg sm:text-xl">
-                    {selectedClass.buttonLabel}
-                  </button>
-                </div>
-              )}
+              {/* 📌 UPCOMING SECTION */}
+              <p id="upcoming-contact" className="text-base sm:text-lg text-gray-700 leading-relaxed mt-6">
+                📆 <strong>Upcoming {selectedClass.title}:</strong>
+                <br />
+                <span className="text-xl font-bold text-blue-600">{selectedClass.contact ?? "No schedule available."}</span>
+              </p>
             </>
           ) : (
             <p className="text-gray-500 text-lg text-center">Select a class to view the details.</p>
