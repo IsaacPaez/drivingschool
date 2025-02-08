@@ -51,7 +51,7 @@ const DrivingTestSection = () => {
     fetchCollections();
   }, []);
 
-  const handleAddToCart = async (item: CollectionItem) => {
+  /*const handleAddToCart = async (item: CollectionItem) => {
     if (!isAuthenticated) {
       alert("❌ Debes iniciar sesión para agregar al carrito.");
       return;
@@ -81,7 +81,7 @@ const DrivingTestSection = () => {
     } catch (error) {
       console.error("❌ Error al guardar en la base de datos:", error);
     }
-  };
+  };*/
 
   return (
     <section
