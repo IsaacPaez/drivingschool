@@ -36,7 +36,6 @@ const DrivingTestSection = () => {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const { addToCart } = useCart();
   const isAuthenticated = useVerifySession();
-  const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -57,8 +56,6 @@ const DrivingTestSection = () => {
       alert("❌ Debes iniciar sesión para agregar al carrito.");
       return;
     }
-
-    setLoading(item._id);
 
     try {
       // Agregar al carrito
@@ -83,8 +80,6 @@ const DrivingTestSection = () => {
       alert("✅ Agregado al carrito.");
     } catch (error) {
       console.error("❌ Error al guardar en la base de datos:", error);
-    } finally {
-      setLoading(null);
     }
   };
 
@@ -166,7 +161,7 @@ const DrivingTestSection = () => {
               You must bring:
             </h3>
             <ul className="list-disc list-inside text-black mt-3 space-y-2">
-              <li>Learner's permit</li>
+              <li>Learner&apos;s permit</li>
               <li>
                 Required documentation (if under 18 year old, parent consent
                 form)

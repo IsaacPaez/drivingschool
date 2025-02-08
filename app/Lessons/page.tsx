@@ -22,7 +22,6 @@ const LessonsPage = () => {
   const lessons = useDrivingLessons("Road Skills for Life");
   const { addToCart } = useCart();
   const isAuthenticated = useVerifySession();
-  const [loading, setLoading] = React.useState<string | null>(null);
 
   const handleAddToCart = async (lesson: {
     _id: string;
@@ -33,8 +32,6 @@ const LessonsPage = () => {
       alert("❌ Debes iniciar sesión para agregar al carrito.");
       return;
     }
-
-    setLoading(lesson._id);
 
     try {
       // Agregar al carrito
@@ -59,8 +56,6 @@ const LessonsPage = () => {
       alert("✅ Agregado al carrito.");
     } catch (error) {
       console.error("❌ Error al guardar en la base de datos:", error);
-    } finally {
-      setLoading(null);
     }
   };
 
@@ -102,7 +97,10 @@ const LessonsPage = () => {
               <ul className="space-y-3 text-lg font-semibold text-black">
                 <li>
                   Nervous Driver or Parent?{" "}
-                  <Link href="/Article/Information-for-Nervous-Drivers-and-Parents" className="text-[#27ae60] hover:underline">
+                  <Link
+                    href="/Article/Information-for-Nervous-Drivers-and-Parents"
+                    className="text-[#27ae60] hover:underline"
+                  >
                     Read More
                   </Link>
                 </li>
