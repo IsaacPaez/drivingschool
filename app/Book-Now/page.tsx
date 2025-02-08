@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { FaCalendarAlt } from "react-icons/fa";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Modal from "@/components/Modal";
@@ -12,7 +11,6 @@ export default function BookNowPage() {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(true);
   const [locations, setLocations] = useState<{ title: string; zone: string; instructors: Instructor[] }[]>([]);
 
@@ -62,23 +60,6 @@ export default function BookNowPage() {
     if (!value || Array.isArray(value)) return;
     const date = value as Date;
     setSelectedDate(date);
-
-    if (!selectedInstructor || !selectedInstructor.schedule) {
-      console.warn("⛔ selectedInstructor no tiene un horario definido.");
-      setSelectedSlots([]);
-      return;
-    }
-
-    const formattedDate = date.toISOString().split("T")[0];
-    const selectedDay = selectedInstructor.schedule.find((day) => day.date === formattedDate);
-
-    if (!selectedDay || !selectedDay.slots || selectedDay.slots.length === 0) {
-      console.warn("⚠️ No hay horarios disponibles para esta fecha:", formattedDate);
-      setSelectedSlots([]);
-      return;
-    }
-
-    setSelectedSlots(selectedDay.slots);
   };
 
   return (
