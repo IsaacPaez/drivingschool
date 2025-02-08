@@ -28,7 +28,6 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
   type,
   actionData,
   label,
-  redirectTo,
   className = "",
 }) => {
   const router = useRouter();
