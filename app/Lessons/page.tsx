@@ -55,15 +55,15 @@ const LessonsPage = () => {
               <ul className="space-y-3 text-lg font-semibold text-black">
                 <li>
                   Nervous Driver or Parent?{" "}
-                  <a href="#" className="text-[#27ae60] hover:underline">
+                  <Link href="/Article/Information-for-Nervous-Drivers-and-Parents" className="text-[#27ae60] hover:underline">
                     Read More
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   Want to know more?{" "}
-                  <a href="#" className="text-[#27ae60] hover:underline">
+                  <Link href="/FAQ" className="text-[#27ae60] hover:underline">
                     Read our FAQ
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

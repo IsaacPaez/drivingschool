@@ -1,8 +1,11 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 
 const TrafficCourses = () => {
+  const router = useRouter();
+
   const courses = [
     {
       title: "Live Classroom",
@@ -14,6 +17,7 @@ const TrafficCourses = () => {
         "And more!",
       ],
       buttonText: "View Courses",
+      link: "/Classes",
     },
     {
       title: "Online Learning",
@@ -25,13 +29,25 @@ const TrafficCourses = () => {
         "And more!",
       ],
       buttonText: "View Online Courses",
+      link: "/OnlineCourses",
     },
   ];
+
+  interface Course {
+    title: string;
+    details: string[];
+    buttonText: string;
+    link: string;
+  }
+
+  const handleNavigation = (path: string) => {
+    router.push(path);
+  };
 
   return (
     <section
       className="bg-cover bg-center py-20"
-      style={{ backgroundImage: "url('/C1.jpg')" }} // Cambia el path de la imagen según corresponda.
+      style={{ backgroundImage: "url('/C1.jpg')" }} // Asegúrate de que la imagen exista en la ruta correcta
     >
       <h2 className="text-4xl font-extrabold text-center text-black mb-16">
         Traffic Courses
@@ -55,10 +71,11 @@ const TrafficCourses = () => {
               ))}
             </ul>
             <button
+              onClick={() => handleNavigation(course.link)}
               className="bg-[#27ae60] hover:bg-[#0056b3] text-white font-bold text-lg py-3 px-6 rounded-full transition-colors duration-300 mx-auto"
               style={{
                 display: "block",
-                width: "auto", // Ajusta automáticamente el ancho según el texto
+                width: "auto",
                 whiteSpace: "nowrap",
               }}
             >

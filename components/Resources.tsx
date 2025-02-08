@@ -12,7 +12,7 @@ const Resources = () => {
     { title: "License & ID Requirements", image: "/licenciajpg.jpg" },
     { title: "Florida DMV", image: "/bucle.jpg", href: "https://www.flhsmv.gov/" },
     { title: "DMV Appointment", image: "/conojpg.jpg", href: "https://www.flhsmv.gov/locations/" },
-    { title: "FL Drivers License Handbook (ENG)", image: "/Manuales1.jpg" },
+    { title: "FL Drivers License Handbook (ENG)", image: "/manual1.1jpg.jpg" },
     { title: "FL Manual De Manejo (ESP)", image: "/manual2.1.jpg" },
     { title: "Forms", image: "/forms1.jpg", href: "https://www.flhsmv.gov/forms/" },
   ];

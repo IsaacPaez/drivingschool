@@ -63,7 +63,7 @@ const Hero = () => {
         {/* 📌 Botones */}
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xl">
           <Link
-            href="/book-driving-lessons"
+            href="/Book-Now"
             className="bg-[#4CAF50] text-white text-lg sm:text-xl px-6 py-4 rounded-full border-white hover:bg-[#0056b3] text-center transition-all"
           >
             Book Driving Lessons
