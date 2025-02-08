@@ -6,11 +6,17 @@ import Link from "next/link";
 const Hero = () => {
   return (
     <section
-      className="relative bg-cover bg-center min-h-screen flex items-center px-6 md:px-12 pt-20 sm:pt-0"
-      style={{ backgroundImage: "url('/8.jpg')" }} // Asegúrate de que el path sea correcto
+      className="relative min-h-screen flex items-center px-6 md:px-12 pt-32 sm:pt-0 bg-no-repeat bg-center sm:bg-cover"
+      style={{
+        backgroundImage: "url('/bmw2.jpg')",
+        backgroundSize: "contain", // Ajuste para móviles
+      }}
     >
-      {/* Contenedor principal */}
-      <div className="max-w-7xl mx-auto flex flex-col items-center lg:items-start text-center lg:text-left w-full">
+      {/* Imagen de fondo para pantallas grandes */}
+      <div className="absolute inset-0 hidden sm:block bg-cover bg-center" style={{ backgroundImage: "url('/8.jpg')" }}></div>
+
+      {/* Contenido principal */}
+      <div className="relative max-w-7xl mx-auto flex flex-col items-center lg:items-start text-center lg:text-left w-full">
         {/* ✅ Contenedor para móviles: Mantiene la descripción dentro de un cuadro */}
         <div className="w-full max-w-xl">
           <h1 className="text-4xl sm:text-5xl md:text-6xl mt-14 sm:mt-10 font-extrabold text-white leading-tight mb-6">
@@ -37,7 +43,7 @@ const Hero = () => {
         </div>
 
         {/* 📌 Contenedor de estadísticas (SIEMPRE visible) */}
-        <div className="bg-white/30 backdrop-blur-sm shadow-lg rounded-lg px-8 py-4 mb-8 w-full max-w-xl">
+        <div className="bg-white/30 backdrop-blur-sm shadow-lg rounded-lg px-8 py-4 mb-12 sm:mb-8 w-full max-w-xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
               <h2 className="text-4xl font-bold text-black">
@@ -61,7 +67,7 @@ const Hero = () => {
         </div>
 
         {/* 📌 Botones */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xl">
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xl mb-16 sm:mb-8">
           <Link
             href="/Book-Now"
             className="bg-[#4CAF50] text-white text-lg sm:text-xl px-6 py-4 rounded-full border-white hover:bg-[#0056b3] text-center transition-all"
