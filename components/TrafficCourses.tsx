@@ -33,13 +33,6 @@ const TrafficCourses = () => {
     },
   ];
 
-  interface Course {
-    title: string;
-    details: string[];
-    buttonText: string;
-    link: string;
-  }
-
   const handleNavigation = (path: string) => {
     router.push(path);
   };
@@ -47,7 +40,7 @@ const TrafficCourses = () => {
   return (
     <section
       className="bg-cover bg-center py-20"
-      style={{ backgroundImage: "url('/C1.jpg')" }} // Asegúrate de que la imagen exista en la ruta correcta
+      style={{ backgroundImage: "url('/C1.jpg')" }}
     >
       <h2 className="text-4xl font-extrabold text-center text-black mb-16">
         Traffic Courses
