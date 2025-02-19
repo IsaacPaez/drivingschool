@@ -1,24 +1,14 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-interface IInstructor {
-  name: string;
-  image: string;
-}
-
 interface ILocation extends Document {
   title: string;
   description: string;
   zone: string;
   locationImage: string;
-  instructors: IInstructor[]; // Definir correctamente el array de objetos
+  instructors: mongoose.Types.ObjectId[]; // Usamos ObjectId en lugar de objetos anidados
   createdAt: Date;
   updatedAt: Date;
 }
-
-const InstructorSchema: Schema = new Schema({
-  name: { type: String, required: true },
-  image: { type: String, required: true },
-});
 
 const LocationSchema: Schema = new Schema(
   {
@@ -26,9 +16,11 @@ const LocationSchema: Schema = new Schema(
     description: { type: String, required: true },
     zone: { type: String, required: true },
     locationImage: { type: String, required: true },
-    instructors: { type: [InstructorSchema], required: true }, // Se usa el esquema definido arriba
+    instructors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Instructor" }], // 🔹 Referencia a Instructor
   },
   { timestamps: true }
 );
 
-export default mongoose.models.Location || mongoose.model<ILocation>("Location", LocationSchema);
+// 🔹 Asegurar que el modelo siempre se registre correctamente
+const Location = mongoose.models.Location || mongoose.model<ILocation>("Location", LocationSchema);
+export default Location;
