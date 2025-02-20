@@ -33,14 +33,7 @@ const DrivingLessons = ({ category }: { category: string }) => {
     fetchLessons();
   }, [category]);
 
-  const handleRedirect = (lesson: Lesson) => {
-    const buttonText = lesson.buttonLabel?.toLowerCase();
-    if (buttonText === "book") {
-      router.push("/Book-Now");
-    } else if (buttonText === "details") {
-      router.push("/Lessons");
-    }
-  };
+
 
   return (
     <section className="bg-white py-16">
