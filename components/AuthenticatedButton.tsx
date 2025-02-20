@@ -21,14 +21,13 @@ interface AuthenticatedButtonProps {
   actionData: AuthenticatedButtonActionData;
   label: string;
   redirectTo?: string; // URL de redirección opcional
-  className?: string;  // Clase CSS opcional
+  className?: string; // Clase CSS opcional
 }
 
 const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
   type,
   actionData,
   label,
-  redirectTo,
   className = "",
 }) => {
   const router = useRouter();
@@ -57,11 +56,11 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
         break;
 
       case "book":
-        // Redirigimos si hay un redirectTo
-        if (redirectTo) {
-          router.push(redirectTo);
+        // Si el botón es de "Book", redirigir a la página de reserva
+        if (type === "book" || /book|schedule/i.test(label)) {
+          router.push("/Book-Now");
+          return;
         }
-        break;
 
       case "contact":
         alert("📩 Abriendo formulario de contacto...");

@@ -47,38 +47,6 @@ const DrivingTestSection = () => {
     fetchCollections();
   }, []);
 
-  /*const handleAddToCart = async (item: CollectionItem) => {
-    if (!isAuthenticated) {
-      alert("❌ Debes iniciar sesión para agregar al carrito.");
-      return;
-    }
-
-    try {
-      // Agregar al carrito
-      addToCart({
-        id: item._id,
-        title: item.title,
-        price: item.price,
-        quantity: 1,
-      });
-
-      // Guardar en la base de datos de pagos
-      await fetch("/api/payments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          itemId: item._id,
-          title: item.title,
-          price: item.price,
-        }),
-      });
-
-      alert("✅ Agregado al carrito.");
-    } catch (error) {
-      console.error("❌ Error al guardar en la base de datos:", error);
-    }
-  };*/
-
   return (
     <section
       id="driving-test-section"
