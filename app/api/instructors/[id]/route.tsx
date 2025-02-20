@@ -2,22 +2,24 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Instructor from "@/models/Instructor";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, context: { params: { id: string } }) {
   try {
-    console.log("🔎 Fetching instructor with ID:", params.id);
+    const { id } = context.params;
+    console.log("🔎 Fetching instructor with ID:", id);
+
     await connectDB();
 
     // Verifica que el ID sea válido antes de hacer la consulta
-    if (!params.id || params.id.length !== 24) {
-      console.warn("⚠️ Invalid instructor ID format:", params.id);
+    if (!id || id.length !== 24) {
+      console.warn("⚠️ Invalid instructor ID format:", id);
       return NextResponse.json({ message: "Invalid instructor ID format" }, { status: 400 });
     }
 
     // Buscar instructor en la base de datos
-    const instructor = await Instructor.findById(params.id).lean();
+    const instructor = await Instructor.findById(id).lean();
 
     if (!instructor) {
-      console.warn("⚠️ Instructor not found:", params.id);
+      console.warn("⚠️ Instructor not found:", id);
       return NextResponse.json({ message: "No instructor found" }, { status: 404 });
     }
 
