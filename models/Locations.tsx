@@ -16,7 +16,7 @@ const LocationSchema: Schema = new Schema(
     description: { type: String, required: true },
     zone: { type: String, required: true },
     locationImage: { type: String, required: true },
-    instructors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Instructor" }], // 🔹 Referencia a Instructor
+    instructors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Instructor" }] // 🔹 Referencia a Instructor
   },
   { timestamps: true }
 );

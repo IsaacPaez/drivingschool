@@ -8,7 +8,7 @@ import Modal from "@/components/Modal";
 interface Instructor {
   _id: string;
   name: string;
-  image?: string;
+  photo?: string;
 }
 
 interface Zone {
@@ -18,6 +18,7 @@ interface Zone {
   locationImage?: string;
   description?: string;
   instructors?: Instructor[];
+  instructorsDetails?: Instructor[];
 }
 
 const LocationPage: React.FC = () => {
@@ -30,22 +31,86 @@ const LocationPage: React.FC = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
+        console.log("📌 Fetching locations...");
         const res = await fetch("/api/locations");
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+    
         const data: Zone[] = await res.json();
-
-        if (Array.isArray(data) && data.length > 0) {
-          setLocation(data[0]);
+        console.log("📌 API Response in Frontend:", JSON.stringify(data, null, 2)); // 👀 Revisar en consola del navegador
+    
+        if (data.length > 0) {
+          setLocation(data[0]); // 📌 Verifica que esto se ejecuta
           setZones(data);
         }
       } catch (error) {
-        console.error("Error fetching location data:", error);
+        console.error("❌ Error fetching location data:", error);
       } finally {
         setLoading(false);
       }
     };
+    
+    
 
     fetchLocation();
   }, []);
+
+  const fetchInstructorsDetails = async (instructorIds: string[]) => {
+    console.log("📌 Fetching instructors for IDs:", instructorIds);
+  
+    if (!instructorIds || instructorIds.length === 0) {
+      console.warn("⚠️ No instructor IDs provided.");
+      return [];
+    }
+  
+    try {
+      const instructorDetails = await Promise.all(
+        instructorIds.map(async (id) => {
+          const res = await fetch(`/api/instructors/${id}`);
+  
+          if (!res.ok) {
+            console.error(`❌ Invalid response for instructor ${id}, Status: ${res.status}`);
+            return { _id: id, name: "Unknown Instructor", photo: "/default-avatar.png" };
+          }
+  
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            console.error(`❌ Response for instructor ${id} is not JSON.`);
+            return { _id: id, name: "Unknown Instructor", photo: "/default-avatar.png" };
+          }
+  
+          return await res.json();
+        })
+      );
+  
+      return instructorDetails;
+    } catch (error) {
+      console.error("❌ Error fetching instructors:", error);
+      return [];
+    }
+  };
+  
+
+
+  const handleZoneClick = async (zone: Zone) => {
+    console.log("📌 Selected Zone:", JSON.stringify(zone, null, 2)); // 👀 Revisar qué IDs tiene
+  
+    if (!zone.instructors || zone.instructors.length === 0) {
+      setSelectedZone({ ...zone, instructorsDetails: [] });
+      return;
+    }
+  
+    const instructorIds = zone.instructors.map(instructor => instructor._id);
+    console.log("📌 Instructor IDs before fetch:", instructorIds);
+  
+    const instructorsData = await fetchInstructorsDetails(instructorIds);
+    console.log("📌 Instructor details fetched:", instructorsData);
+  
+    setSelectedZone({ ...zone, instructorsDetails: instructorsData });
+  };
+  
 
   return (
     <section className="bg-gray-100 pt-[150px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
@@ -124,14 +189,12 @@ const LocationPage: React.FC = () => {
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Covered Areas</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-blue-600">
                     {zones.map((zone, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedZone(zone)}
-                        className="underline cursor-pointer hover:text-blue-800"
-                      >
+                      <button key={zone._id || `zone-${index}`} onClick={() => handleZoneClick(zone)} className="underline cursor-pointer hover:text-blue-800">
                         {zone.zone}
                       </button>
+
                     ))}
+
                   </div>
                 </div>
               )}
@@ -143,7 +206,7 @@ const LocationPage: React.FC = () => {
                   onClose={() => setSelectedZone(null)}
                 >
                   <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl sm:max-w-6xl h-[90vh] overflow-y-auto relative">
-                  
+
 
 
                     {selectedZone?.locationImage && (
@@ -238,30 +301,29 @@ const LocationPage: React.FC = () => {
                           Instructors
                         </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                          {selectedZone?.instructors?.map((instructor: Instructor) => (
-                            <div
-                              key={instructor._id}
-                              className="text-center p-4 border rounded-lg shadow-sm bg-white flex flex-col items-center"
-                            >
-                              <div className="w-24 h-24 relative">
-                                <Image
-                                  src={instructor.image || "/default-avatar.png"}
-                                  alt={instructor.name}
-                                  width={96}
-                                  height={96}
-                                  className="rounded-full border border-gray-300 shadow-sm object-cover"
-                                  priority
-                                />
+                          {Array.isArray(selectedZone?.instructorsDetails) &&
+                            selectedZone.instructorsDetails.map((instructor, index) => (
+                              <div key={instructor._id || `instructor-${index}`} className="text-center p-4 border rounded-lg shadow-sm bg-white flex flex-col items-center">
+                                <div className="w-24 h-24 relative">
+                                  <Image
+                                    src={instructor.photo || "/default-avatar.png"} // 👈 Usar "photo" en lugar de "image"
+                                    alt={instructor.name || "Instructor"}
+                                    width={96}
+                                    height={96}
+                                    className="rounded-full border border-gray-300 shadow-sm object-cover"
+                                    priority
+                                  />
+                                </div>
+                                <p className="text-gray-900 mt-2 font-semibold text-center min-h-[3rem] flex items-center justify-center">
+                                  {instructor.name || "Instructor Name Missing"}
+                                </p>
+                                <button className="mt-auto w-full max-w-[160px] h-[50px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center">
+                                  <span>Book</span>
+                                  <span>{instructor.name ? instructor.name.split(" ")[0] : "No Name"}</span>
+                                </button>
                               </div>
-                              <p className="text-gray-900 mt-2 font-semibold text-center min-h-[3rem] flex items-center justify-center">
-                                {instructor.name}
-                              </p>
-                              <button className="mt-auto w-full max-w-[160px] h-[50px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center">
-                                <span>Book</span>
-                                <span>{instructor.name.split(" ")[0]}</span>
-                              </button>
-                            </div>
-                          ))}
+                            ))}
+
                         </div>
                       </div>
                     </div>

@@ -30,6 +30,7 @@ const ScheduleSchema = new Schema<Schedule>({
 
 const InstructorSchema = new Schema<IInstructor>(
   {
+    _id: mongoose.Schema.Types.ObjectId,
     name: { type: String, required: true },
     photo: { type: String, required: true },
     certifications: { type: String, default: "N/A" },
