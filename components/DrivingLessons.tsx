@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
 
@@ -32,11 +31,8 @@ const DrivingLessons = ({ category }: { category: string }) => {
     fetchLessons();
   }, [category]);
 
-
-
   return (
     <section className="bg-white py-16">
-      {/* Título con separación */}
       <div className="h-[64px] flex items-center justify-center mb-12">
         {category === "General" && (
           <h2 className="text-5xl font-extrabold text-center text-[#222] leading-tight">
@@ -46,21 +42,16 @@ const DrivingLessons = ({ category }: { category: string }) => {
         )}
       </div>
 
-      {/* Contenedor de tarjetas responsive */}
       <div className="px-6 sm:px-10 lg:px-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-12 gap-y-16 justify-items-center">
           {lessons.map((lesson) => {
-            // Determinar si el botón es de tipo "book" o "buy" usando buttonLabel
-            const isBooking = lesson.buttonLabel
-              ?.toLowerCase()
-              .includes("book");
+            const isBooking = lesson.buttonLabel?.toLowerCase().includes("book");
 
             return (
               <div
                 key={lesson._id}
                 className="w-[280px] h-[340px] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col items-center px-6 py-5 transform transition-transform duration-300 hover:-translate-y-2 border-4 border-[#0056b3]"
               >
-                {/* Imagen ajustada al centro */}
                 {lesson.media && lesson.media.length > 0 && (
                   <div className="w-20 h-20 relative mb-2">
                     <Image
@@ -72,24 +63,20 @@ const DrivingLessons = ({ category }: { category: string }) => {
                   </div>
                 )}
 
-                {/* Contenido interno alineado */}
                 <div className="flex flex-col flex-grow w-full">
                   <h3 className="text-lg font-bold text-black text-center mb-1">
                     {lesson.title}
                   </h3>
 
-                  {/* Descripción con altura fija */}
                   <p className="text-sm text-black text-center min-h-[36px]">
                     {lesson.description}
                   </p>
 
-                  {/* Precio y botón alineados correctamente */}
                   <div className="mt-auto flex flex-col items-center">
                     <p className="text-xl font-bold text-[#0056b3] text-center mt-2">
                       ${lesson.price}
                     </p>
 
-                    {/* Usamos AuthenticatedButton como en Packages */}
                     <AuthenticatedButton
                       type={isBooking ? "book" : "buy"}
                       actionData={{
