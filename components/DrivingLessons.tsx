@@ -17,7 +17,6 @@ interface Lesson {
 
 const DrivingLessons = ({ category }: { category: string }) => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchLessons = async () => {
