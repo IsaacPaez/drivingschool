@@ -1,16 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Instructor from "@/models/Instructor";
 
-// Corrección: Ahora el contexto se define como `{ params }: { params: { id: string } }`
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: Request) {
   try {
-    const { id } = params;
+    console.log("🟢 Conectando a la base de datos...");
+    await connectDB();
+    console.log("✅ Conectado a MongoDB");
+
+    // Extraer el ID desde la URL
+    const { pathname } = new URL(req.url);
+    const id = pathname.split("/").pop(); // Obtiene el último segmento de la URL
+
     console.log("🔎 Fetching instructor with ID:", id);
 
-    await connectDB();
-
-    // Validar el formato del ID
+    // Verificar que el ID sea válido antes de hacer la consulta
     if (!id || id.length !== 24) {
       console.warn("⚠️ Invalid instructor ID format:", id);
       return NextResponse.json({ message: "Invalid instructor ID format" }, { status: 400 });
