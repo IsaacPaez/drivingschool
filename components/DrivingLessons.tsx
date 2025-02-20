@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
 
@@ -11,10 +12,12 @@ interface Lesson {
   price: number;
   buttonLabel?: string;
   media?: string[];
+  type: "buy" | "book";
 }
 
 const DrivingLessons = ({ category }: { category: string }) => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchLessons = async () => {
@@ -30,41 +33,14 @@ const DrivingLessons = ({ category }: { category: string }) => {
     fetchLessons();
   }, [category]);
 
-  /*const handleAddToCart = async (lesson: Lesson) => {
-    if (!isAuthenticated) {
-      alert("❌ Debes iniciar sesión para agregar al carrito.");
-      return;
+  const handleRedirect = (lesson: Lesson) => {
+    const buttonText = lesson.buttonLabel?.toLowerCase();
+    if (buttonText === "book") {
+      router.push("/Book-Now");
+    } else if (buttonText === "details") {
+      router.push("/Lessons");
     }
-
-    setLoading(lesson._id);
-
-    try {
-      // Agregar al carrito usando la misma función de Packages
-      addToCart({
-        id: lesson._id,
-        title: lesson.title,
-        price: lesson.price,
-        quantity: 1,
-      });
-
-      // Guardar en la base de datos de pagos
-      await fetch("/api/payments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lessonId: lesson._id,
-          title: lesson.title,
-          price: lesson.price,
-        }),
-      });
-
-      alert("✅ Agregado al carrito.");
-    } catch (error) {
-      console.error("❌ Error al guardar en la base de datos:", error);
-    } finally {
-      setLoading(null);
-    }
-  };*/
+  };
 
   return (
     <section className="bg-white py-16">
@@ -115,17 +91,26 @@ const DrivingLessons = ({ category }: { category: string }) => {
                     ${lesson.price}
                   </p>
 
-                  {/* Usamos AuthenticatedButton como en Packages */}
-                  <AuthenticatedButton
-                    type="buy"
-                    actionData={{
-                      itemId: lesson._id,
-                      title: lesson.title,
-                      price: lesson.price,
-                    }}
-                    label={lesson.buttonLabel || "Add to Cart"}
-                    className="w-full bg-[#0056b3] text-white font-bold text-sm py-2 px-4 rounded-full shadow-md hover:bg-[#27ae60] transition duration-300 ease-in-out mt-3"
-                  />
+                  {/* Botón según el tipo de lección */}
+                  {lesson.buttonLabel?.toLowerCase() === "book" || lesson.buttonLabel?.toLowerCase() === "details" ? (
+                    <button
+                      onClick={() => handleRedirect(lesson)}
+                      className="w-full bg-[#27ae60] text-white font-bold text-sm py-2 px-4 rounded-full shadow-md hover:bg-[#0056b3] transition duration-300 ease-in-out mt-3"
+                    >
+                      {lesson.buttonLabel}
+                    </button>
+                  ) : (
+                    <AuthenticatedButton
+                      type="buy"
+                      actionData={{
+                        itemId: lesson._id,
+                        title: lesson.title,
+                        price: lesson.price,
+                      }}
+                      label={lesson.buttonLabel || "Add to Cart"}
+                      className="w-full bg-[#0056b3] text-white font-bold text-sm py-2 px-4 rounded-full shadow-md hover:bg-[#27ae60] transition duration-300 ease-in-out mt-3"
+                    />
+                  )}
                 </div>
               </div>
             </div>
