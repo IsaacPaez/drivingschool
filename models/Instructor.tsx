@@ -10,12 +10,12 @@ interface Schedule {
   slots: Slot[];
 }
 
-interface IInstructor extends Document {
+export interface IInstructor extends Document {
   name: string;
   photo: string;
-  certifications: string;
-  experience: string;
-  schedule: Schedule[];
+  certifications?: string;
+  experience?: string;
+  schedule?: Schedule[];
 }
 
 const SlotSchema = new Schema<Slot>({
@@ -30,6 +30,7 @@ const ScheduleSchema = new Schema<Schedule>({
 
 const InstructorSchema = new Schema<IInstructor>(
   {
+    _id: mongoose.Schema.Types.ObjectId,
     name: { type: String, required: true },
     photo: { type: String, required: true },
     certifications: { type: String, default: "N/A" },
@@ -39,4 +40,6 @@ const InstructorSchema = new Schema<IInstructor>(
   { timestamps: true }
 );
 
-export default mongoose.models.Instructor || mongoose.model<IInstructor>("Instructor", InstructorSchema);
+// 🔹 Importante: Asegurar que el modelo siempre se registre correctamente
+const Instructor = mongoose.models.Instructor || mongoose.model<IInstructor>("Instructor", InstructorSchema);
+export default Instructor;
