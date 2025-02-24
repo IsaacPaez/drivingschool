@@ -11,9 +11,18 @@ export const metadata: Metadata = {
   description: "Learn road skills for life",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <ClerkProvider allowedRedirectOrigins={['https://dashboard-ds-flax.vercel.app']}>
+    <ClerkProvider
+      allowedRedirectOrigins={[
+        "http://localhost:3000",
+        "https://dashboard-ds-flax.vercel.app",
+      ]}
+    >
       <CartProvider>
         <html lang="en">
           <body className={`antialiased`}>

@@ -15,4 +15,5 @@ const ClassSchema = new mongoose.Schema(
   { collection: "drivingclasses", timestamps: true } // 🔹 Nombre correcto de la colección
 );
 
-export default mongoose.models.Classes || mongoose.model("Classes", ClassSchema);
+export default mongoose.models.Classes ||
+  mongoose.model("Classes", ClassSchema);

@@ -1,16 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs";
 import CartIcon from "./CartIcon";
 
 const Header = () => {
+  const router = useRouter();
   const pathname = usePathname();
-  const isHome = pathname === "/";
+  const [isHome, setIsHome] = useState(false);
 
+  useEffect(() => {
+    setIsHome(pathname === "/"); // Se actualiza correctamente en cada cambio de ruta
+  }, [pathname]);
   // Estado para controlar si el menú móvil está abierto
   const [isOpen, setIsOpen] = useState(false);
 
@@ -35,21 +46,37 @@ const Header = () => {
           Phone: <strong className="font-semibold">561 330 7007</strong>
         </span>
 
-        {/* Botón de Login con Clerk (sólo visible si no está autenticado) */}
-        <SignedOut>
-          <SignInButton>
-            <div className="hidden md:block text-left">
-              <button className="bg-[#0056b3] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
+        {/* Sección de Login y Sign In en la esquina superior derecha */}
+        <div className="absolute top-2 right-6 flex gap-4">
+          <SignedOut>
+            {/* Botón de Inicio de Sesión con Clerk */}
+            <SignInButton mode="modal">
+              <button
+                className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 
+        hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out 
+        cursor-pointer active:translate-y-1"
+              >
                 Login
               </button>
-            </div>
-          </SignInButton>
-        </SignedOut>
+            </SignInButton>
 
-        {/* Menú de usuario cuando está autenticado (UserButton) */}
-        <SignedIn>
-          <UserButton afterSignOutUrl="/" />
-        </SignedIn>
+            {/* Botón de Registro con Clerk */}
+            <SignUpButton mode="modal">
+              <button
+                className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 
+        hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out 
+        cursor-pointer active:translate-y-1"
+              >
+                Sign Up
+              </button>
+            </SignUpButton>
+          </SignedOut>
+
+          {/* Menú del Usuario cuando está autenticado */}
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
+        </div>
 
         {/* 🛒 Carrito de Compras con color dinámico */}
         <CartIcon color={isHome ? "white" : "black"} />
@@ -87,10 +114,11 @@ const Header = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`font-medium transition ${pathname === item.href
-                ? "text-[#27ae60] font-bold"
-                : "text-gray-800 hover:text-green-600"
-                }`}
+              className={`font-medium transition ${
+                pathname === item.href
+                  ? "text-[#27ae60] font-bold"
+                  : "text-gray-800 hover:text-green-600"
+              }`}
             >
               {item.name}
             </Link>
@@ -109,7 +137,8 @@ const Header = () => {
         {/* Navegación Móvil (Dropdown) */}
         {isOpen && (
           <div className="absolute top-full right-0  z-50">
-            <div className="max-w-4xl  px-6 py-4
+            <div
+              className="max-w-4xl  px-6 py-4
                   bg-white/90 backdrop-blur-lg shadow-md  rounded-lg
                   
                   md:hidden flex flex-col items-center space-y-4"
@@ -121,11 +150,11 @@ const Header = () => {
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsOpen(false)} // Cerrar al hacer clic
-                       className={`font-medium transition ${
-                           pathname === item.href
-                              ? "text-[#27ae60] font-bold"
-                             : "text-black hover:text-gray-200"
-                          }`}
+                    className={`font-medium transition ${
+                      pathname === item.href
+                        ? "text-[#27ae60] font-bold"
+                        : "text-black hover:text-gray-200"
+                    }`}
                   >
                     {item.name}
                   </Link>
