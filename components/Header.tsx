@@ -15,7 +15,6 @@ import {
 import CartIcon from "./CartIcon";
 
 const Header = () => {
-  const router = useRouter();
   const pathname = usePathname();
   const [isHome, setIsHome] = useState(false);
 

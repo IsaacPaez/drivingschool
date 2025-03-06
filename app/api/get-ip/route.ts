@@ -10,6 +10,7 @@ export async function GET() {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("Error fetching IP:", error); // Ahora el error se usa y no marca advertencia
     return new Response(JSON.stringify({ error: "Failed to fetch IP" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
