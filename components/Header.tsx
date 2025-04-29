@@ -78,7 +78,7 @@ const Header = () => {
 
         {/* 🛒 Carrito de Compras con color dinámico */}
         <CartIcon
-          color={` ${isHome ? "white" : "black"}`}
+          color={` ${isHome ? "black" : "black"}`}
         />
       </div>
 
