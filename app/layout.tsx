@@ -50,7 +50,6 @@ export default function RootLayout({
           <body className={`antialiased`}>
             <Header />
             <main className="min-h-screen relative">
-              <HeatmapTracker />
               {children}
             </main>
             <Footer />

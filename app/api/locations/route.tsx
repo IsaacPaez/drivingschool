@@ -17,8 +17,6 @@ export async function GET(req: Request) {
       query = { zone: decodeURIComponent(zone) };
     }
 
-    console.log("📌 Fetching locations with query:", query);
-
     // 🔹 Asegurar que se poblen bien los instructores y se convierta en JSON limpio
     const locations = await Locations.find(query)
       .populate({
@@ -26,9 +24,7 @@ export async function GET(req: Request) {
         model: Instructor,
         select: "_id name photo certifications experience" // 👈 Solo seleccionamos lo necesario
       })
-      .lean(); // 👈 Convierte a JSON para evitar problemas de referencias
-
-    console.log("📌 Locations with populated instructors:", JSON.stringify(locations, null, 2));
+      .lean(); 
 
     if (!locations || locations.length === 0) {
       console.warn("⚠️ No locations found.");

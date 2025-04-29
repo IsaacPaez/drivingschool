@@ -35,11 +35,11 @@ const Header = () => {
   ];
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50">
+    <header className="fixed top-0 left-0 w-full z-50 px-4">
       {/* Top Row with Phone and Login */}
-      <div className="bg-transparent flex justify-center gap-4 items-center px-6 py-2 text-sm font-sans">
+      <div className="bg-transparent flex lg:justify-center gap-4 items-center py-2 text-sm font-sans">
         <span
-          className={`${isHome ? "text-white" : "text-blue-800"} font-semibold`}
+          className={`hidden lg:flex ${isHome ? "text-white" : "text-blue-800"} font-semibold`}
         >
           Phone: <strong className="font-semibold">561 330 7007</strong>
         </span>
@@ -77,11 +77,13 @@ const Header = () => {
         </div>
 
         {/* 🛒 Carrito de Compras con color dinámico */}
-        <CartIcon color={isHome ? "white" : "black"} />
+        <CartIcon
+          color={` ${isHome ? "white" : "black"}`}
+        />
       </div>
 
       {/* Bottom Row with Logo and Navigation */}
-      <div className="relative max-w-7xl mx-auto px-6 py-2 flex items-center justify-between rounded-full bg-white/30 backdrop-blur-lg shadow-md mt-3">
+      <div className="relative max-w-7xl mx-auto px-6 py-2 flex items-center justify-between rounded-full bg-white/30 backdrop-blur-lg shadow-lg mt-3">
         {/* Logo */}
         <div className="flex-shrink-0">
           <Link href="/">
@@ -90,14 +92,18 @@ const Header = () => {
               alt="Logo"
               width={70}
               height={70}
-              className="object-contain"
+              className="
+          object-contain
+          w-12 h-12      /* tamaño base en móvil */
+          sm:w-16 sm:h-16 /* aumenta en pantallas ≥640px */
+        "
             />
           </Link>
         </div>
 
         {/* Menú Hamburguesa (sólo visible en móvil) */}
         <button
-          className="block md:hidden focus:outline-none"
+          className="block lg:hidden focus:outline-none"
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle Menu"
         >
@@ -107,16 +113,15 @@ const Header = () => {
         </button>
 
         {/* Navegación Desktop */}
-        <nav className="hidden md:flex space-x-6">
+        <nav className="hidden lg:flex space-x-6">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`font-medium transition ${
-                pathname === item.href
+              className={`font-medium transition ${pathname === item.href
                   ? "text-[#27ae60] font-bold"
                   : "text-gray-800 hover:text-green-600"
-              }`}
+                }`}
             >
               {item.name}
             </Link>
@@ -124,7 +129,7 @@ const Header = () => {
         </nav>
 
         {/* Botón Book Now (sólo en desktop) */}
-        <div className="hidden md:block text-left">
+        <div className="hidden lg:block text-left">
           <Link href="/Book-Now" passHref>
             <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg  shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
               Book Now
@@ -137,9 +142,9 @@ const Header = () => {
           <div className="absolute top-full right-0  z-50">
             <div
               className="max-w-4xl  px-6 py-4
-                  bg-white/90 backdrop-blur-lg shadow-md  rounded-lg
+                  bg-white/90 backdrop-blur-lg shadow-lg  rounded-lg
                   
-                  md:hidden flex flex-col items-center space-y-4"
+                  lg:hidden flex flex-col items-center space-y-4"
             >
               {/* Links de navegación en modo móvil */}
               <nav className="flex flex-col items-center space-y-3">
@@ -148,11 +153,10 @@ const Header = () => {
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsOpen(false)} // Cerrar al hacer clic
-                    className={`font-medium transition ${
-                      pathname === item.href
+                    className={`font-medium transition ${pathname === item.href
                         ? "text-[#27ae60] font-bold"
                         : "text-black hover:text-gray-200"
-                    }`}
+                      }`}
                   >
                     {item.name}
                   </Link>

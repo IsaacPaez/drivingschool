@@ -19,27 +19,17 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
       alert("❌ No hay productos en el carrito.");
       return;
     }
-
     setLoading(true);
-
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: cart }),
       });
-
-      if (!res.ok) {
-        throw new Error("Error en la respuesta del servidor.");
-      }
-
+      if (!res.ok) throw new Error("Error en la respuesta del servidor.");
       const { url } = await res.json();
-
-      if (url) {
-        window.location.href = url; // 🔹 Redirigir a Stripe Checkout
-      } else {
-        alert("❌ Error al procesar el pago.");
-      }
+      if (url) window.location.href = url;
+      else alert("❌ Error al procesar el pago.");
     } catch (error) {
       console.error("❌ Error en la solicitud:", error);
       alert("❌ Hubo un error al procesar el pago. Inténtalo de nuevo.");
@@ -70,34 +60,37 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
 
       {/* Dropdown del Carrito */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 bg-white shadow-lg p-4 rounded-lg w-72 z-50">
+        <div
+          className="
+      fixed inset-x-0
+      top-12                /* ajusta este valor según la altura de tu header */
+      bg-white shadow-lg p-4 
+      rounded-none
+      z-50
+      max-h-[70vh] overflow-auto 
+    "
+        >
           {cart.length === 0 ? (
-            <p className="text-gray-500 text-center dark-text-black">
+            <p className="text-gray-500 text-center dark:text-black">
               Tu carrito está vacío.
             </p>
           ) : (
             <>
-              {/* Lista de productos en el carrito */}
               <ul className="divide-y divide-gray-300">
                 {cart.map((item) => (
                   <li
                     key={item.id}
-                    className="flex items-center justify-between py-2 px-2"
+                    className="flex items-center justify-between py-2 px-2 min-w-0"
                   >
-                    {/* Nombre del producto alineado a la izquierda */}
-                    <span className="w-2/3 truncate text-left dark:text-black">
+                    <span className="flex-1 truncate text-left dark:text-black">
                       {item.title}
                     </span>
-
-                    {/* Precio alineado a la derecha en una columna */}
-                    <span className="w-1/6 text-right font-bold dark:text-black">
+                    <span className="ml-2 flex-shrink-0 text-right font-bold dark:text-black">
                       ${item.price}
                     </span>
-
-                    {/* Botón de eliminar a la derecha */}
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="w-1/6 text-red-500 text-lg hover:text-red-700 transition"
+                      className="ml-2 flex-shrink-0 text-red-500 text-lg hover:text-red-700 transition"
                     >
                       ❌
                     </button>
@@ -106,7 +99,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
               </ul>
               <button
                 onClick={handleCheckout}
-                className="w-full bg-green-500 text-white mt-4 py-2 rounded-lg"
+                className="w-full bg-green-500 text-white mt-4 py-2 rounded-lg disabled:opacity-50"
                 disabled={loading}
               >
                 {loading ? "Procesando..." : "Checkout"}
@@ -115,6 +108,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
           )}
         </div>
       )}
+
     </div>
   );
 };
