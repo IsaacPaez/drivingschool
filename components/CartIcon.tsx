@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
-import { FaShoppingCart } from "react-icons/fa";
+import { FaShoppingCart, FaTimes } from "react-icons/fa";
 import { motion } from "framer-motion";
 
 interface CartIconProps {
@@ -46,7 +46,10 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
         className="relative transition"
         whileTap={{ scale: 0.9 }}
       >
-        <FaShoppingCart size={24} style={{ color }} />
+        {isOpen
+          ? < FaTimes size={24} style={{ color }} />
+          : <FaShoppingCart size={24} style={{ color }} />
+        }
         {cart.length > 0 && (
           <motion.span
             className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white"
