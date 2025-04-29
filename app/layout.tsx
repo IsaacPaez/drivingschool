@@ -4,7 +4,6 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { ClerkProvider } from "@clerk/nextjs";
 import { CartProvider } from "@/app/context/CartContext";
-import HeatmapTracker from "@/app/components/HeatmapTracker";
 import { connectDB } from "@/lib/mongodb";
 import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
 
