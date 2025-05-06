@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CalendarGrid from './CalendarGrid';
 import CalendarToolbar from './CalendarToolbar';
 import Modal from '../Modal';
@@ -18,15 +18,46 @@ const addDays = (date: Date, days: number) => {
 
 interface CalendarViewProps {
   schedule: any[];
+  onScheduleUpdate?: () => void;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ schedule }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate }) => {
   const [view, setView] = useState<'week' | 'month'>('week');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [classes, setClasses] = useState<any[]>(schedule || []);
+  const [classes, setClasses] = useState<any[]>([]);
   const [modalMode, setModalMode] = useState<'view' | 'edit' | 'add'>('view');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addDate, setAddDate] = useState<Date | null>(null);
+  const [addHour, setAddHour] = useState<number | null>(null);
+  const [startHour, setStartHour] = useState<number | null>(null);
+  const [endHour, setEndHour] = useState<number | null>(null);
+
+  useEffect(() => {
+    console.log('Schedule recibido en CalendarView:', schedule);
+    // Adaptar el schedule: cada slot se expande a cada hora ocupada
+    const adapted = (schedule || []).flatMap((item: any) =>
+      (item.slots || []).flatMap((slot: any) => {
+        const startHour = parseInt(slot.start.split(':')[0], 10);
+        const endHour = parseInt(slot.end.split(':')[0], 10);
+        // Forzar la fecha a medianoche local para evitar desfases
+        const baseDate = new Date(item.date + 'T00:00:00');
+        return Array.from({ length: endHour - startHour }, (_, i) => ({
+          date: new Date(baseDate),
+          hour: startHour + i,
+          status: 'scheduled',
+          slotId: slot._id
+        }));
+      })
+    );
+    console.log('Adapted classes:', adapted);
+    setClasses(adapted);
+  }, [schedule]);
+
+  useEffect(() => {
+    console.log('Classes que se pasan a CalendarGrid:', classes);
+  }, [classes]);
 
   // Navegación entre semanas/meses
   const handlePrev = () => {
@@ -47,11 +78,43 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule }) => {
   const handleTimeBlockClick = (block: any) => {
     setSelectedBlock(block);
     if (block.status === 'free') {
-      setModalMode('add');
+      setAddDate(selectedDate);
+      setAddHour(block.hour);
+      setShowAddModal(true);
     } else {
       setModalMode('view');
+      setModalOpen(true);
     }
-    setModalOpen(true);
+  };
+
+  const handleAddClass = async () => {
+    if (!addDate || startHour === null || endHour === null) return;
+    const instructorId = '67a69c8776a7962fe143e58d'; // O el que corresponda
+    try {
+      const res = await fetch('/api/teachers/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instructorId,
+          date: addDate.toISOString().split('T')[0],
+          start: `${startHour.toString().padStart(2, '0')}:00`,
+          end: `${endHour.toString().padStart(2, '0')}:00`,
+        }),
+      });
+      
+      if (res.ok) {
+        setShowAddModal(false);
+        setStartHour(null);
+        setEndHour(null);
+        if (onScheduleUpdate) {
+          await onScheduleUpdate();
+        }
+      } else {
+        alert('Error al guardar la clase');
+      }
+    } catch (error) {
+      alert('Error al guardar la clase');
+    }
   };
 
   // Guardar/agendar clase
@@ -126,10 +189,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule }) => {
           <li className="flex items-center gap-2"><input type="checkbox" className="accent-[#27ae60]" /> Update schedule</li>
         </ul>
         <div className="mt-8">
-          <h3 className="font-semibold text-[#27ae60] mb-2">Books to read</h3>
+          <h3 className="font-semibold text-[#27ae60] mb-2">Scheduled Classes</h3>
           <ul className="text-sm text-gray-600 space-y-1">
-            <li>Design Patterns</li>
-            <li>Lean UX</li>
+            {schedule.length === 0 && <li>No classes scheduled</li>}
+            {schedule.map((item, idx) =>
+              (item.slots || []).map((slot, j) => (
+                <li key={idx + '-' + j} className="flex items-center gap-2">
+                  <span className="font-bold text-[#0056b3]">{new Date(item.date).toLocaleDateString()}</span>
+                  <span>{slot.start} - {slot.end}</span>
+                </li>
+              ))
+            )}
           </ul>
         </div>
       </aside>
@@ -164,6 +234,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule }) => {
               </button>
             </div>
           )}
+        </div>
+      </Modal>
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
+        <div className="p-6">
+          <h2 className="text-xl font-bold mb-4">Schedule Class</h2>
+          <div className="mb-2">Date: {addDate?.toLocaleDateString()}</div>
+          <div className="mb-2">
+            <label className="mr-2">Start hour:</label>
+            <input type="number" min={6} max={17} value={startHour ?? addHour ?? ''} onChange={e => setStartHour(Number(e.target.value))} className="border rounded p-1 w-16" />
+          </div>
+          <div className="mb-4">
+            <label className="mr-2">End hour:</label>
+            <input type="number" min={6} max={18} value={endHour ?? ((addHour ?? 6) + 1)} onChange={e => setEndHour(Number(e.target.value))} className="border rounded p-1 w-16" />
+          </div>
+          <button className="bg-[#27ae60] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#0056b3]" onClick={handleAddClass}>Confirm</button>
         </div>
       </Modal>
     </div>

@@ -5,7 +5,6 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { FaSearch } from "react-icons/fa";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
-import PopupPackages from "@/components/PopupPackages";
 
 interface Package {
   _id: string;
