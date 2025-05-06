@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import { ClerkProvider } from "@clerk/nextjs";
 import { CartProvider } from "@/app/context/CartContext";
 import { connectDB } from "@/lib/mongodb";
 import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
@@ -38,23 +37,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider
-      allowedRedirectOrigins={[
-        "http://localhost:3000",
-        "https://dashboard-ds-flax.vercel.app",
-      ]}
-    >
-      <CartProvider>
-        <html lang="en">
-          <body className={`antialiased`}>
-            <Header />
-            <main className="min-h-screen relative">
-              {children}
-            </main>
-            <Footer />
-          </body>
-        </html>
-      </CartProvider>
-    </ClerkProvider>
+    <CartProvider>
+      <html lang="en">
+        <body className={`antialiased`}>
+          <Header />
+          <main className="min-h-screen relative">
+            {children}
+          </main>
+          <Footer />
+        </body>
+      </html>
+    </CartProvider>
   );
 }

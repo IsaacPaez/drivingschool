@@ -4,13 +4,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  SignUpButton,
-  UserButton,
-} from "@clerk/nextjs";
 import CartIcon from "./CartIcon";
 
 const Header = () => {
@@ -37,49 +30,31 @@ const Header = () => {
   return (
     <header className="fixed top-0 left-0 w-full z-50 px-4">
       {/* Top Row with Phone and Login */}
-      <div className="bg-transparent flex lg:justify-center gap-4 items-center py-2 text-sm font-sans">
+      <div className="bg-transparent flex lg:justify-center gap-4 items-center py-2 text-sm font-sans relative">
         <span
           className={`hidden lg:flex ${isHome ? "text-white" : "text-blue-800"} font-semibold`}
         >
           Phone: <strong className="font-semibold">561 330 7007</strong>
         </span>
-
-        {/* Sección de Login y Sign In en la esquina superior derecha */}
-        <div className="absolute top-2 right-6 flex gap-4">
-          <SignedOut>
-            {/* Botón de Inicio de Sesión con Clerk */}
-            <SignInButton mode="modal">
-              <button
-                className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 
-        hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out 
-        cursor-pointer active:translate-y-1"
-              >
-                Login
-              </button>
-            </SignInButton>
-
-            {/* Botón de Registro con Clerk */}
-            <SignUpButton mode="modal">
-              <button
-                className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 
-        hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out 
-        cursor-pointer active:translate-y-1"
-              >
-                Sign Up
-              </button>
-            </SignUpButton>
-          </SignedOut>
-
-          {/* Menú del Usuario cuando está autenticado */}
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-        </div>
-
         {/* 🛒 Carrito de Compras con color dinámico */}
         <CartIcon
           color={` ${isHome ? "black" : "black"}`}
         />
+        {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
+        <div className="fixed top-4 right-8 flex gap-4 z-50">
+          <button
+            className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+            onClick={() => window.location.href = '/sign-in'}
+          >
+            Login
+          </button>
+          <button
+            className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+            onClick={() => window.location.href = '/sign-in'}
+          >
+            Sign In
+          </button>
+        </div>
       </div>
 
       {/* Bottom Row with Logo and Navigation */}

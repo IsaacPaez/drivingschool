@@ -2,14 +2,11 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useCallback } from "react";
 import h337 from "heatmap.js";
-import { useUser } from "@clerk/nextjs";
 
 export default function HeatmapTracker() {
     const pathname = usePathname();
     const heatmapRef = useRef<HTMLDivElement | null>(null);
     const heatmapInstance = useRef<h337.Heatmap<string, string, string> | null>(null);
-
-    const { user } = useUser();
 
     const getDeviceInfo = useCallback(() => {
         const userAgent = navigator.userAgent;
@@ -87,16 +84,16 @@ export default function HeatmapTracker() {
             requestIdleCallback(() => sendDataToAPI({
                 x, y, pathname, event_type: event_type || "unknown", screen_width, screen_height,
                 device, device_model: deviceModel, browser,
-                key_pressed: key_pressed || null, user_id: user ? user.id : null,
+                key_pressed: key_pressed || null,
             }));
         } else {
             setTimeout(() => sendDataToAPI({
                 x, y, pathname, event_type: event_type || "unknown", screen_width, screen_height,
                 device, device_model: deviceModel, browser,
-                key_pressed: key_pressed || null, user_id: user ? user.id : null,
+                key_pressed: key_pressed || null,
             }), 0);
         }
-    }, [getDeviceInfo, pathname, sendDataToAPI, user]);
+    }, [getDeviceInfo, pathname, sendDataToAPI]);
 
     const handleUnload = useCallback(() => {
         registerEvent(0, 0, "time_spent");

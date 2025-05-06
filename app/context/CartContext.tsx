@@ -7,7 +7,6 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { useUser } from "@clerk/nextjs"; // 🔹 Importamos Clerk para gestionar la sesión
 
 interface CartItem {
   id: string;
@@ -28,7 +27,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const { user } = useUser(); // 🔹 Obtenemos el usuario autenticado de Clerk
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // 🛒 Cargar el carrito desde localStorage al iniciar
@@ -68,13 +66,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   const clearCart = () => {
     setCart([]);
   };
-
-  // 🔹 Limpiar el carrito si el usuario cierra sesión
-  useEffect(() => {
-    if (!user) {
-      clearCart();
-    }
-  }, [user]);
 
   return (
     <CartContext.Provider
