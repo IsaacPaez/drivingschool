@@ -15,7 +15,7 @@ const sampleBlocks = [
 ];
 
 const statusStyles: Record<string, string> = {
-  free: 'bg-[#f3f4f6] text-gray-400 border border-gray-200',
+  free: 'bg-gray-400 text-white border border-gray-200',
   scheduled: 'bg-[#0056b3] text-white border border-0 shadow-lg',
   canceled: 'bg-[#f44336] text-white border-0 shadow-lg',
   cancelled: 'bg-[#f44336] text-white border-0 shadow-lg',
@@ -29,10 +29,9 @@ const statusLabel: Record<string, string> = {
 };
 
 const statusIcon: Record<string, React.ReactNode> = {
-  free: <HiOutlineClock className="w-5 h-5 text-gray-300" />,
-  scheduled: <HiOutlineCheckCircle className="w-5 h-5 text-white" />,
-  canceled: <HiOutlineXCircle className="w-5 h-5 text-white" />,
-  cancelled: <HiOutlineXCircle className="w-5 h-5 text-white" />,
+  free: <HiOutlineClock className="w-4 h-4 text-white" />,
+  scheduled: <HiOutlineCheckCircle className="w-4 h-4 text-white" />,
+  cancelled: <HiOutlineXCircle className="w-4 h-4 text-white" />,
 };
 
 interface Props {
@@ -68,13 +67,15 @@ function getMonthMatrix(year: number, month: number) {
   return matrix;
 }
 
+// Asegura que cualquier valor sea un objeto Date
+const safeDate = (d: any) => d instanceof Date ? d : new Date(`${d}T00:00:00`);
+
 const getBlockStatus = (hour: number, day: number, selectedDate: Date, classes: Props['classes']) => {
   const date = new Date(selectedDate);
   date.setHours(0,0,0,0); // normaliza a medianoche
   date.setDate(selectedDate.getDate() + day);
   const found = classes.find(c =>
-    c.date instanceof Date &&
-    c.date.toDateString() === date.toDateString() &&
+    safeDate(c.date).toDateString() === date.toDateString() &&
     c.hour === hour
   );
   return found ? found.status : 'free';
@@ -99,12 +100,13 @@ const CalendarGrid: React.FC<Props> = ({ view, onTimeBlockClick, selectedDate, c
     const today = selectedDate;
     const matrix = getMonthMatrix(today.getFullYear(), today.getMonth());
     const daysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const getStatus = (day: number | null) => {
-      if (!day) return 'free';
-      const found = classes.find(
-        c => c.date.getDate() === day && c.date.getMonth() === today.getMonth() && c.date.getFullYear() === today.getFullYear()
-      );
-      return found ? found.status : 'free';
+    const getStatusTypes = (day: number | null) => {
+      if (!day) return [];
+      const statuses = classes
+        .filter(c => safeDate(c.date).getDate() === day && safeDate(c.date).getMonth() === today.getMonth() && safeDate(c.date).getFullYear() === today.getFullYear())
+        .map(c => (c.status === 'canceled' ? 'cancelled' : c.status));
+      // Únicos y en orden: scheduled, cancelled, free
+      return ['scheduled', 'cancelled', 'free'].filter(s => statuses.includes(s));
     };
     return (
       <div className="rounded-3xl shadow-2xl p-8 overflow-x-auto min-h-[520px] bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1] border border-[#e0e0e0]">
@@ -119,21 +121,23 @@ const CalendarGrid: React.FC<Props> = ({ view, onTimeBlockClick, selectedDate, c
           {matrix.map((week, i) => (
             <React.Fragment key={i}>
               {week.map((day, j) => {
-                const status = getStatus(day);
+                const statusTypes = getStatusTypes(day);
                 return (
                   <button
                     key={j}
-                    className={`h-20 w-full rounded-xl font-semibold text-base flex flex-col items-center justify-center gap-1 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27ae60] ${statusStyles[status]} ${status !== 'free' ? 'hover:scale-105 hover:shadow-2xl' : 'hover:bg-gray-200'}`}
+                    className={`h-20 w-full rounded-xl font-semibold text-base flex flex-col items-center justify-center gap-1 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27ae60] ${statusTypes.length === 1 ? statusStyles[statusTypes[0]] : 'bg-white border border-gray-200'}`}
                     disabled={!day}
-                    onClick={() => day && onTimeBlockClick({ day, status })}
+                    onClick={() => day && onTimeBlockClick({ day, status: statusTypes[0] || 'free' })}
                   >
                     <span className="text-lg font-bold">{day || ''}</span>
-                    {status !== 'free' && (
-                      <span className="flex items-center gap-1 mt-1">
-                        {statusIcon[status]}
-                        <span className={`text-xs font-bold ${status === 'scheduled' ? 'text-white' : ''}`}>{statusLabel[status]}</span>
-                      </span>
-                    )}
+                    <div className="flex flex-col w-full mt-1 gap-0.5">
+                      {statusTypes.length > 0 && statusTypes.map((status, idx) => (
+                        <span key={status} className={`flex items-center justify-center w-full rounded h-4 text-xs font-bold ${statusStyles[status]}`}
+                          style={{ minHeight: 16 }}>
+                          {statusIcon[status]}
+                        </span>
+                      ))}
+                    </div>
                   </button>
                 );
               })}
@@ -183,26 +187,36 @@ const CalendarGrid: React.FC<Props> = ({ view, onTimeBlockClick, selectedDate, c
           <div key={dayIdx} className="flex flex-col gap-0">
             {hours.map((_, hourIdx) => {
               const date = weekDates[dayIdx];
-              const status = getBlockStatus(hourIdx + 6, dayIdx, selectedDate, classes);
               const found = classes.find(c =>
-                c.date instanceof Date &&
-                c.date.toDateString() === date.toDateString() &&
+                safeDate(c.date).toDateString() === date.toDateString() &&
                 c.hour === hourIdx + 6
               );
+              if (!found) {
+                return (
+                  <div key={hourIdx} className="h-8 w-full border-b border-r border-[#e0e0e0] bg-white"></div>
+                );
+              }
+              const status = found.status === 'canceled' ? 'cancelled' : found.status;
               return (
                 <button
                   key={hourIdx}
-                  className={`h-8 w-full rounded-none font-semibold text-xs flex items-center justify-center gap-1 border-b border-r border-[#e0e0e0] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27ae60] ${todayIdx === dayIdx ? 'bg-green-50' : ''} ${status === 'free' && !found ? statusClass.empty : statusClass[status] || statusClass.free}`}
+                  className={`h-8 w-full rounded-none font-semibold text-xs flex items-center justify-center gap-1 border-b border-r border-[#e0e0e0] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27ae60] ${status === 'scheduled' ? 'bg-[#0056b3] text-white' : statusClass[status] || statusClass.free}`}
                   onClick={() => onTimeBlockClick({ day: dayIdx, hour: hourIdx + 6, status })}
                   title={status === 'scheduled' ? `Class scheduled\n${hours[hourIdx]}` : ''}
                 >
                   {status === 'scheduled' ? (
-                    <span className="w-full text-center">Scheduled</span>
-                  ) : status === 'free' && found ? (
-                    <span className="w-full text-center">Free</span>
-                  ) : status === 'cancelled' || status === 'canceled' ? (
-                    <span className="flex items-center justify-center gap-1 w-full text-center"><HiOutlineXCircle className="w-5 h-5 text-white" /><span>Cancelled</span></span>
-                  ) : statusIcon[status]}
+                    <span className="flex items-center gap-1 w-full text-center font-bold justify-center">
+                      {statusIcon['scheduled']}<span>Scheduled</span>
+                    </span>
+                  ) : status === 'cancelled' ? (
+                    <span className="flex items-center gap-1 w-full text-center font-bold justify-center">
+                      {statusIcon['cancelled']}<span>Cancelled</span>
+                    </span>
+                  ) : status === 'free' ? (
+                    <span className="flex items-center gap-1 w-full text-center font-bold justify-center">
+                      {statusIcon['free']}<span>Free</span>
+                    </span>
+                  ) : null}
                 </button>
               );
             })}

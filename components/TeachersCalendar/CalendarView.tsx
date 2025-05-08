@@ -33,6 +33,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
   const [addHour, setAddHour] = useState<number | null>(null);
   const [startHour, setStartHour] = useState<number | null>(null);
   const [endHour, setEndHour] = useState<number | null>(null);
+  const [classFilter, setClassFilter] = useState<'scheduled' | 'cancelled' | 'free'>('scheduled');
 
   useEffect(() => {
     console.log('Schedule recibido en CalendarView:', schedule);
@@ -53,6 +54,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
     );
     // Generar todos los bloques posibles para la semana/mes y fusionar con los adaptados para mostrar libres/cancelados
     setClasses(adapted);
+    // DEBUG: Mostrar bloques generados para el 8 de mayo de 2025
+    const debugBlocks = adapted.filter(b => b.date instanceof Date && b.date.getFullYear() === 2025 && b.date.getMonth() === 4 && b.date.getDate() === 8);
+    console.log('Bloques generados para 2025-05-08:', debugBlocks);
   }, [schedule]);
 
   useEffect(() => {
@@ -144,6 +148,82 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
     setModalOpen(false);
   };
 
+  const getVisibleDates = () => {
+    if (view === 'week') {
+      const startOfWeek = new Date(selectedDate);
+      startOfWeek.setDate(selectedDate.getDate() - ((startOfWeek.getDay() + 6) % 7));
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(startOfWeek);
+        d.setDate(startOfWeek.getDate() + i);
+        d.setHours(0,0,0,0);
+        return d;
+      });
+    } else {
+      // Mes completo
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      return Array.from({ length: lastDay }, (_, i) => {
+        const d = new Date(year, month, i + 1);
+        d.setHours(0,0,0,0);
+        return d;
+      });
+    }
+  };
+
+  const visibleDates = getVisibleDates();
+  const filteredClasses = classes.filter(c => {
+    // Estado
+    let status = c.status;
+    if (status === 'canceled') status = 'cancelled';
+    if (status === 'scheduled' && classFilter !== 'scheduled') return false;
+    if (status === 'cancelled' && classFilter !== 'cancelled') return false;
+    if (status === 'free' && classFilter !== 'free') return false;
+    // Fecha visible
+    return visibleDates.some(d => d.toDateString() === new Date(c.date).toDateString());
+  });
+
+  const grouped = filteredClasses.reduce((acc, c) => {
+    const dateKey = new Date(c.date).toLocaleDateString();
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(c.hour);
+    return acc;
+  }, {} as Record<string, number[]>);
+
+  const renderClassList = () => {
+    if (Object.keys(grouped).length === 0) return <li className="text-gray-400">Not available</li>;
+    return Object.entries(grouped).sort((a, b) => {
+      // Ordenar por fecha ascendente
+      const da = new Date(a[0].split('/').reverse().join('-'));
+      const db = new Date(b[0].split('/').reverse().join('-'));
+      return da.getTime() - db.getTime();
+    }).map(([date, hours], idx) => {
+      // Agrupar horas consecutivas en rangos
+      const sorted = (hours as number[]).sort((a, b) => a - b);
+      const ranges: [number, number][] = [];
+      let start = sorted[0], end = sorted[0];
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] === end + 1) {
+          end = sorted[i];
+        } else {
+          ranges.push([start, end]);
+          start = end = sorted[i];
+        }
+      }
+      ranges.push([start, end]);
+      return (
+        <li key={date + idx} className="mb-1">
+          <span className="font-bold text-[#0056b3]">{date}</span>{' '}
+          {ranges.map(([s, e], i) => (
+            <span key={i} className="inline-block bg-gray-200 rounded px-1 mx-1">
+              {s.toString().padStart(2, '0')}:00 - {(e+1).toString().padStart(2, '0')}:00
+            </span>
+          ))}
+        </li>
+      );
+    });
+  };
+
   return (
     <div className="flex gap-8 w-full">
       {/* Sidebar izquierda */}
@@ -151,10 +231,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
         <div className="mb-6">
           <h2 className="text-lg font-bold text-[#0056b3] mb-2">Calendars</h2>
           <ul className="space-y-2 text-black">
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#0056b3]"></span> Work</li>
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#27ae60]"></span> Personal</li>
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-400"></span> Break</li>
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-400"></span> Activities</li>
+            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#0056b3]"></span> Scheduled</li>
+            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#f44336]"></span> Cancelled</li>
+            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gray-400"></span> Free</li>
           </ul>
         </div>
         <div>
@@ -182,26 +261,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
       </main>
       {/* Sidebar derecha */}
       <aside className="hidden lg:flex flex-col w-80 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] border-r-4 border-[#0056b3] rounded-2xl shadow-2xl p-6 h-fit min-h-[600px] relative overflow-hidden">
-        <h2 className="text-lg font-bold text-[#0056b3] mb-4">Tasks</h2>
-        <ul className="space-y-3 text-black">
-          <li className="flex items-center gap-2"><input type="checkbox" className="accent-[#27ae60]" /> Prepare class</li>
-          <li className="flex items-center gap-2"><input type="checkbox" className="accent-[#27ae60]" /> Review students</li>
-          <li className="flex items-center gap-2"><input type="checkbox" className="accent-[#27ae60]" /> Update schedule</li>
-        </ul>
-        <div className="mt-8">
-          <h3 className="font-semibold text-[#27ae60] mb-2">Scheduled Classes</h3>
-          <ul className="text-sm text-gray-600 space-y-1">
-            {schedule.length === 0 && <li>No classes scheduled</li>}
-            {schedule.map((item, idx) =>
-              (item.slots || []).map((slot, j) => (
-                <li key={idx + '-' + j} className="flex items-center gap-2">
-                  <span className="font-bold text-[#0056b3]">{new Date(item.date).toLocaleDateString()}</span>
-                  <span>{slot.start} - {slot.end}</span>
-                </li>
-              ))
-            )}
-          </ul>
+        <h2 className="text-lg font-bold text-[#0056b3] mb-4">Class Summary</h2>
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => setClassFilter('scheduled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='scheduled' ? 'bg-[#0056b3] text-white' : 'bg-white text-[#0056b3] border-[#0056b3]'}`}>Scheduled</button>
+          <button onClick={() => setClassFilter('cancelled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='cancelled' ? 'bg-[#f44336] text-white' : 'bg-white text-[#f44336] border-[#f44336]'}`}>Cancelled</button>
+          <button onClick={() => setClassFilter('free')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='free' ? 'bg-gray-400 text-white' : 'bg-white text-gray-400 border-gray-400'}`}>Free</button>
         </div>
+        <ul className="text-sm text-gray-600 space-y-1">
+          {renderClassList()}
+        </ul>
       </aside>
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
         <div className="p-6">

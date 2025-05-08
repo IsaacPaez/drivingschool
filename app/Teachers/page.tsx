@@ -11,10 +11,12 @@ export default function TeachersPage() {
   const [experience, setExperience] = useState('');
   const [rawSchedule, setRawSchedule] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // ID del instructor Isaac
     const instructorId = '681c2566f4e0eb5564f85205';
+    setLoading(true);
     fetch(`/api/teachers?id=${instructorId}`)
       .then(res => res.json())
       .then(data => {
@@ -25,6 +27,7 @@ export default function TeachersPage() {
           setExperience('');
           setSchedule([]);
           setRawSchedule([]);
+          setLoading(false);
           return;
         }
         setInstructorName(data.name || 'Instructor');
@@ -38,18 +41,18 @@ export default function TeachersPage() {
           (item.slots || []).flatMap((slot: any) => {
             const startHour = parseInt(slot.start.split(':')[0], 10);
             const endHour = parseInt(slot.end.split(':')[0], 10);
-            // Normalizar la fecha para que solo tenga año, mes y día
-            const baseDate = new Date(item.date);
-            const normalizedDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+            // Forzar la fecha a local (no UTC)
+            const baseDate = new Date(`${item.date}T00:00:00`);
             return Array.from({ length: endHour - startHour }, (_, i) => ({
-              date: normalizedDate,
+              date: new Date(baseDate),
               hour: startHour + i,
-              status: 'scheduled',
+              status: slot.status || 'scheduled',
               slotId: slot._id
             }));
           })
         );
         setSchedule(adapted);
+        setLoading(false);
       });
   }, []);
 
@@ -59,6 +62,22 @@ export default function TeachersPage() {
     const data = await res.json();
     setRawSchedule(data.schedule || []);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]">
+        <div className="flex flex-col items-center">
+          {/* SVG volante animado */}
+          <svg className="animate-spin h-16 w-16 text-[#0056b3] mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="28" stroke="#0056b3" strokeWidth="6" opacity="0.2" />
+            <path d="M32 8a24 24 0 1 1 0 48a24 24 0 1 1 0-48zm0 0v12m0 24v12m-17-17h12m24 0h12M16.93 16.93l8.49 8.49m12.12 12.12l8.49 8.49M16.93 47.07l8.49-8.49m12.12-12.12l8.49-8.49" stroke="#0056b3" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="32" cy="32" r="6" fill="#0056b3" />
+          </svg>
+          <span className="text-[#0056b3] text-lg font-semibold">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white w-full flex flex-col items-center justify-start pt-40 px-2 md:px-12 relative">
