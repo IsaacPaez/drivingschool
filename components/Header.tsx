@@ -27,6 +27,12 @@ const Header = () => {
     { name: "Location", href: "/Location" },
   ];
 
+  // Links para estudiantes
+  const studentNavItems = [
+    { name: "My Courses", href: "/Students" },
+    { name: "My Schedule", href: "/myagenda" },
+  ];
+
   // New teacher links for center navigation
   const teacherNavItems = [
     { name: "My Schedule", href: "/teachers" },
@@ -85,6 +91,17 @@ const Header = () => {
           </Link>
         </div>
 
+        {/* Menú Hamburguesa (sólo visible en móvil) */}
+        <button
+          className="block lg:hidden focus:outline-none"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle Menu"
+        >
+          <div className="w-6 h-1 bg-gray-800 mb-1" />
+          <div className="w-6 h-1 bg-gray-800 mb-1" />
+          <div className="w-6 h-1 bg-gray-800" />
+        </button>
+
         {/* Centered Teacher Navigation (Desktop only) */}
         {isTeacherSection && (
           <nav className="hidden lg:flex space-x-8 mx-auto">
@@ -102,29 +119,34 @@ const Header = () => {
             ))}
           </nav>
         )}
-
-        {/* Menú Hamburguesa (sólo visible en móvil) */}
-        <button
-          className="block lg:hidden focus:outline-none"
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle Menu"
-        >
-          <div className="w-6 h-1 bg-gray-800 mb-1" />
-          <div className="w-6 h-1 bg-gray-800 mb-1" />
-          <div className="w-6 h-1 bg-gray-800" />
-        </button>
-
+        {/* Centered Student Navigation (Desktop only) */}
+        {pathname.startsWith("/Students") && !isTeacherSection && (
+          <nav className="hidden lg:flex space-x-8 mx-auto">
+            {studentNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-semibold text-base transition ${pathname === item.href
+                  ? "text-[#27ae60] font-bold"
+                  : "text-blue-800 hover:text-green-600"
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        )}
         {/* Navegación Desktop */}
-        {!isTeacherSection && (
+        {!isTeacherSection && !pathname.startsWith("/Students") && (
           <nav className="hidden lg:flex space-x-6">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`font-medium transition ${pathname === item.href
-                    ? "text-[#27ae60] font-bold"
-                    : "text-gray-800 hover:text-green-600"
-                  }`}
+                  ? "text-[#27ae60] font-bold"
+                  : "text-gray-800 hover:text-green-600"
+                }`}
               >
                 {item.name}
               </Link>
@@ -133,7 +155,7 @@ const Header = () => {
         )}
 
         {/* Botón Book Now (sólo en desktop) */}
-        {!isTeacherSection && (
+        {!isTeacherSection && !pathname.startsWith("/Students") && (
           <div className="hidden lg:block text-left">
             <Link href="/Book-Now" passHref>
               <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg  shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">

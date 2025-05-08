@@ -3,11 +3,12 @@ import User from '@/models/User';
 import { connectDB } from '@/lib/mongodb';
 import mongoose from 'mongoose';
 
-export async function GET(req: Request, context: { params: { id: string } }) {
+export async function GET(req: Request, context: any) {
   await connectDB();
-  const { id } = context.params;
+  const params = await context.params;
+  const id = params.id;
   let user = null;
-  // Intentar buscar por ObjectId y por string
+  // Try to find by ObjectId and by string
   if (mongoose.Types.ObjectId.isValid(id)) {
     user = await User.findById(id).lean();
   }
@@ -20,9 +21,10 @@ export async function GET(req: Request, context: { params: { id: string } }) {
   return NextResponse.json(user);
 }
 
-export async function PUT(req: Request, context: { params: { id: string } }) {
+export async function PUT(req: Request, context: any) {
   await connectDB();
-  const { id } = context.params;
+  const params = await context.params;
+  const id = params.id;
   const { note } = await req.json();
   const user = await User.findByIdAndUpdate(id, { privateNotes: note }, { new: true }).lean();
   if (!user) {

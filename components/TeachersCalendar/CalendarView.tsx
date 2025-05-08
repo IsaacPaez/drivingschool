@@ -19,9 +19,10 @@ const addDays = (date: Date, days: number) => {
 interface CalendarViewProps {
   schedule: any[];
   onScheduleUpdate?: () => void;
+  hideSidebars?: boolean;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate, hideSidebars }) => {
   const [view, setView] = useState<'week' | 'month'>('week');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState<any>(null);
@@ -93,31 +94,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
 
   const handleAddClass = async () => {
     if (!addDate || startHour === null || endHour === null) return;
-    const instructorId = '67a69c8776a7962fe143e58d'; // O el que corresponda
     try {
-      const res = await fetch('/api/teachers/schedule', {
+      const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instructorId,
+          studentId: '67dda5c8448d12032b5d7a76', // TODO: Usar el id real del estudiante logueado
+          instructorId: selectedBlock?.instructorId || '681c2566f4e0eb5564f85205', // TODO: Usar el id real del instructor
           date: addDate.toISOString().split('T')[0],
           start: `${startHour.toString().padStart(2, '0')}:00`,
           end: `${endHour.toString().padStart(2, '0')}:00`,
         }),
       });
-      
       if (res.ok) {
         setShowAddModal(false);
         setStartHour(null);
         setEndHour(null);
-        if (onScheduleUpdate) {
-          await onScheduleUpdate();
-        }
+        if (onScheduleUpdate) await onScheduleUpdate();
       } else {
-        alert('Error al guardar la clase');
+        alert('This slot is no longer available.');
       }
     } catch (error) {
-      alert('Error al guardar la clase');
+      alert('Error booking the class');
     }
   };
 
@@ -227,22 +225,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
   return (
     <div className="flex gap-8 w-full">
       {/* Sidebar izquierda */}
-      <aside className="hidden md:flex flex-col w-72 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] border-l-4 border-[#27ae60] rounded-2xl shadow-2xl p-6 h-fit min-h-[600px] relative overflow-hidden">
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-[#0056b3] mb-2">Calendars</h2>
-          <ul className="space-y-2 text-black">
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#0056b3]"></span> Scheduled</li>
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#f44336]"></span> Cancelled</li>
-            <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gray-400"></span> Free</li>
-          </ul>
-        </div>
-        <div>
-          <h2 className="text-lg font-bold text-[#0056b3] mb-2">Month</h2>
-          <div className="bg-white/70 rounded-lg p-2 text-center text-gray-500 border border-[#27ae60]">
-            <MiniCalendar value={selectedDate} onChange={handleMiniCalendarChange} />
+      {!hideSidebars && (
+        <aside className="hidden md:flex flex-col w-72 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] border-l-4 border-[#27ae60] rounded-2xl shadow-2xl p-6 h-fit min-h-[600px] relative overflow-hidden">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-[#0056b3] mb-2">Calendars</h2>
+            <ul className="space-y-2 text-black">
+              <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#0056b3]"></span> Scheduled</li>
+              <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#f44336]"></span> Cancelled</li>
+              <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gray-400"></span> Free</li>
+            </ul>
           </div>
-        </div>
-      </aside>
+          <div>
+            <h2 className="text-lg font-bold text-[#0056b3] mb-2">Month</h2>
+            <div className="bg-white/70 rounded-lg p-2 text-center text-gray-500 border border-[#27ae60]">
+              <MiniCalendar value={selectedDate} onChange={handleMiniCalendarChange} />
+            </div>
+          </div>
+        </aside>
+      )}
       {/* Calendario central */}
       <main className="flex-1">
         <div className="flex items-center gap-2 mb-4 bg-white/70 rounded-xl shadow p-2 w-fit mx-auto">
@@ -250,6 +250,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
           <CalendarToolbar view={view} setView={setView} />
           <button onClick={handleNext} className="p-2 rounded-full bg-[#e3f6fc] hover:bg-[#27ae60] text-[#0056b3] hover:text-white shadow transition-all"><HiChevronRight size={22} /></button>
         </div>
+        {/* Mensaje para el estudiante solo si hideSidebars está activo */}
+        {hideSidebars && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-[#0056b3] text-center text-lg font-semibold">
+            View available slots and book your class in one of them.<br />You cannot edit or cancel reservations.
+          </div>
+        )}
         <div className="rounded-3xl border-2 border-[#27ae60] shadow-2xl p-0 bg-transparent">
           <CalendarGrid
             view={view}
@@ -260,17 +266,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
         </div>
       </main>
       {/* Sidebar derecha */}
-      <aside className="hidden lg:flex flex-col w-80 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] border-r-4 border-[#0056b3] rounded-2xl shadow-2xl p-6 h-fit min-h-[600px] relative overflow-hidden">
-        <h2 className="text-lg font-bold text-[#0056b3] mb-4">Class Summary</h2>
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setClassFilter('scheduled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='scheduled' ? 'bg-[#0056b3] text-white' : 'bg-white text-[#0056b3] border-[#0056b3]'}`}>Scheduled</button>
-          <button onClick={() => setClassFilter('cancelled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='cancelled' ? 'bg-[#f44336] text-white' : 'bg-white text-[#f44336] border-[#f44336]'}`}>Cancelled</button>
-          <button onClick={() => setClassFilter('free')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='free' ? 'bg-gray-400 text-white' : 'bg-white text-gray-400 border-gray-400'}`}>Free</button>
-        </div>
-        <ul className="text-sm text-gray-600 space-y-1">
-          {renderClassList()}
-        </ul>
-      </aside>
+      {!hideSidebars && (
+        <aside className="hidden lg:flex flex-col w-80 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] border-r-4 border-[#0056b3] rounded-2xl shadow-2xl p-6 h-fit min-h-[600px] relative overflow-hidden">
+          <h2 className="text-lg font-bold text-[#0056b3] mb-4">Class Summary</h2>
+          <div className="flex gap-2 mb-4">
+            <button onClick={() => setClassFilter('scheduled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='scheduled' ? 'bg-[#0056b3] text-white' : 'bg-white text-[#0056b3] border-[#0056b3]'}`}>Scheduled</button>
+            <button onClick={() => setClassFilter('cancelled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='cancelled' ? 'bg-[#f44336] text-white' : 'bg-white text-[#f44336] border-[#f44336]'}`}>Cancelled</button>
+            <button onClick={() => setClassFilter('free')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='free' ? 'bg-gray-400 text-white' : 'bg-white text-gray-400 border-gray-400'}`}>Free</button>
+          </div>
+          <ul className="text-sm text-gray-600 space-y-1">
+            {renderClassList()}
+          </ul>
+        </aside>
+      )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
         <div className="p-6">
           {modalMode === 'add' && (
@@ -305,16 +313,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
         </div>
       </Modal>
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
-        <div className="p-6">
+        <div className="p-6 text-black">
           <h2 className="text-xl font-bold mb-4">Schedule Class</h2>
           <div className="mb-2">Date: {addDate?.toLocaleDateString()}</div>
           <div className="mb-2">
             <label className="mr-2">Start hour:</label>
-            <input type="number" min={6} max={17} value={startHour ?? addHour ?? ''} onChange={e => setStartHour(Number(e.target.value))} className="border rounded p-1 w-16" />
+            <input type="number" min={6} max={17} value={startHour ?? addHour ?? ''} onChange={e => setStartHour(Number(e.target.value))} className="border rounded p-1 w-16 text-black" />
           </div>
           <div className="mb-4">
             <label className="mr-2">End hour:</label>
-            <input type="number" min={6} max={18} value={endHour ?? ((addHour ?? 6) + 1)} onChange={e => setEndHour(Number(e.target.value))} className="border rounded p-1 w-16" />
+            <input type="number" min={6} max={18} value={endHour ?? ((addHour ?? 6) + 1)} onChange={e => setEndHour(Number(e.target.value))} className="border rounded p-1 w-16 text-black" />
           </div>
           <button className="bg-[#27ae60] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#0056b3]" onClick={handleAddClass}>Confirm</button>
         </div>
