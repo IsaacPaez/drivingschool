@@ -14,7 +14,7 @@ export default function TeachersPage() {
 
   useEffect(() => {
     // ID del instructor Isaac
-    const instructorId = '67a69c8776a7962fe143e58d';
+    const instructorId = '681c2566f4e0eb5564f85205';
     fetch(`/api/teachers?id=${instructorId}`)
       .then(res => res.json())
       .then(data => {
@@ -54,7 +54,7 @@ export default function TeachersPage() {
   }, []);
 
   const fetchSchedule = async () => {
-    const instructorId = '67a69c8776a7962fe143e58d';
+    const instructorId = '681c2566f4e0eb5564f85205';
     const res = await fetch(`/api/teachers?id=${instructorId}`);
     const data = await res.json();
     setRawSchedule(data.schedule || []);

@@ -36,9 +36,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
 
   useEffect(() => {
     console.log('Schedule recibido en CalendarView:', schedule);
-    // Adaptar el schedule: cada slot se expande a cada hora ocupada
+    // Adaptar el schedule: cada slot se expande a cada hora ocupada, usando el status real
     const adapted = (schedule || []).flatMap((item: any) =>
-      (item.slots || []).flatMap((slot: any) => {
+      (item.slots || []).flatMap((slot: { start: string; end: string; status?: string; _id?: string }, j: number) => {
         const startHour = parseInt(slot.start.split(':')[0], 10);
         const endHour = parseInt(slot.end.split(':')[0], 10);
         // Forzar la fecha a medianoche local para evitar desfases
@@ -46,12 +46,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedule, onScheduleUpdate 
         return Array.from({ length: endHour - startHour }, (_, i) => ({
           date: new Date(baseDate),
           hour: startHour + i,
-          status: 'scheduled',
+          status: slot.status || 'scheduled',
           slotId: slot._id
         }));
       })
     );
-    console.log('Adapted classes:', adapted);
+    // Generar todos los bloques posibles para la semana/mes y fusionar con los adaptados para mostrar libres/cancelados
     setClasses(adapted);
   }, [schedule]);
 

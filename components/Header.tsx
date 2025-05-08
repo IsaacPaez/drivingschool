@@ -27,6 +27,15 @@ const Header = () => {
     { name: "Location", href: "/Location" },
   ];
 
+  // New teacher links for center navigation
+  const teacherNavItems = [
+    { name: "My Schedule", href: "/teachers" },
+    { name: "My Students", href: "/teachers/students" },
+  ];
+
+  // Helper to check if we are in a teacher section
+  const isTeacherSection = pathname.startsWith("/teachers");
+
   return (
     <header className="fixed top-0 left-0 w-full z-50 px-4">
       {/* Top Row with Phone and Login */}
@@ -76,6 +85,24 @@ const Header = () => {
           </Link>
         </div>
 
+        {/* Centered Teacher Navigation (Desktop only) */}
+        {isTeacherSection && (
+          <nav className="hidden lg:flex space-x-8 mx-auto">
+            {teacherNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-semibold text-base transition ${pathname === item.href
+                  ? "text-[#27ae60] font-bold"
+                  : "text-blue-800 hover:text-green-600"
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        )}
+
         {/* Menú Hamburguesa (sólo visible en móvil) */}
         <button
           className="block lg:hidden focus:outline-none"
@@ -88,29 +115,33 @@ const Header = () => {
         </button>
 
         {/* Navegación Desktop */}
-        <nav className="hidden lg:flex space-x-6">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`font-medium transition ${pathname === item.href
-                  ? "text-[#27ae60] font-bold"
-                  : "text-gray-800 hover:text-green-600"
-                }`}
-            >
-              {item.name}
-            </Link>
-          ))}
-        </nav>
+        {!isTeacherSection && (
+          <nav className="hidden lg:flex space-x-6">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-medium transition ${pathname === item.href
+                    ? "text-[#27ae60] font-bold"
+                    : "text-gray-800 hover:text-green-600"
+                  }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         {/* Botón Book Now (sólo en desktop) */}
-        <div className="hidden lg:block text-left">
-          <Link href="/Book-Now" passHref>
-            <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg  shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
-              Book Now
-            </div>
-          </Link>
-        </div>
+        {!isTeacherSection && (
+          <div className="hidden lg:block text-left">
+            <Link href="/Book-Now" passHref>
+              <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg  shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
+                Book Now
+              </div>
+            </Link>
+          </div>
+        )}
 
         {/* Navegación Móvil (Dropdown) */}
         {isOpen && (
@@ -123,7 +154,22 @@ const Header = () => {
             >
               {/* Links de navegación en modo móvil */}
               <nav className="flex flex-col items-center space-y-3">
-                {navItems.map((item) => (
+                {/* Teacher links first in mobile, only if in teacher section */}
+                {isTeacherSection && teacherNavItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`font-semibold text-base transition ${pathname === item.href
+                      ? "text-[#27ae60] font-bold"
+                      : "text-blue-800 hover:text-green-600"
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+                {/* Main nav items */}
+                {!isTeacherSection && navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}

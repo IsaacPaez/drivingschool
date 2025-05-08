@@ -16,20 +16,23 @@ const sampleBlocks = [
 
 const statusStyles: Record<string, string> = {
   free: 'bg-[#f3f4f6] text-gray-400 border border-gray-200',
-  scheduled: 'bg-[#0056b3] text-white border-0 shadow-lg',
+  scheduled: 'bg-[#0056b3] text-white border border-0 shadow-lg',
   canceled: 'bg-[#f44336] text-white border-0 shadow-lg',
+  cancelled: 'bg-[#f44336] text-white border-0 shadow-lg',
 };
 
 const statusLabel: Record<string, string> = {
-  free: '',
+  free: 'Free',
   scheduled: 'Scheduled',
   canceled: 'Canceled',
+  cancelled: 'Canceled',
 };
 
 const statusIcon: Record<string, React.ReactNode> = {
   free: <HiOutlineClock className="w-5 h-5 text-gray-300" />,
   scheduled: <HiOutlineCheckCircle className="w-5 h-5 text-white" />,
   canceled: <HiOutlineXCircle className="w-5 h-5 text-white" />,
+  cancelled: <HiOutlineXCircle className="w-5 h-5 text-white" />,
 };
 
 interface Props {
@@ -69,11 +72,12 @@ const getBlockStatus = (hour: number, day: number, selectedDate: Date, classes: 
   const date = new Date(selectedDate);
   date.setHours(0,0,0,0); // normaliza a medianoche
   date.setDate(selectedDate.getDate() + day);
-  return classes.some(c =>
+  const found = classes.find(c =>
     c.date instanceof Date &&
     c.date.toDateString() === date.toDateString() &&
     c.hour === hour
-  ) ? 'scheduled' : 'free';
+  );
+  return found ? found.status : 'free';
 };
 
 const hourRanges = [
@@ -81,10 +85,12 @@ const hourRanges = [
   '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00'
 ];
 
-const statusClass = {
+const statusClass: { [key: string]: string } = {
   scheduled: 'bg-[#0056b3] text-white',
   canceled: 'bg-red-500 text-white',
-  free: 'bg-white/80 hover:bg-gray-200'
+  cancelled: 'bg-red-500 text-white',
+  free: 'bg-gray-300 text-gray-700',
+  empty: 'bg-white text-gray-400',
 };
 
 const CalendarGrid: React.FC<Props> = ({ view, onTimeBlockClick, selectedDate, classes }) => {
@@ -178,15 +184,24 @@ const CalendarGrid: React.FC<Props> = ({ view, onTimeBlockClick, selectedDate, c
             {hours.map((_, hourIdx) => {
               const date = weekDates[dayIdx];
               const status = getBlockStatus(hourIdx + 6, dayIdx, selectedDate, classes);
+              const found = classes.find(c =>
+                c.date instanceof Date &&
+                c.date.toDateString() === date.toDateString() &&
+                c.hour === hourIdx + 6
+              );
               return (
                 <button
                   key={hourIdx}
-                  className={`h-8 w-full rounded-none font-semibold text-xs flex items-center justify-center gap-1 border-b border-r border-[#e0e0e0] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27ae60] ${todayIdx === dayIdx ? 'bg-green-50' : ''} ${statusClass[status] || statusClass.free}`}
+                  className={`h-8 w-full rounded-none font-semibold text-xs flex items-center justify-center gap-1 border-b border-r border-[#e0e0e0] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27ae60] ${todayIdx === dayIdx ? 'bg-green-50' : ''} ${status === 'free' && !found ? statusClass.empty : statusClass[status] || statusClass.free}`}
                   onClick={() => onTimeBlockClick({ day: dayIdx, hour: hourIdx + 6, status })}
                   title={status === 'scheduled' ? `Class scheduled\n${hours[hourIdx]}` : ''}
                 >
                   {status === 'scheduled' ? (
                     <span className="w-full text-center">Scheduled</span>
+                  ) : status === 'free' && found ? (
+                    <span className="w-full text-center">Free</span>
+                  ) : status === 'cancelled' || status === 'canceled' ? (
+                    <span className="flex items-center justify-center gap-1 w-full text-center"><HiOutlineXCircle className="w-5 h-5 text-white" /><span>Cancelled</span></span>
                   ) : statusIcon[status]}
                 </button>
               );

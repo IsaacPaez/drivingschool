@@ -6,8 +6,8 @@ export async function POST(request: Request) {
   console.log('POST /api/teachers/schedule recibido');
   try {
     await connectToDatabase();
-    const { instructorId, date, start, end } = await request.json();
-    console.log('Datos recibidos:', { instructorId, date, start, end });
+    const { instructorId, date, start, end, status } = await request.json();
+    console.log('Datos recibidos:', { instructorId, date, start, end, status });
 
     // Buscar al instructor
     const instructor = await Instructor.findById(instructorId);
@@ -20,10 +20,10 @@ export async function POST(request: Request) {
     let scheduleDay = instructor.schedule.find((s: any) => s.date === date);
     if (scheduleDay) {
       // Agregar slot al día existente
-      scheduleDay.slots.push({ start, end, booked: false });
+      scheduleDay.slots.push({ start, end, status: status || 'free' });
     } else {
       // Crear nuevo día con el slot
-      instructor.schedule.push({ date, slots: [{ start, end, booked: false }] });
+      instructor.schedule.push({ date, slots: [{ start, end, status: status || 'free' }] });
     }
 
     console.log('Antes de guardar:', JSON.stringify(instructor.schedule, null, 2));
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data: instructor.schedule });
   } catch (error) {
     console.error('Error saving schedule:', error);
-    return NextResponse.json({ error: 'Failed to save schedule', details: error?.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save schedule', details: (error as any)?.message || String(error) }, { status: 500 });
   }
 }
 

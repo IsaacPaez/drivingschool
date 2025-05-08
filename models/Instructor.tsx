@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 interface Slot {
   start: string;
   end: string;
+  status: 'free' | 'scheduled' | 'cancelled';
 }
 
 interface Schedule {
@@ -21,6 +22,7 @@ export interface IInstructor extends Document {
 const SlotSchema = new Schema<Slot>({
   start: { type: String, required: true },
   end: { type: String, required: true },
+  status: { type: String, enum: ['free', 'scheduled', 'cancelled'], default: 'free' },
 });
 
 const ScheduleSchema = new Schema<Schedule>({
