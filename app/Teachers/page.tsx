@@ -80,17 +80,25 @@ export default function TeachersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white w-full flex flex-col items-center justify-start pt-40 px-2 md:px-12 relative">
-      {/* Foto y nombre del instructor en la esquina superior izquierda */}
-      {instructorPhoto && (
-        <div className="absolute top-6 left-6 flex flex-col items-center z-20">
-          <img src={instructorPhoto} alt={instructorName} className="w-16 h-16 rounded-full shadow-lg object-cover border-4 border-green-400 mb-2" />
-          <div className="text-left">
-            <span className="block text-xl font-extrabold text-blue-700 leading-tight">{instructorName}</span>
-            <span className="block text-lg font-bold text-black leading-tight">Calendar</span>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1] py-8 px-4 flex flex-col items-center">
+      <div className="flex items-center justify-between w-full px-8 py-4">
+        <div className="flex items-center gap-3">
+          <img
+            src={instructorPhoto || "https://ui-avatars.com/api/?name=" + encodeURIComponent(instructorName || "Teacher")}
+            alt={instructorName}
+            className="w-12 h-12 rounded-full border-2 border-[#0056b3] bg-white object-cover"
+          />
+          <span className="font-bold text-[#0056b3] text-lg">{instructorName}</span>
         </div>
-      )}
+        <button
+          onClick={() => {
+            import('next-auth/react').then(mod => mod.signOut({ callbackUrl: '/' }));
+          }}
+          className="ml-auto px-4 py-2 rounded bg-red-600 text-white font-semibold shadow hover:bg-red-800 transition-all"
+        >
+          Cerrar sesión
+        </button>
+      </div>
       <div className="flex flex-col items-center mb-10">
         {(certifications || experience) && (
           <div className="mt-2 text-lg text-gray-700 text-center">

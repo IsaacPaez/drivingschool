@@ -8,12 +8,13 @@ export async function GET(req: Request, context: any) {
   const params = await context.params;
   const id = params.id;
   let user = null;
-  // Try to find by ObjectId and by string
+  // Buscar por ObjectId si es válido
   if (mongoose.Types.ObjectId.isValid(id)) {
     user = await User.findById(id).lean();
   }
+  // Si no se encontró, buscar por authId (para usuarios de Google/Auth0)
   if (!user) {
-    user = await User.findOne({ _id: id }).lean();
+    user = await User.findOne({ authId: id }).lean();
   }
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });

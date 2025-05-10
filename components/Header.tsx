@@ -5,14 +5,35 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import CartIcon from "./CartIcon";
+import { useSession, signOut } from "next-auth/react";
+import { useState as useReactState } from "react";
 
 const Header = () => {
   const pathname = usePathname();
   const [isHome, setIsHome] = useState(false);
+  const { data: session } = useSession();
+  const [showMenu, setShowMenu] = useState(false);
+  const [userFullName, setUserFullName] = useReactState<{ firstName: string; lastName: string } | null>(null);
 
   useEffect(() => {
     setIsHome(pathname === "/"); // Se actualiza correctamente en cada cambio de ruta
   }, [pathname]);
+
+  useEffect(() => {
+    async function fetchUserFullName() {
+      if (session?.user?.id) {
+        try {
+          const res = await fetch(`/api/users/${session.user.id}`);
+          if (res.ok) {
+            const user = await res.json();
+            setUserFullName({ firstName: user.firstName || "", lastName: user.lastName || "" });
+          }
+        } catch (e) {}
+      }
+    }
+    fetchUserFullName();
+  }, [session?.user?.id]);
+
   // Estado para controlar si el menú móvil está abierto
   const [isOpen, setIsOpen] = useState(false);
 
@@ -56,19 +77,56 @@ const Header = () => {
           color={` ${isHome ? "black" : "black"}`}
         />
         {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
-        <div className="fixed top-4 right-8 flex gap-4 z-50">
-          <button
-            className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
-            onClick={() => window.location.href = '/sign-in'}
-          >
-            Login
-          </button>
-          <button
-            className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
-            onClick={() => window.location.href = '/sign-in'}
-          >
-            Sign In
-          </button>
+        <div className="fixed top-4 right-8 flex items-end z-50">
+          {session && session.user ? (
+            <div className="relative flex flex-col items-center">
+              <button
+                onClick={() => setShowMenu((v) => !v)}
+                className="focus:outline-none"
+              >
+                <img
+                  src={session.user.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.name || session.user.email || 'U')}`}
+                  alt="avatar"
+                  className="w-12 h-12 rounded-full border-2 border-[#0056b3] bg-white object-cover shadow"
+                />
+              </button>
+              {userFullName ? (
+                <span className="mt-1 text-[#0056b3] font-semibold text-sm text-center w-32 whitespace-normal break-words">
+                  <span>{userFullName.firstName}</span><br />
+                  <span>{userFullName.lastName}</span>
+                </span>
+              ) : (
+                <span className="mt-1 text-[#0056b3] font-semibold text-sm text-center w-32 whitespace-normal break-words">
+                  {session.user.name || session.user.email}
+                </span>
+              )}
+              {showMenu && (
+                <div className="absolute top-14 right-0 bg-white border rounded shadow-lg py-2 px-4 z-50">
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="text-red-600 font-semibold hover:underline"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex gap-4">
+              <button
+                className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+                onClick={() => window.location.href = '/sign-in'}
+              >
+                Login
+              </button>
+              <button
+                className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+                onClick={() => window.location.href = '/sign-in'}
+              >
+                Sign In
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

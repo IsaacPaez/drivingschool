@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
+import "@/globals.css";
 import Modal from "@/components/Modal";
 import Image from "next/image";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
+import { useSession } from "next-auth/react";
 
 export default function BookNowPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -27,6 +29,7 @@ export default function BookNowPage() {
     _id: string;
     start: string;
     end: string;
+    status: 'free' | 'scheduled' | 'cancelled';
   }
 
   interface Schedule {
@@ -40,6 +43,12 @@ export default function BookNowPage() {
     photo?: string;
     schedule?: Schedule[];
   }
+
+  const [weekBaseDate, setWeekBaseDate] = useState<Date | null>(null);
+  const prevInstructorId = useRef<string | null>(null);
+
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
 
   useEffect(() => {
     async function fetchLocations() {
@@ -69,8 +78,7 @@ export default function BookNowPage() {
 
   useEffect(() => {
     if (!selectedInstructor) return;
-    if (fetchedInstructors.current.has(selectedInstructor._id)) return;
-
+    if (selectedInstructor._id === prevInstructorId.current) return;
     let isMounted = true;
 
     async function fetchInstructorSchedule() {
@@ -87,9 +95,6 @@ export default function BookNowPage() {
           setSelectedInstructor((prev) =>
             prev ? { ...prev, schedule: data.schedule } : null
           );
-          if (selectedInstructor) {
-            fetchedInstructors.current.add(selectedInstructor._id);
-          }
         }
       } catch (error) {
         console.error("❌ Error loading schedule:", error);
@@ -101,6 +106,24 @@ export default function BookNowPage() {
     return () => {
       isMounted = false;
     };
+  }, [selectedInstructor]);
+
+  useEffect(() => {
+    if (
+      selectedInstructor &&
+      selectedInstructor.schedule &&
+      selectedInstructor.schedule.length > 0
+    ) {
+      // Si la fecha seleccionada no está en el schedule, selecciona la primera disponible
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const availableDates = selectedInstructor.schedule.map(s => s.date);
+      const selectedDateStr = selectedDate
+        ? `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth() + 1)}-${pad(selectedDate.getDate())}`
+        : null;
+      if (!selectedDateStr || !availableDates.includes(selectedDateStr)) {
+        setSelectedDate(new Date(selectedInstructor.schedule[0].date));
+      }
+    }
   }, [selectedInstructor]);
 
   const handleSelectLocation = (location: {
@@ -119,8 +142,9 @@ export default function BookNowPage() {
   };
 
   const getWeekDates = (date: Date) => {
-    const startOfWeek = new Date(date);
-    startOfWeek.setDate(date.getDate() - date.getDay()); // Mueve al domingo
+    const base = weekBaseDate || date;
+    const startOfWeek = new Date(base);
+    startOfWeek.setDate(base.getDate() - startOfWeek.getDay()); // Mueve al domingo
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
@@ -128,92 +152,157 @@ export default function BookNowPage() {
     });
   };
 
+  const pad = (n: number) => n.toString().padStart(2, '0');
   const renderScheduleTable = () => {
-    if (!selectedInstructor || !selectedDate)
+    if (!selectedInstructor || !selectedDate) {
+      // Mostrar tabla vacía con mensaje
+      const weekDates = getWeekDates(selectedDate || new Date());
+      const allTimes = [];
+      for (let h = 6; h < 19; h++) {
+        allTimes.push(`${h}:00-${h+1}:00`);
+      }
       return (
-        <p className="text-gray-500 text-center">
-          Select a date and instructor.
-        </p>
+        <div className="overflow-x-auto w-full mt-6">
+          <table className="w-full border-collapse border border-gray-300 text-sm">
+            <thead>
+              <tr className="bg-gray-100 text-center">
+                <th className="border border-gray-300 p-2 text-black">Time</th>
+                {weekDates.map((date) => (
+                  <th
+                    key={date.toDateString()}
+                    className="border border-gray-300 p-2 text-black"
+                  >
+                    <span className="block font-bold text-black">
+                      {date.toLocaleDateString("en-US", { weekday: "long" })}
+                    </span>
+                    <span className="block text-black">
+                      {date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {allTimes.map((time, index) => (
+                <tr key={index} className="text-center">
+                  <td className="border border-gray-300 p-2 font-bold text-black">{time}</td>
+                  {weekDates.map((date) => (
+                    <td key={date.toDateString()} className="border border-gray-300 p-4 bg-gray-300 text-black">-</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-gray-400 text-center mt-4">Select a date and instructor to see availability.</p>
+        </div>
       );
-  
-    const weekDates = getWeekDates(selectedDate);
-    const scheduleByDate = new Map(
-      selectedInstructor.schedule?.map((sched) => [sched.date, sched.slots]) || []
-    );
-  
-    const allTimes = [];
-    for (let h = 8; h < 20; h++) {
-      allTimes.push(`${h}:00`, `${h}:15`, `${h}:30`, `${h}:45`);
     }
   
+    // Adaptar la lógica de TeachersCalendar: expandir slots a bloques horarios individuales
+    const weekDates = getWeekDates(selectedDate);
+    // Mapa: { '2025-05-09': { 6: true, 7: true, ... } }
+    const freeBlocksByDate: Record<string, Record<number, boolean>> = {};
+    for (const sched of selectedInstructor.schedule || []) {
+      // Normaliza la fecha a YYYY-MM-DD
+      let date = sched.date;
+      if (date.length !== 10) {
+        const d = new Date(date);
+        date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      }
+      if (!freeBlocksByDate[date]) freeBlocksByDate[date] = {};
+      for (const slot of sched.slots) {
+        if (slot.status === 'free') {
+          const startHour = parseInt(slot.start.split(":")[0], 10);
+          const endHour = parseInt(slot.end.split(":")[0], 10);
+          for (let h = startHour; h < endHour; h++) {
+            freeBlocksByDate[date][h] = true;
+          }
+        }
+      }
+    }
+    const allTimes = [];
+    for (let h = 6; h < 19; h++) {
+      allTimes.push(h);
+    }
     return (
       <div className="overflow-x-auto w-full mt-6">
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-gray-100 text-center">
-              <th className="border border-gray-300 p-2">Time</th>
-              {weekDates.map((date) => (
-                <th
-                  key={date.toDateString()}
-                  className="border border-gray-300 p-2"
-                >
-                  <span className="block font-bold">
-                    {date.toLocaleDateString("en-US", { weekday: "long" })}
-                  </span>
-                  <span className="block">
-                    {date.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                </th>
-              ))}
+              <th className="border border-gray-300 p-2 text-black">Time</th>
+              {weekDates.map((date) => {
+                const dateString = `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+                return (
+                  <th
+                    key={date.toDateString()}
+                    className="border border-gray-300 p-2 text-black"
+                  >
+                    <span className="block font-bold text-black">
+                      {date.toLocaleDateString("en-US", { weekday: "long" })}
+                    </span>
+                    <span className="block text-black">
+                      {date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {allTimes.map((time, index) => {
-              return (
-                <tr key={index} className="text-center">
-                  <td className="border border-gray-300 p-2 font-bold">{time}</td>
-                  {weekDates.map((date) => {
-                    const dateString = date.toISOString().split("T")[0];
-                    const slots = scheduleByDate.get(dateString) || [];
-  
-                    // Agrupar bloques continuos de "booked"
-                    let mergedSlot = null;
-                    for (const slot of slots) {
-                      const startHour = slot.start.split("T")[1].substring(0, 5);
-                      if (startHour === time) {
-                        mergedSlot = slot;
-                        break;
-                      }
+            {allTimes.map((h, index) => (
+              <tr key={index} className="text-center">
+                <td className="border border-gray-300 p-2 font-bold text-black">{`${h}:00-${h+1}:00`}</td>
+                {weekDates.map((date) => {
+                  const dateString = `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+                  const isFree = freeBlocksByDate[dateString]?.[h];
+                  // Buscar el slot real para saber si está reservado por el usuario
+                  let slot: any = null;
+                  if (selectedInstructor?.schedule) {
+                    const sched = selectedInstructor.schedule.find((s) => s.date === dateString);
+                    if (sched) {
+                      slot = sched.slots.find((s: any) => parseInt(s.start) === h);
                     }
-  
-                    return (
-                      <td
-                        key={date.toDateString()}
-                        rowSpan={mergedSlot ? 2 : 1} // Combina dos filas si está ocupado
-                        className={`border border-gray-300 p-4 ${
-                          mergedSlot
-                            ? "bg-[#27ae60] text-white text-center cursor-pointer align-middle"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          mergedSlot &&
-                          openBookingModal({
-                            _id: mergedSlot._id,
-                            start: mergedSlot.start,
-                            end: mergedSlot.end,
-                          })
+                  }
+                  const isMine = slot && slot.booked && slot.studentId && userId && slot.studentId.toString() === userId;
+                  return (
+                    <td
+                      key={date.toDateString()}
+                      className={`border border-gray-300 p-4
+                        ${isMine ? "bg-blue-500 text-white font-bold" : ""}
+                        ${slot && slot.status === 'scheduled' && !isMine ? "bg-blue-100 text-blue-900" : ""}
+                        ${isFree ? "bg-green-200 text-black font-bold cursor-pointer hover:bg-green-300" : ""}
+                        ${!isFree && (!slot || slot.status !== 'scheduled') ? "bg-gray-50 text-black" : ""}
+                      `}
+                      onClick={() => {
+                        if (isFree && userId) {
+                          const pad = (n: number) => n.toString().padStart(2, '0');
+                          setSelectedSlot({
+                            start: `${pad(h)}:00`,
+                            end: `${pad(h+1)}:00`,
+                            date: `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`,
+                          });
+                          setIsBookingModalOpen(true);
                         }
-                      >
-                        {mergedSlot ? "Book Now" : ""}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
+                      }}
+                    >
+                      {isMine
+                        ? <span><span role="img" aria-label="check">✅</span> Your Booking</span>
+                        : slot && slot.status === 'scheduled'
+                        ? <span><span role="img" aria-label="calendar">📘</span> Scheduled</span>
+                        : isFree
+                        ? <span><span role="img" aria-label="clock">⏰</span> Free</span>
+                        : "-"}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -224,96 +313,78 @@ export default function BookNowPage() {
   //Reserva
   // Estado para controlar el modal de reserva y el slot seleccionado
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ start: string, end: string, date: string } | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<number>(0);
 
   // Función para abrir el modal de reserva al hacer clic en "Book Now"
   const openBookingModal = (slot: Slot) => {
-    setSelectedSlot(slot);
+    // Asegúrate de pasar la fecha al objeto seleccionado
+    const dateString = selectedDate ? `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth()+1)}-${pad(selectedDate.getDate())}` : "";
+    setSelectedSlot({ start: slot.start, end: slot.end, date: dateString });
     setIsBookingModalOpen(true);
     setSelectedPrice(lessonPrice); // ✅ 3️⃣ Actualizar precio con la lección correcta
   };
 
-  // Modal de reserva con detalles del instructor y horario seleccionado
+  // Modal de reserva con confirmación
   const renderBookingModal = () => (
     <Modal
       isOpen={isBookingModalOpen}
       onClose={() => setIsBookingModalOpen(false)}
     >
-      <div className="p-6">
-        <h2 className="text-xl font-bold mb-2">Booking Details</h2>
-        <p>
-          <strong>Date:</strong> {selectedDate?.toDateString()}
-        </p>
-        <p>
-          <strong>Time:</strong> {selectedSlot?.start.split("T")[1]}
-        </p>
+      <div className="p-6 text-black">
+        <h2 className="text-xl font-bold mb-2">Confirm Reservation</h2>
         <p>
           <strong>Instructor:</strong> {selectedInstructor?.name}
         </p>
         <p>
-          <strong>Available Time:</strong> 2 hours
+          <strong>Date:</strong> {selectedSlot?.date}
         </p>
         <p>
-          <strong>Booking Length:</strong> 0 mins
+          <strong>Time:</strong> {selectedSlot?.start} - {selectedSlot?.end}
         </p>
-
-        {/* Opciones de servicio */}
-        <div className="mt-4">
-          <table className="w-full border border-gray-300">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="border p-2 text-left">Service</th>
-                <th className="border p-2 text-right">2 hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border p-2">Driving Lesson - Meet on site</td>
-                <td className="border p-2 text-right">
-                  <input
-                    type="radio"
-                    name="service"
-                    className="mr-2"
-                    value={170}
-                    checked={selectedPrice === lessonPrice}
-                    onChange={() => setSelectedPrice(lessonPrice)}
-                  />
-                   ${lessonPrice}
-                </td>
-              </tr>
-              <tr>
-                <td className="border p-2">Driving Lesson - Pickup</td>
-                <td className="border p-2 text-right">
-                  <input
-                    type="radio"
-                    name="service"
-                    className="mr-2"
-                    value={200}
-                    checked={selectedPrice === lessonPrice}
-                    onChange={() => setSelectedPrice(lessonPrice)}
-                  />
-                   ${lessonPrice}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Botón de confirmación */}
         <div className="mt-4 flex justify-center">
           <button
             className="bg-blue-500 text-white px-6 py-2 rounded"
-            
+            onClick={async () => {
+              if (!userId || !selectedInstructor?._id || !selectedSlot) return;
+              const res = await fetch('/api/booking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  studentId: userId,
+                  instructorId: selectedInstructor._id,
+                  date: selectedSlot.date,
+                  start: selectedSlot.start,
+                  end: selectedSlot.end,
+                }),
+              });
+              if (res.ok) {
+                setIsBookingModalOpen(false);
+                // Recarga el horario del instructor
+                setSelectedInstructor(null);
+                setTimeout(() => setSelectedInstructor(selectedInstructor), 0);
+              } else {
+                alert('Could not book the slot. Please try again.');
+              }
+            }}
           >
-            Confirm
+            Confirm Reservation
           </button>
         </div>
       </div>
     </Modal>
   );
 
-  
+  // Resetear weekBaseDate al cambiar de instructor o fecha seleccionada
+  useEffect(() => {
+    if (
+      selectedInstructor &&
+      selectedInstructor._id !== prevInstructorId.current
+    ) {
+      setWeekBaseDate(new Date()); // Semana actual
+      prevInstructorId.current = selectedInstructor._id;
+    }
+  }, [selectedInstructor]);
 
   return (
     <section className="bg-white pt-44 pb-10 px-6 flex flex-col items-center">
@@ -353,38 +424,72 @@ export default function BookNowPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4">
-              {instructors.map((inst) => (
-                <div
-                  key={inst._id}
-                  className={`shadow-lg rounded-lg p-4 text-center cursor-pointer hover:shadow-xl transition-all w-40 
+              {instructors.map((inst) => {
+                // Divide el nombre completo en nombre y apellido
+                const [firstName, ...lastNameParts] = inst.name.split(' ');
+                const lastName = lastNameParts.join(' ');
+                return (
+                  <div
+                    key={inst._id}
+                    className={`shadow-lg rounded-lg p-4 text-center cursor-pointer hover:shadow-xl transition-all w-40 
         ${
           selectedInstructor?._id === inst._id
             ? "border-4 border-blue-500 bg-blue-100"
             : "bg-white"
         }`}
-                  onClick={() => setSelectedInstructor(inst)}
-                >
-                  <Image
-                    src={inst.photo || "/default-avatar.png"}
-                    alt={inst.name}
-                    width={80}
-                    height={80}
-                    className="w-20 h-20 rounded-full mx-auto mb-2"
-                  />
-                  <h3 className="text-md font-semibold text-black">
-                    {inst.name}
-                  </h3>
-                </div>
-              ))}
+                    onClick={() => {
+                      setSelectedInstructor(inst);
+                      setSelectedDate(null);
+                      setWeekBaseDate(null);
+                    }}
+                  >
+                    <Image
+                      src={inst.photo || "/default-avatar.png"}
+                      alt={inst.name}
+                      width={80}
+                      height={80}
+                      className="w-20 h-20 rounded-full mx-auto mb-2"
+                    />
+                    <div className="flex flex-col items-center mt-2">
+                      <span className="text-md font-semibold text-black leading-tight">{firstName}</span>
+                      <span className="text-sm text-gray-600 leading-tight">{lastName}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           <div className="w-2/3">
             {selectedInstructor && (
               <>
-                <h2 className="text-2xl font-bold text-center">
+                <h2 className="text-2xl font-bold text-center text-blue-700">
                   {selectedInstructor.name}&apos;s Schedule
                 </h2>
+                <div className="flex justify-center items-center mb-2 gap-4">
+                  <button
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
+                    onClick={() => {
+                      const base = weekBaseDate || selectedDate || new Date();
+                      const prev = new Date(base);
+                      prev.setDate(base.getDate() - 7);
+                      setWeekBaseDate(prev);
+                    }}
+                  >
+                    ← Previous week
+                  </button>
+                  <button
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
+                    onClick={() => {
+                      const base = weekBaseDate || selectedDate || new Date();
+                      const next = new Date(base);
+                      next.setDate(base.getDate() + 7);
+                      setWeekBaseDate(next);
+                    }}
+                  >
+                    Next week →
+                  </button>
+                </div>
                 {renderScheduleTable()}
               </>
             )}

@@ -1,23 +1,20 @@
 "use client";
-
 import React from "react";
 import Image from "next/image";
 import { Poppins } from "next/font/google";
-import DrivingTestSection from "./DrivingTestSection";
-import CorporatePrograms from "./CorporatePrograms";
+import DrivingTestSection from "../app/Lessons/DrivingTestSection";
+import CorporatePrograms from "../app/Lessons/CorporatePrograms";
 import Link from "next/link";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
-import LessonsContent from "@/components/LessonsContent";
 
-// Fuente moderna
 const poppins = Poppins({
   weight: ["400", "600", "700"],
   subsets: ["latin"],
   variable: "--font-poppins",
 });
 
-const LessonsPage = () => {
+const LessonsContent = () => {
   const lessons = useDrivingLessons("Road Skills for Life");
 
   return (
@@ -142,4 +139,4 @@ const LessonsPage = () => {
   );
 };
 
-export default LessonsPage;
+export default LessonsContent; 

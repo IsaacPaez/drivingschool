@@ -10,3 +10,16 @@ declare global {
     };
   }
 }
+
+// Extiende el tipo de sesión de NextAuth para incluir 'id' en el usuario
+import NextAuth from "next-auth";
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
+  }
+}

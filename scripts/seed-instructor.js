@@ -14,6 +14,8 @@ const InstructorSchema = new mongoose.Schema({
           start: String,
           end: String,
           status: String, // 'free', 'scheduled', 'cancelled'
+          booked: { type: Boolean, default: false },
+          studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
         }
       ]
     }
@@ -35,7 +37,13 @@ async function createInstructor() {
     schedule.push({
       date: `2025-02-${day}`,
       slots: [
-        { start: '08:00', end: '10:00', status: statuses[(i - 1) % 3] }
+        { 
+          start: '08:00', 
+          end: '10:00', 
+          status: statuses[(i - 1) % 3],
+          booked: false,
+          studentId: null
+        }
       ]
     });
   }

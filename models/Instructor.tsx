@@ -4,6 +4,8 @@ interface Slot {
   start: string;
   end: string;
   status: 'free' | 'scheduled' | 'cancelled';
+  booked: boolean;
+  studentId: mongoose.Schema.Types.ObjectId | null;
 }
 
 interface Schedule {
@@ -23,6 +25,8 @@ const SlotSchema = new Schema<Slot>({
   start: { type: String, required: true },
   end: { type: String, required: true },
   status: { type: String, enum: ['free', 'scheduled', 'cancelled'], default: 'free' },
+  booked: { type: Boolean, default: false },
+  studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 });
 
 const ScheduleSchema = new Schema<Schedule>({

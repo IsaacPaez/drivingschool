@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Instructor from "@/models/Instructor";
+import mongoose from "mongoose";
 
 export async function GET(req: Request) {
     await connectDB();
@@ -15,6 +16,11 @@ export async function GET(req: Request) {
             const instructors = await Instructor.find();
             console.log("✅ Returning all instructors:", instructors);
             return NextResponse.json(instructors, { status: 200 });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(instructorId)) {
+            console.error("❌ Invalid instructor ID format:", instructorId);
+            return NextResponse.json({ error: "Invalid instructor ID" }, { status: 400 });
         }
 
         const instructor = await Instructor.findById(instructorId).lean();

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import Instructor from '@/models/Instructor';
+import mongoose from 'mongoose';
 
 export async function POST(request: Request) {
   try {
@@ -29,11 +30,13 @@ export async function POST(request: Request) {
     }
     // Marcar como reservado
     slot.status = 'scheduled';
-    // Puedes guardar el studentId en el slot si tu modelo lo permite
-    // slot.studentId = studentId;
+    slot.booked = true;
+    slot.studentId = new mongoose.Types.ObjectId(studentId);
+    instructor.markModified('schedule');
     await instructor.save();
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Error in booking:', error);
     return NextResponse.json({ error: 'Failed to book slot', details: (error as any)?.message || String(error) }, { status: 500 });
   }
 } 

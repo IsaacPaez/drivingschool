@@ -5,11 +5,12 @@ export interface IUser extends Document {
   middleName?: string;
   lastName: string;
   email: string;
+  authId?: string;
   dni?: string;
   ssnLast4?: string;
   hasLicense?: boolean;
   licenseNumber?: string;
-  birthDate?: Date;
+  birthDate?: string;
   streetAddress?: string;
   apartmentNumber?: string;
   city?: string;
@@ -29,11 +30,12 @@ const UserSchema = new Schema<IUser>({
   middleName: { type: String },
   lastName: { type: String, required: true },
   email: { type: String, required: true },
+  authId: { type: String },
   dni: { type: String },
   ssnLast4: { type: String },
   hasLicense: { type: Boolean },
   licenseNumber: { type: String },
-  birthDate: { type: Date },
+  birthDate: { type: String },
   streetAddress: { type: String },
   apartmentNumber: { type: String },
   city: { type: String },
