@@ -137,7 +137,7 @@ export default function BookNowPage() {
     if (!selectedInstructor || !selectedDate) {
       // Mostrar tabla vacía con mensaje
       const weekDates = getWeekDates(selectedDate || new Date());
-      const allTimes = [];
+      const allTimes: string[] = [];
       for (let h = 6; h < 19; h++) {
         allTimes.push(`${h}:00-${h+1}:00`);
       }
@@ -203,7 +203,7 @@ export default function BookNowPage() {
         }
       }
     }
-    const allTimes = [];
+    const allTimes: number[] = [];
     for (let h = 6; h < 19; h++) {
       allTimes.push(h);
     }

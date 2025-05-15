@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+export const dynamic = "force-dynamic";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AuthRedirector from "../components/AuthRedirector";
 import { signIn } from "next-auth/react";
 
-export default function CompleteProfilePage() {
+function CompleteProfileContent() {
   const searchParams = useSearchParams();
   const email = searchParams?.get("email") || "";
   const [form, setForm] = useState({
@@ -124,5 +125,13 @@ export default function CompleteProfilePage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function CompleteProfilePage() {
+  return (
+    <Suspense>
+      <CompleteProfileContent />
+    </Suspense>
   );
 }

@@ -62,7 +62,7 @@ export default function CalendarGrid({ blocks, onBlockClick, selectedDate }: Cal
           </tr>
         </thead>
         <tbody>
-          {timeLabels.map((label, rowIdx) => (
+          {timeLabels.map((label) => (
             <tr key={label}>
               <td className="p-2 border text-center font-bold w-32 sticky left-0 z-10" style={{ color: '#27ae60', border: '1px solid #e0e0e0', background: '#fff', minWidth: 110, maxWidth: 110 }}>{label}</td>
               {weekDays.map((d, colIdx) => {

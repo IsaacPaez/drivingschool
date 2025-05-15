@@ -4,12 +4,6 @@ import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-interface User {
-  role: 'instructor' | 'new' | 'user';
-  instructorId?: string;
-  email?: string;
-}
-
 export default function AuthRedirector() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -17,7 +11,7 @@ export default function AuthRedirector() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      const user = session.user as any;
+      const user = session.user as { role?: string; instructorId?: string; email?: string };
       if (
         user.role === "instructor" &&
         typeof pathname === 'string' && !pathname.startsWith("/teachers")
@@ -33,8 +27,8 @@ export default function AuthRedirector() {
   // Loader: muestra mientras está autenticando o redirigiendo
   if (
     status === "authenticated" &&
-    ((typeof (session.user as any).role === 'string' && (session.user as any).role === "instructor" && typeof pathname === 'string' && !pathname.startsWith("/teachers")) ||
-     (typeof (session.user as any).role === 'string' && (session.user as any).role === "new" && typeof pathname === 'string' && !pathname.startsWith("/complete-profile")))
+    ((typeof (session.user as { role?: string }).role === 'string' && (session.user as { role?: string }).role === "instructor" && typeof pathname === 'string' && !pathname.startsWith("/teachers")) ||
+     (typeof (session.user as { role?: string }).role === 'string' && (session.user as { role?: string }).role === "new" && typeof pathname === 'string' && !pathname.startsWith("/complete-profile")))
   ) {
     return (
       <div className="flex justify-center items-center min-h-screen">

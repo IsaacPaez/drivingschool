@@ -69,16 +69,16 @@ const authOptions: NextAuthOptions = {
         // Si es instructor, pasar la id, nombre y foto
         if (token.role === "instructor") {
           (session.user as CustomUser).role = "instructor";
-          (session.user as CustomUser).instructorId = token.instructorId;
-          (session.user as CustomUser).instructorName = token.instructorName;
-          (session.user as CustomUser).instructorPhoto = token.instructorPhoto;
+          (session.user as CustomUser).instructorId = typeof token.instructorId === "string" ? token.instructorId : undefined;
+          (session.user as CustomUser).instructorName = typeof token.instructorName === "string" ? token.instructorName : undefined;
+          (session.user as CustomUser).instructorPhoto = typeof token.instructorPhoto === "string" ? token.instructorPhoto : undefined;
         } else {
           // Busca el usuario en la base de datos por email
           const dbUser = await User.findOne({ email: token.email });
           (session.user as CustomUser).id = dbUser?._id?.toString();
           (session.user as CustomUser).role = "user";
         }
-        (session.user as CustomUser).email = token.email;
+        (session.user as CustomUser).email = token.email ?? undefined;
       }
       return session;
     },

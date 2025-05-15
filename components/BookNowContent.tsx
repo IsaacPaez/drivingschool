@@ -1,3 +1,3 @@
 "use client";
-import BookNowPage from "@/Book-Now/page";
+import BookNowPage from "@/app/Book-Now/page";
 export default BookNowPage; 

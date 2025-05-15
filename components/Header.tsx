@@ -58,9 +58,9 @@ const Header = () => {
   ];
 
   // Helper to check if we are in a teacher section
-  const isTeacherSection = pathname.startsWith("/teachers");
+  const isTeacherSection = typeof pathname === "string" && pathname.startsWith("/teachers");
 
-  const hideAuthButtons = pathname.startsWith("/complete-profile");
+  const hideAuthButtons = typeof pathname === "string" && pathname.startsWith("/complete-profile");
 
   return (
     <header className={`fixed top-0 left-0 w-full z-50 px-4 ${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'}`}>
@@ -182,7 +182,7 @@ const Header = () => {
           </nav>
         )}
         {/* Centered Student Navigation (Desktop only) */}
-        {pathname.startsWith("/Students") && !isTeacherSection && (
+        {typeof pathname === "string" && pathname.startsWith("/Students") && !isTeacherSection && (
           <nav className="hidden lg:flex space-x-8 mx-auto">
             {studentNavItems.map((item) => (
               <Link
@@ -199,7 +199,7 @@ const Header = () => {
           </nav>
         )}
         {/* Navegación Desktop */}
-        {!isTeacherSection && !pathname.startsWith("/Students") && (
+        {!isTeacherSection && typeof pathname === "string" && !pathname.startsWith("/Students") && (
           <nav className="hidden lg:flex space-x-6">
             {navItems.map((item) => (
               <Link
@@ -217,7 +217,7 @@ const Header = () => {
         )}
 
         {/* Botón Book Now (sólo en desktop) */}
-        {!isTeacherSection && !pathname.startsWith("/Students") && (
+        {!isTeacherSection && typeof pathname === "string" && !pathname.startsWith("/Students") && (
           <div className="hidden lg:block text-left">
             <Link href="/Book-Now" passHref>
               <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg  shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">

@@ -1,13 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import User from '@/models/User';
 import { connectDB } from '@/lib/mongodb';
+import mongoose from 'mongoose';
 
+// Handler para crear usuario (POST)
 export async function POST(req: Request) {
   await connectDB();
   const data = await req.json();
 
   // Formatear birthDate a 'YYYY-MM-DD' como string
-  let birthDate = undefined;
+  let birthDate: string | undefined = undefined;
   if (data.birthDate) {
     const d = new Date(data.birthDate);
     birthDate = d.toISOString().split('T')[0]; // 'YYYY-MM-DD'
@@ -51,4 +53,70 @@ export async function POST(req: Request) {
       details: error instanceof Error ? error.message : 'Unknown error occurred'
     }, { status: 400 });
   }
-} 
+}
+
+// Handler para obtener usuario por ID usando query param (?id=123)
+export const GET = async (
+  req: NextRequest
+): Promise<NextResponse> => {
+  try {
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('id');
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing id query param' }, { status: 400 });
+    }
+    let user = mongoose.Types.ObjectId.isValid(userId)
+      ? await User.findById(userId).lean()
+      : null;
+    if (!user) {
+      user = await User.findOne({ authId: userId }).lean();
+    }
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Usuario no encontrado' },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error('Error al buscar usuario:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+};
+
+// Handler para actualizar usuario por ID usando query param (?id=123)
+export const PUT = async (
+  req: NextRequest
+): Promise<NextResponse> => {
+  try {
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('id');
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing id query param' }, { status: 400 });
+    }
+    const { note } = await req.json();
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { privateNotes: note },
+      { new: true }
+    ).lean();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Usuario no encontrado' },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error('Error al actualizar usuario:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}; 
