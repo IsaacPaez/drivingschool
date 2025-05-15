@@ -11,6 +11,10 @@ export async function POST(req: Request) {
   if (data.birthDate) {
     const d = new Date(data.birthDate);
     birthDate = d.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+    // Validar que la fecha sea válida
+    if (isNaN(Date.parse(data.birthDate))) {
+      return NextResponse.json({ error: 'Invalid birth date format' }, { status: 400 });
+    }
   }
 
   // Orden y campos igual a 'Santiago'
@@ -34,12 +38,14 @@ export async function POST(req: Request) {
     role: 'user',
     createdAt: new Date(),
     updatedAt: new Date(),
+    privateNotes: "",
   };
 
   try {
     const user = await User.create(userData);
     return NextResponse.json(user);
   } catch (err: any) {
+    console.error("Error al guardar usuario:", err);
     return NextResponse.json({ error: 'Error saving user', details: err.message }, { status: 400 });
   }
 } 

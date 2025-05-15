@@ -4,6 +4,7 @@ import { HiOutlineMail } from 'react-icons/hi';
 import StudentList from '@/components/Students/StudentList';
 import StudentDetails from '@/components/Students/StudentDetails';
 import MailModal from '@/components/Students/MailModal';
+import { useSession } from "next-auth/react";
 
 interface Student {
   _id: string;
@@ -28,9 +29,24 @@ interface Course {
   price: number;
 }
 
-const instructorId = '681c2566f4e0eb5564f85205'; // Steven (hardcoded for demo)
+// Custom hook para polling tipo webhook
+function useWebhook(instructorId: string | undefined, onUpdate: (data: any) => void) {
+  React.useEffect(() => {
+    if (!instructorId) return;
+    const fetchAndUpdate = () => {
+      fetch(`/api/teachers/classes?instructorId=${instructorId}`)
+        .then(res => res.json())
+        .then(onUpdate);
+    };
+    fetchAndUpdate();
+    const interval = setInterval(fetchAndUpdate, 5000);
+    return () => clearInterval(interval);
+  }, [instructorId, onUpdate]);
+}
 
 const StudentsPage = () => {
+  const { data: session } = useSession();
+  const instructorId = (session?.user as any)?.instructorId;
   const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -50,17 +66,15 @@ const StudentsPage = () => {
   const [mailSending, setMailSending] = useState(false);
   const [mailSent, setMailSent] = useState(false);
 
-  // 1. Traer los cursos y estudiantes del instructor
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/teachers/classes?instructorId=${instructorId}`)
-      .then(res => res.json())
-      .then(data => {
-        setCourses(data.classes || []);
-        setStudents(data.students || []);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  // Hook profesional para actualización en vivo
+  useWebhook(
+    instructorId,
+    (data) => {
+      setCourses(data.classes || []);
+      setStudents(data.students || []);
+      setLoading(false);
+    }
+  );
 
   // 2. Cuando seleccionas un curso, limpiar selección de estudiante y notas
   useEffect(() => {
@@ -77,7 +91,7 @@ const StudentsPage = () => {
     setNotes('');
     setNotesHistory([]);
     setSaveMsg('');
-    if (!selectedCourse) return;
+    if (!selectedCourse || !instructorId) return;
     // Traer historial de clases
     const res = await fetch(`/api/ticketclasses?instructorId=${instructorId}&studentId=${student._id}&classId=${selectedCourse._id}`);
     const data = await res.json();
@@ -103,7 +117,7 @@ const StudentsPage = () => {
   );
 
   const handleSaveNotes = async () => {
-    if (!selected) return;
+    if (!selected || !instructorId) return;
     setSaving(true);
     setSaveMsg('');
     const res = await fetch('/api/notes', {
@@ -142,9 +156,28 @@ const StudentsPage = () => {
   // Simular envío de correo
   const handleSendMail = async () => {
     setMailSending(true);
-    await new Promise(res => setTimeout(res, 1200)); // Simula envío
+    setMailSent(false);
+    try {
+      const res = await fetch('/api/send_gmail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipients: mailRecipients,
+          subject: mailSubject,
+          body: mailBody
+        })
+      });
+      if (res.ok) {
+        setMailSent(true);
+      } else {
+        setMailSent(false);
+        alert('Error sending email');
+      }
+    } catch (err) {
+      setMailSent(false);
+      alert('Error sending email');
+    }
     setMailSending(false);
-    setMailSent(true);
   };
 
   // Pantalla 1: My Classes

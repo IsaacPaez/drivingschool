@@ -7,7 +7,37 @@ import "@/globals.css";
 import Modal from "@/components/Modal";
 import Image from "next/image";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
+// Custom hook para polling tipo webhook
+function useWebhook(instructorId: string | undefined, onUpdate: (data: any) => void) {
+  React.useEffect(() => {
+    if (!instructorId) return;
+    const fetchAndUpdate = () => {
+      fetch(`/api/book-now?id=${instructorId}`)
+        .then(res => res.json())
+        .then(onUpdate);
+    };
+    fetchAndUpdate();
+    const interval = setInterval(fetchAndUpdate, 5000);
+    return () => clearInterval(interval);
+  }, [instructorId, onUpdate]);
+}
+
+interface Instructor {
+  id: string;
+  name: string;
+  photo: string;
+  // Add other instructor properties as needed
+}
+
+interface BookingData {
+  instructorId: string;
+  date: string;
+  time: string;
+  // Add other booking properties as needed
+}
 
 export default function BookNowPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -48,7 +78,10 @@ export default function BookNowPage() {
   const prevInstructorId = useRef<string | null>(null);
 
   const { data: session } = useSession();
+  const router = useRouter();
   const userId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
+
+  const [bookingData, setBookingData] = useState<BookingData | null>(null);
 
   useEffect(() => {
     async function fetchLocations() {
@@ -205,7 +238,7 @@ export default function BookNowPage() {
     const weekDates = getWeekDates(selectedDate);
     // Mapa: { '2025-05-09': { 6: true, 7: true, ... } }
     const freeBlocksByDate: Record<string, Record<number, boolean>> = {};
-    for (const sched of selectedInstructor.schedule || []) {
+    for (const sched of selectedInstructor?.schedule || []) {
       // Normaliza la fecha a YYYY-MM-DD
       let date = sched.date;
       if (date.length !== 10) {
@@ -264,10 +297,7 @@ export default function BookNowPage() {
                   // Buscar el slot real para saber si está reservado por el usuario
                   let slot: any = null;
                   if (selectedInstructor?.schedule) {
-                    const sched = selectedInstructor.schedule.find((s) => s.date === dateString);
-                    if (sched) {
-                      slot = sched.slots.find((s: any) => parseInt(s.start) === h);
-                    }
+                    slot = selectedInstructor.schedule.find((s) => s.date === dateString);
                   }
                   const isMine = slot && slot.booked && slot.studentId && userId && slot.studentId.toString() === userId;
                   return (
@@ -280,14 +310,20 @@ export default function BookNowPage() {
                         ${!isFree && (!slot || slot.status !== 'scheduled') ? "bg-gray-50 text-black" : ""}
                       `}
                       onClick={() => {
-                        if (isFree && userId) {
-                          const pad = (n: number) => n.toString().padStart(2, '0');
-                          setSelectedSlot({
-                            start: `${pad(h)}:00`,
-                            end: `${pad(h+1)}:00`,
-                            date: `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`,
-                          });
-                          setIsBookingModalOpen(true);
+                        if (isFree) {
+                          if (!session || !session.user) {
+                            signIn("auth0", { callbackUrl: "/Book-Now" });
+                            return;
+                          }
+                          if (userId) {
+                            const pad = (n: number) => n.toString().padStart(2, '0');
+                            setSelectedSlot({
+                              start: `${pad(h)}:00`,
+                              end: `${pad(h+1)}:00`,
+                              date: `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`,
+                            });
+                            setIsBookingModalOpen(true);
+                          }
                         }
                       }}
                     >
@@ -385,6 +421,14 @@ export default function BookNowPage() {
       prevInstructorId.current = selectedInstructor._id;
     }
   }, [selectedInstructor]);
+
+  const handleBooking = async (data: BookingData) => {
+    try {
+      // Your booking logic
+    } catch (error) {
+      console.error('Booking error:', error);
+    }
+  };
 
   return (
     <section className="bg-white pt-44 pb-10 px-6 flex flex-col items-center">

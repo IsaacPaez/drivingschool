@@ -3,6 +3,11 @@ import { connectToDatabase } from '@/lib/mongodb';
 import Instructor from '@/models/Instructor';
 import mongoose from 'mongoose';
 
+// Añadir declaración global para evitar error TS7017
+declare global {
+  var io: any;
+}
+
 export async function POST(request: Request) {
   try {
     await connectToDatabase();
@@ -20,6 +25,9 @@ export async function POST(request: Request) {
     if (!scheduleDay) {
       return NextResponse.json({ error: 'No schedule for this date' }, { status: 404 });
     }
+    // Log temporal para depuración de slots
+    console.log('Comparando:', { start, end });
+    scheduleDay.slots.forEach(s => console.log('Slot:', { start: s.start, end: s.end }));
     // Buscar el slot
     const slot = scheduleDay.slots.find((slot: any) => slot.start === start && slot.end === end);
     if (!slot) {

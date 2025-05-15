@@ -31,7 +31,6 @@ const LocationPage: React.FC = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        console.log("📌 Fetching locations...");
         const res = await fetch("/api/locations");
         
         if (!res.ok) {
@@ -39,7 +38,6 @@ const LocationPage: React.FC = () => {
         }
     
         const data: Zone[] = await res.json();
-        console.log("📌 API Response in Frontend:", JSON.stringify(data, null, 2)); // 👀 Revisar en consola del navegador
     
         if (data.length > 0) {
           setLocation(data[0]); // 📌 Verifica que esto se ejecuta
@@ -58,8 +56,6 @@ const LocationPage: React.FC = () => {
   }, []);
 
   const fetchInstructorsDetails = async (instructorIds: string[]) => {
-    console.log("📌 Fetching instructors for IDs:", instructorIds);
-  
     if (!instructorIds || instructorIds.length === 0) {
       console.warn("⚠️ No instructor IDs provided.");
       return [];
@@ -95,18 +91,14 @@ const LocationPage: React.FC = () => {
 
 
   const handleZoneClick = async (zone: Zone) => {
-    console.log("📌 Selected Zone:", JSON.stringify(zone, null, 2)); // 👀 Revisar qué IDs tiene
-  
     if (!zone.instructors || zone.instructors.length === 0) {
       setSelectedZone({ ...zone, instructorsDetails: [] });
       return;
     }
   
     const instructorIds = zone.instructors.map(instructor => instructor._id);
-    console.log("📌 Instructor IDs before fetch:", instructorIds);
   
     const instructorsData = await fetchInstructorsDetails(instructorIds);
-    console.log("📌 Instructor details fetched:", instructorsData);
   
     setSelectedZone({ ...zone, instructorsDetails: instructorsData });
   };

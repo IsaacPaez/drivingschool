@@ -59,7 +59,6 @@ async function createInstructor() {
   });
 
   await instructor.save();
-  console.log('Instructor creado con éxito:', instructor);
   await mongoose.disconnect();
 }
 

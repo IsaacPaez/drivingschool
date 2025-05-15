@@ -3,16 +3,13 @@ import { connectToDatabase } from '@/lib/mongodb';
 import Instructor from '@/models/Instructor';
 
 export async function POST(request: Request) {
-  console.log('POST /api/teachers/schedule recibido');
   try {
     await connectToDatabase();
     const { instructorId, date, start, end, status } = await request.json();
-    console.log('Datos recibidos:', { instructorId, date, start, end, status });
 
     // Buscar al instructor
     const instructor = await Instructor.findById(instructorId);
     if (!instructor) {
-      console.log('Instructor not found');
       return NextResponse.json({ error: 'Instructor not found' }, { status: 404 });
     }
 
@@ -26,12 +23,9 @@ export async function POST(request: Request) {
       instructor.schedule.push({ date, slots: [{ start, end, status: status || 'free' }] });
     }
 
-    console.log('Antes de guardar:', JSON.stringify(instructor.schedule, null, 2));
     await instructor.save();
-    console.log('Después de guardar:', JSON.stringify(instructor.schedule, null, 2));
     return NextResponse.json({ success: true, data: instructor.schedule });
   } catch (error) {
-    console.error('Error saving schedule:', error);
     return NextResponse.json({ error: 'Failed to save schedule', details: (error as any)?.message || String(error) }, { status: 500 });
   }
 }
@@ -47,7 +41,6 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ success: true, data: instructor.schedule });
   } catch (error) {
-    console.error('Error fetching schedules:', error);
     return NextResponse.json({ error: 'Failed to fetch schedules' }, { status: 500 });
   }
 } 

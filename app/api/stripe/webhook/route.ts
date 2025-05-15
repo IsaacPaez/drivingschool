@@ -13,11 +13,11 @@ export const config = {
 };
 
 export async function POST(req: Request) {
-  console.log("📩 Webhook recibido en el servidor");
+  // console.log("📩 Webhook recibido en el servidor");
 
   const sig = req.headers.get("stripe-signature");
   if (!sig) {
-    console.error("❌ No se encontró la firma de Stripe");
+    // console.error("❌ No se encontró la firma de Stripe");
     return NextResponse.json({ error: "No Stripe Signature" }, { status: 400 });
   }
 
@@ -29,30 +29,30 @@ export async function POST(req: Request) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET as string
     );
-    console.log(`✅ Webhook recibido: ${event.type}`);
-    console.log("🔍 Evento completo:", JSON.stringify(event, null, 2));
+    // console.log(`✅ Webhook recibido: ${event.type}`);
+    // console.log("🔍 Evento completo:", JSON.stringify(event, null, 2));
   } catch (err: unknown) {
     if (err instanceof Error) {
-      console.error("⚠️ Error en el Webhook:", err.message);
+      // console.error("⚠️ Error en el Webhook:", err.message);
     } else {
-      console.error("⚠️ Error en el Webhook:", err);
+      // console.error("⚠️ Error en el Webhook:", err);
     }
     return NextResponse.json({ error: "Webhook Error" }, { status: 400 });
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    console.log("📄 Datos de la sesión:", session);
+    // console.log("📄 Datos de la sesión:", session);
 
     const db = await connectToDatabase();
     if (!db) {
-      console.error("❌ No se pudo conectar a MongoDB");
+      // console.error("❌ No se pudo conectar a MongoDB");
       return NextResponse.json(
         { error: "Database connection failed" },
         { status: 500 }
       );
     }
-    console.log("✅ Conexión a MongoDB exitosa");
+    // console.log("✅ Conexión a MongoDB exitosa");
 
     // 🔹 1️⃣ Obtener el email del cliente
     let customerEmail = session.customer_email;
@@ -62,12 +62,12 @@ export async function POST(req: Request) {
         const customer = await stripe.customers.retrieve(
           session.customer as string
         );
-        console.log("📩 Cliente recuperado desde Stripe:", customer);
+        // console.log("📩 Cliente recuperado desde Stripe:", customer);
         if (customer && typeof customer === "object" && "email" in customer) {
           customerEmail = customer.email as string;
         }
       } catch (error) {
-        console.error("❌ Error obteniendo el email del cliente:", error);
+        // console.error("❌ Error obteniendo el email del cliente:", error);
       }
     }
 
@@ -83,9 +83,9 @@ export async function POST(req: Request) {
         price: item.amount_total ? item.amount_total / 100 : 0, // Convertir a dólares
         quantity: item.quantity || 0,
       }));
-      console.log("🛒 Productos comprados:", products);
+      // console.log("🛒 Productos comprados:", products);
     } catch (error) {
-      console.error("❌ Error obteniendo los productos comprados:", error);
+      // console.error("❌ Error obteniendo los productos comprados:", error);
     }
 
     // 🔹 3️⃣ Guardar los datos en MongoDB
@@ -100,9 +100,9 @@ export async function POST(req: Request) {
         createdAt: new Date(),
       });
 
-      console.log("✅ Información del pago guardada en MongoDB", insertResult);
+      // console.log("✅ Información del pago guardada en MongoDB", insertResult);
     } catch (error) {
-      console.error("❌ Error guardando el pago en MongoDB:", error);
+      // console.error("❌ Error guardando el pago en MongoDB:", error);
     }
   }
 

@@ -1,9 +1,11 @@
 import NextAuth from "next-auth";
 import Auth0Provider from "next-auth/providers/auth0";
 import User from "@/models/User";
+import Instructor from "@/models/Instructor";
 import { connectDB } from "@/lib/mongodb";
+import { NextAuthOptions } from "next-auth";
 
-const handler = NextAuth({
+const authOptions: NextAuthOptions = {
   providers: [
     Auth0Provider({
       clientId: process.env.AUTH0_CLIENT_ID!,
@@ -22,42 +24,61 @@ const handler = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       await connectDB();
-      let existingUser = await User.findOne({ email: user.email });
-      if (!existingUser) {
-        // Solo redirige a completar perfil, NO crear usuario aquí
-        return "/complete-profile?email=" + encodeURIComponent(user.email || "");
+      // Buscar primero en instructores
+      const instructor = await Instructor.findOne({ email: user.email });
+      if (instructor) {
+        (user as any).role = "instructor";
+        (user as any).instructorId = instructor._id.toString();
+        (user as any).instructorName = instructor.name;
+        (user as any).instructorPhoto = instructor.photo;
+        return true;
       }
-      return true;
+      // Si no es instructor, buscar en users
+      let existingUser = await User.findOne({ email: user.email });
+      if (existingUser) {
+        (user as any).role = "user";
+        return true;
+      }
+      // Si no existe, permitir completar perfil
+      (user as any).role = "new";
+      return "/complete-profile?email=" + encodeURIComponent(user.email || "");
     },
     async jwt({ token, account, user }) {
-      if (account && user) {
+      if (user) {
         token.id = user.id;
         token.email = user.email;
-        // Obtener el rol del usuario desde la base de datos
-        await connectDB();
-        const dbUser = await User.findOne({ email: user.email });
-        token.role = dbUser?.role || "user";
+        token.role = (user as any).role;
+        token.instructorId = (user as any).instructorId;
+        token.instructorName = (user as any).instructorName;
+        token.instructorPhoto = (user as any).instructorPhoto;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        // Busca el usuario en la base de datos por email
         await connectDB();
-        const dbUser = await User.findOne({ email: token.email });
-        (session.user as any).id = dbUser?._id?.toString(); // Usa el _id de MongoDB
+        // Si es instructor, pasar la id, nombre y foto
+        if (token.role === "instructor") {
+          (session.user as any).role = "instructor";
+          (session.user as any).instructorId = token.instructorId;
+          (session.user as any).instructorName = token.instructorName;
+          (session.user as any).instructorPhoto = token.instructorPhoto;
+        } else {
+          // Busca el usuario en la base de datos por email
+          const dbUser = await User.findOne({ email: token.email });
+          (session.user as any).id = dbUser?._id?.toString();
+          (session.user as any).role = "user";
+        }
         (session.user as any).email = token.email;
-        (session.user as any).role = token.role;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Obtener el token manualmente desde la cookie si es necesario
-      // Pero NextAuth no pasa el token directamente aquí, así que solo podemos redirigir por URL
-      // Si quieres lógica por rol, deberías hacerlo en el frontend después del login
       return baseUrl;
     },
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST }; 

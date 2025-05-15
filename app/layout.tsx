@@ -5,6 +5,8 @@ import Header from "@/components/Header";
 import { connectDB } from "@/lib/mongodb";
 import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
 import { Providers } from "./providers";
+import AuthRedirector from "./components/AuthRedirector";
+import BodyWithDynamicBg from "./components/BodyWithDynamicBg";
 
 // ✅ Generamos la metadata sin usar `fetch()`
 export async function generateMetadata(): Promise<Metadata> {
@@ -38,14 +40,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`antialiased`}>
-        <Providers>
-          <Header />
-          <main className="min-h-screen relative">
-            {children}
-          </main>
-          <Footer />
-        </Providers>
+      <body className="antialiased">
+        <BodyWithDynamicBg>
+          <Providers>
+            <Header />
+            <main className="min-h-screen relative">
+              {children}
+            </main>
+            <Footer />
+          </Providers>
+        </BodyWithDynamicBg>
       </body>
     </html>
   );

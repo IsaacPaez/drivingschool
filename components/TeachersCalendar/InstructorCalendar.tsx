@@ -9,14 +9,14 @@ const InstructorCalendar: React.FC<{ schedule?: any[]; onScheduleUpdate?: () => 
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-[#0056b3] text-center text-lg font-semibold">
           Visualiza los espacios libres y agenda tu clase en uno de ellos.<br />No puedes editar ni cancelar reservas.
         </div>
-        <CalendarView schedule={schedule} onScheduleUpdate={onScheduleUpdate} />
+        <CalendarView classes={schedule} onScheduleUpdate={onScheduleUpdate} onClassClick={() => {}} />
       </div>
     );
   }
   // Modo instructor (por defecto)
   return (
     <div>
-      <CalendarView schedule={schedule} onScheduleUpdate={onScheduleUpdate} />
+      <CalendarView classes={schedule} onScheduleUpdate={onScheduleUpdate} onClassClick={() => {}} />
     </div>
   );
 };

@@ -11,7 +11,7 @@ interface ActionButtonProps {
 const ActionButton: React.FC<ActionButtonProps> = ({ type, id, label }) => {
   const handleClick = () => {
     if (type === "cart") {
-      console.log(`🛒 Adding item with ID: ${id} to cart`);
+      // console.log(`🛒 Adding item with ID: ${id} to cart`);
     } else {
       window.location.href = "/Book-Now";
     }

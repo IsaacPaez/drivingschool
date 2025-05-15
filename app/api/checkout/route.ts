@@ -17,8 +17,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export async function POST(req: Request) {
   try {
-    console.log("📩 Recibiendo datos de pago...");
-
     // Especificar el tipo de items usando la interfaz CartItem
     const { items }: { items: CartItem[] } = await req.json();
 
@@ -40,10 +38,8 @@ export async function POST(req: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cancel`,
     });
 
-    console.log("✅ Sesión de pago creada:", session.url);
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("❌ Error creando la sesión de pago:", error);
     return NextResponse.json(
       { error: "Error creando la sesión de pago" },
       { status: 500 }

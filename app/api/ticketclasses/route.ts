@@ -16,4 +16,20 @@ export async function GET(request: Request) {
 
   const ticketclasses = await TicketClass.find(filter).lean();
   return NextResponse.json(ticketclasses);
+}
+
+export async function POST(request: Request) {
+  await connectDB();
+  const body = await request.json();
+  // Suponiendo que el body tiene los datos necesarios para crear o actualizar una clase
+  let ticketClass;
+  if (body._id) {
+    // Actualizar clase existente
+    ticketClass = await TicketClass.findByIdAndUpdate(body._id, body, { new: true });
+  } else {
+    // Crear nueva clase
+    ticketClass = await TicketClass.create(body);
+  }
+
+  return NextResponse.json(ticketClass);
 } 

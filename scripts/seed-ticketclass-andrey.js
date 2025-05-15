@@ -23,7 +23,6 @@ async function seedTicketClass() {
   };
 
   const result = await ticketclasses.insertOne(doc);
-  console.log('Ticket class inserted:', result.insertedId);
   await mongoose.disconnect();
 }
 

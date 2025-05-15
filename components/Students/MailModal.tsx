@@ -56,8 +56,10 @@ const MailModal: React.FC<MailModalProps> = ({ show, onClose, recipients, subjec
         <div className="w-full mb-2">
           <div className="text-xs text-gray-500 mb-1">To:</div>
           <div className="text-sm text-gray-700 mb-2 max-h-16 overflow-y-auto">
-            {recipients.map((email, i) => (
-              <span key={email} className="inline-block bg-gray-100 rounded px-2 py-1 mr-1 mb-1 border border-gray-200">{email}</span>
+            {recipients.map((recipient) => (
+              <div key={recipient} className="flex items-center gap-2">
+                <span>{recipient}</span>
+              </div>
             ))}
           </div>
           <input

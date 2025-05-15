@@ -1,11 +1,13 @@
 "use client";
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import AuthRedirector from "../components/AuthRedirector";
+import { signIn } from "next-auth/react";
 
 export default function Page() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const email = searchParams.get("email") || "";
+  const email = searchParams?.get("email") || "";
   const [form, setForm] = useState({
     email,
     firstName: "",
@@ -34,6 +36,14 @@ export default function Page() {
       setForm({ ...form, hasLicense: value === "true" });
     } else if (name === "sex") {
       setForm({ ...form, sex: value });
+    } else if (name === "birthDate") {
+      // Solo acepta fechas válidas tipo YYYY-MM-DD
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(value)) {
+        setForm({ ...form, birthDate: value });
+      } else {
+        setForm({ ...form, birthDate: "" });
+      }
     } else {
       setForm({ ...form, [name]: value });
     }
@@ -49,8 +59,13 @@ export default function Page() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error("Error saving user");
-      router.push("/users"); // Redirige a users después de guardar
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Error saving user profile");
+        return;
+      }
+      // Redirige automáticamente a Auth0
+      signIn("auth0", { callbackUrl: "/" });
     } catch (err) {
       setError("Error saving user profile");
     } finally {
@@ -58,8 +73,13 @@ export default function Page() {
     }
   };
 
+  const handleSignIn = () => {
+    signIn("auth0", { callbackUrl: "/" });
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#fff", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 120 }}>
+      <AuthRedirector />
       <div style={{ width: 800, boxShadow: "0 4px 24px rgba(0,0,0,0.08)", borderRadius: 20, padding: 36, background: "#fff", marginTop: 60 }}>
         <h2 style={{ textAlign: "center", marginBottom: 28, fontWeight: 700, fontSize: 28, color: "#222" }}>Complete your profile</h2>
         <form onSubmit={handleSubmit}>
@@ -96,7 +116,11 @@ export default function Page() {
               <option value="F">Female</option>
             </select>
           </div>
-          <button type="submit" disabled={loading} style={{ width: "100%", padding: 14, borderRadius: 8, background: "#0070f3", color: "#fff", fontWeight: 600, fontSize: 16, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ width: "100%", padding: 14, borderRadius: 8, background: "#0070f3", color: "#fff", fontWeight: 600, fontSize: 16, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+          >
             {loading ? "Saving..." : "Save"}
           </button>
           {error && <div style={{ color: "red", marginTop: 8 }}>{error}</div>}

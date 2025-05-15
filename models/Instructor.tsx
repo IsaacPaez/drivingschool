@@ -16,6 +16,7 @@ interface Schedule {
 export interface IInstructor extends Document {
   name: string;
   photo: string;
+  email: string;
   certifications?: string;
   experience?: string;
   schedule?: Schedule[];
@@ -39,6 +40,7 @@ const InstructorSchema = new Schema<IInstructor>(
     _id: mongoose.Schema.Types.ObjectId,
     name: { type: String, required: true },
     photo: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
     certifications: { type: String, default: "N/A" },
     experience: { type: String, default: "N/A" },
     schedule: [ScheduleSchema],
