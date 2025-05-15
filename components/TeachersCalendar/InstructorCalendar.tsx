@@ -1,7 +1,12 @@
 import React from 'react';
 import CalendarView from './CalendarView';
+import type { Class } from './CalendarView';
 
-const InstructorCalendar: React.FC<{ schedule?: any[]; onScheduleUpdate?: () => void; studentMode?: boolean }> = ({ schedule = [], onScheduleUpdate, studentMode }) => {
+const InstructorCalendar: React.FC<{ 
+  schedule?: Class[]; 
+  onScheduleUpdate?: () => void; 
+  studentMode?: boolean 
+}> = ({ schedule = [], onScheduleUpdate, studentMode }) => {
   // Si es modo estudiante, solo muestra el calendario central y el mensaje
   if (studentMode) {
     return (

@@ -1,10 +1,12 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import CalendarGrid from './CalendarGrid';
 import CalendarToolbar from './CalendarToolbar';
 import Modal from '../Modal';
 import dynamic from 'next/dynamic';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi';
+import { useCalendarState } from './useCalendarState';
+import { Class as CalendarClass } from './types';
 
 const MiniCalendar = dynamic(() => import('./MiniCalendar'), { ssr: false });
 
@@ -26,7 +28,7 @@ interface TimeSlot {
   studentId?: string | MongoDBObjectId;
 }
 
-interface Class {
+export interface Class {
   id: string;
   date: Date;
   hour: number;
@@ -40,76 +42,31 @@ interface Class {
 }
 
 interface CalendarViewProps {
-  classes: Class[];
-  onClassClick: (classData: Class) => void;
+  classes: CalendarClass[];
+  onClassClick: (classData: CalendarClass) => void;
   onScheduleUpdate?: () => void;
   hideSidebars?: boolean;
 }
 
-interface CalendarGridProps {
-  view: 'week' | 'month';
-  onTimeBlockClick: (block: Class) => void;
-  selectedDate: Date;
-  classes: Class[];
-}
-
 const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, onClassClick, onScheduleUpdate, hideSidebars }) => {
-  const [view, setView] = useState<'week' | 'month'>('week');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedBlock, setSelectedBlock] = useState<Class | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'add'>('view');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addDate, setAddDate] = useState<Date | null>(null);
-  const [addHour, setAddHour] = useState<number | null>(null);
-  const [classFilter, setClassFilter] = useState<'scheduled' | 'cancelled' | 'free'>('scheduled');
-  const [studentInfo, setStudentInfo] = useState<{ name?: string; email?: string } | null>(null);
-
-  useEffect(() => {
-    const adapted = (initialClasses || []).flatMap((item: Class) =>
-      (item.slots || []).map((slot: TimeSlot) => ({
-        id: slot && slot._id && typeof slot._id === 'object' && '$oid' in slot._id
-          ? String(slot._id.$oid)
-          : slot && slot._id
-            ? String(slot._id)
-            : '',
-        date: new Date(item.date),
-        hour: parseInt(slot.start.split(':')[0], 10),
-        status: (slot.status === 'canceled' ? 'cancelled' : slot.status || 'free') as Class['status'],
-        studentId:
-          slot && slot.studentId && typeof slot.studentId === 'object' && '$oid' in slot.studentId
-            ? String(slot.studentId.$oid)
-            : slot && slot.studentId
-              ? String(slot.studentId)
-              : undefined,
-        instructorId: typeof item.instructorId === 'object' ? item.instructorId.$oid : item.instructorId,
-        start: slot.start,
-        end: slot.end
-      }))
-    );
-    setClasses(adapted);
-  }, [initialClasses]);
-
-  useEffect(() => {
-  }, [classes]);
-
-  // Nuevo: buscar info del estudiante cuando se selecciona un bloque
-  useEffect(() => {
-    if (selectedBlock && selectedBlock.studentId) {
-      const id = typeof selectedBlock.studentId === 'object' && selectedBlock.studentId.$oid
-        ? selectedBlock.studentId.$oid
-        : selectedBlock.studentId.toString();
-      fetch(`/api/users/${id}`)
-        .then(res => res.json())
-        .then(data => {
-          setStudentInfo({ name: data.firstName + ' ' + (data.lastName || ''), email: data.email });
-        })
-        .catch(() => setStudentInfo(null));
-    } else {
-      setStudentInfo(null);
-    }
-  }, [selectedBlock]);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const calendarState = useCalendarState(initialClasses);
+  const {
+    view,
+    setView,
+    modalOpen,
+    setModalOpen,
+    selectedBlock,
+    setSelectedBlock,
+    selectedDate,
+    setSelectedDate,
+    classes,
+    showAddModal,
+    setShowAddModal,
+    classFilter,
+    setClassFilter,
+    studentInfo
+  } = calendarState;
 
   // Navegación entre semanas/meses
   const handlePrev = () => {
@@ -127,7 +84,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
   };
 
   // Permitir click solo para mostrar info
-  const handleTimeBlockClick = (block: Class) => {
+  const handleTimeBlockClick = (block: CalendarClass) => {
     if (block.status === 'scheduled') {
       setSelectedBlock(block);
       setModalOpen(true);
@@ -135,18 +92,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
     onClassClick(block);
   };
 
-  const handleAddClass = async () => {
-    if (!addDate || addHour === null) return;
+  const handleAddClass = async (date: Date, hour: number) => {
     try {
       const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          studentId: '67dda5c8448d12032b5d7a76', // TODO: Usar el id real del estudiante logueado
-          instructorId: selectedBlock?.instructorId || '681c2566f4e0eb5564f85205', // TODO: Usar el id real del instructor
-          date: addDate.toISOString().split('T')[0],
-          start: `${addHour.toString().padStart(2, '0')}:00`,
-          end: `${(addHour + 1).toString().padStart(2, '0')}:00`,
+          studentId: '67dda5c8448d12032b5d7a76',
+          instructorId: selectedBlock?.instructorId || '681c2566f4e0eb5564f85205',
+          date: date.toISOString().split('T')[0],
+          start: `${hour.toString().padStart(2, '0')}:00`,
+          end: `${(hour + 1).toString().padStart(2, '0')}:00`,
         }),
       });
       if (res.ok) {
@@ -155,30 +111,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       } else {
         alert('This slot is no longer available.');
       }
-    } catch (error) {
+    } catch {
       alert('Error booking the class');
     }
-  };
-
-  // Guardar/agendar clase
-  const handleSaveClass = (updatedClass: Class) => {
-    if (!selectedBlock) return;
-    setClasses(prev => prev.map(c =>
-      c.id === selectedBlock.id ? { ...c, ...updatedClass } : c
-    ));
-  };
-
-  // Eliminar clase
-  const handleDeleteClass = () => {
-    if (!selectedBlock) return;
-    setClasses((prev) => prev.filter((c) => {
-      if (view === 'week') {
-        return !(c.date.toDateString() === selectedDate.toDateString() && c.hour === selectedBlock.hour);
-      } else {
-        return !(c.date.getDate() === selectedBlock.day && c.date.getMonth() === selectedDate.getMonth());
-      }
-    }));
-    setModalOpen(false);
   };
 
   const getVisibleDates = () => {
@@ -192,7 +127,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
         return d;
       });
     } else {
-      // Mes completo
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth();
       const lastDay = new Date(year, month + 1, 0).getDate();
@@ -226,12 +160,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
   const renderClassList = () => {
     if (Object.keys(grouped).length === 0) return <li className="text-gray-400">Not available</li>;
     return Object.entries(grouped).sort((a, b) => {
-      // Ordenar por fecha ascendente
       const da = new Date(a[0].split('/').reverse().join('-'));
       const db = new Date(b[0].split('/').reverse().join('-'));
       return da.getTime() - db.getTime();
-    }).map(([date, hours], idx) => {
-      // Agrupar horas consecutivas en rangos
+    }).map(([date, hours]) => {
       const sorted = (hours as number[]).sort((a, b) => a - b);
       const ranges: [number, number][] = [];
       let start = sorted[0], end = sorted[0];
@@ -245,10 +177,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       }
       ranges.push([start, end]);
       return (
-        <li key={date + idx} className="mb-1">
+        <li key={date} className="mb-1">
           <span className="font-bold text-[#0056b3]">{date}</span>{' '}
-          {ranges.map(([s, e], i) => (
-            <span key={i} className="inline-block bg-gray-200 rounded px-1 mx-1">
+          {ranges.map(([s, e]) => (
+            <span key={`${s}-${e}`} className="inline-block bg-gray-200 rounded px-1 mx-1">
               {s.toString().padStart(2, '0')}:00 - {(e+1).toString().padStart(2, '0')}:00
             </span>
           ))}
@@ -269,7 +201,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
   // Para cada día visible, generar los bloques de 30 minutos
   const blocks: { id: string; time: string; status: 'booked' | 'available' | 'unavailable' | 'cancelled'; date: Date; hour: number; minute: number }[] = [];
   visibleDates.forEach((date) => {
-    timeSlots.forEach((slot, idx) => {
+    timeSlots.forEach((slot) => {
       // Buscar si hay una clase que coincida con este bloque
       const blockDate = new Date(date);
       const [hour, minute] = slot.split(':').map(Number);
@@ -334,7 +266,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       weeks.push(week);
     }
     // Agrupar clases por día
-    const classesByDay: Record<number, Class[]> = {};
+    const classesByDay: Record<number, CalendarClass[]> = {};
     classes.forEach(c => {
       const date = new Date(c.date);
       if (date.getMonth() === month && date.getFullYear() === year) {
@@ -354,17 +286,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
             </tr>
           </thead>
           <tbody>
-            {weeks.map((week, wi) => (
-              <tr key={wi}>
-                {week.map((day, di) => (
-                  <td key={di} className={`align-top min-h-[90px] h-[90px] w-[120px] border p-1 ${day === 0 ? 'bg-gray-50' : 'bg-white'}`}>
+            {weeks.map((week: number[], weekIndex: number) => (
+              <tr key={weekIndex}>
+                {week.map((day: number, dayIndex: number) => (
+                  <td key={dayIndex} className={`align-top min-h-[90px] h-[90px] w-[120px] border p-1 ${day === 0 ? 'bg-gray-50' : 'bg-white'}`}>
                     {day !== 0 && (
                       <div className="flex flex-col h-full">
                         <div className="text-[#0056b3] font-bold text-lg mb-1">{day}</div>
                         <div className="flex flex-col gap-1 flex-1">
-                          {(classesByDay[day] || []).map((c, idx) => (
+                          {(classesByDay[day] || []).map((c) => (
                             <div
-                              key={c.id + idx}
+                              key={c.id}
                               className={`rounded-lg px-2 py-1 text-xs font-semibold shadow transition-all cursor-pointer
                                 ${c.status === 'scheduled' ? 'bg-[#0056b3] text-white hover:bg-[#27ae60]' : ''}
                                 ${c.status === 'cancelled' ? 'bg-[#f44336] text-white hover:bg-[#b71c1c]' : ''}
@@ -492,16 +424,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
         <div className="p-6 text-black">
           <h2 className="text-xl font-bold mb-4">Schedule Class</h2>
-          <div className="mb-2">Date: {addDate?.toLocaleDateString()}</div>
+          <div className="mb-2">Date: {selectedDate?.toLocaleDateString()}</div>
           <div className="mb-2">
             <label className="mr-2">Start hour:</label>
-            <input type="number" min={6} max={17} value={addHour ?? ''} onChange={e => setAddHour(Number(e.target.value))} className="border rounded p-1 w-16 text-black" />
+            <input type="number" min={6} max={17} value={selectedDate?.getHours() ?? ''} onChange={e => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), Number(e.target.value)))} className="border rounded p-1 w-16 text-black" />
           </div>
           <div className="mb-4">
             <label className="mr-2">End hour:</label>
-            <input type="number" min={6} max={18} value={(addHour ?? 6) + 1} onChange={e => setAddHour(Number(e.target.value))} className="border rounded p-1 w-16 text-black" />
+            <input type="number" min={6} max={18} value={(selectedDate?.getHours() ?? 6) + 1} onChange={e => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), Number(e.target.value)))} className="border rounded p-1 w-16 text-black" />
           </div>
-          <button className="bg-[#27ae60] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#0056b3]" onClick={handleAddClass}>Confirm</button>
+          <button className="bg-[#27ae60] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#0056b3]" onClick={() => handleAddClass(selectedDate, selectedDate.getHours())}>Confirm</button>
         </div>
       </Modal>
     </div>

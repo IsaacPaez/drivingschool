@@ -1,14 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import InstructorCalendar from '../../components/TeachersCalendar/InstructorCalendar';
-import MiniCalendar from '../../components/TeachersCalendar/MiniCalendar';
-import { signOut, useSession } from "next-auth/react";
-import { useState as useReactState } from "react";
+import { useSession } from "next-auth/react";
 import AuthRedirector from "../components/AuthRedirector";
 import { useRouter } from "next/navigation";
 
 // Custom hook para polling tipo webhook
-function useWebhook(instructorId: string | undefined, onUpdate: (data: any) => void) {
+function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) => void) {
   useEffect(() => {
     if (!instructorId) return;
     const fetchAndUpdate = () => {
@@ -25,15 +23,8 @@ function useWebhook(instructorId: string | undefined, onUpdate: (data: any) => v
 export default function TeachersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [schedule, setSchedule] = useState([]);
-  const [instructorName, setInstructorName] = useState('');
-  const [instructorPhoto, setInstructorPhoto] = useState('');
-  const [certifications, setCertifications] = useState('');
-  const [experience, setExperience] = useState('');
-  const [rawSchedule, setRawSchedule] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [rawSchedule, setRawSchedule] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showMenu, setShowMenu] = useReactState(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -41,31 +32,17 @@ export default function TeachersPage() {
       router.replace("/api/auth/signin/auth0?callbackUrl=/teachers");
       return;
     }
-    if ((session.user as any).role !== "instructor") {
+    if ((session.user as { role?: string })?.role !== "instructor") {
       router.replace("/");
     }
   }, [session, status, router]);
 
   // Hook profesional para actualización en vivo
-  const instructorId = (session?.user as any)?.instructorId;
+  const instructorId = (session?.user as { instructorId?: string })?.instructorId;
   useWebhook(
     instructorId,
     (data) => {
-      setRawSchedule(data.schedule || []);
-      const adapted = (data.schedule || []).flatMap((item: any) =>
-        (item.slots || []).flatMap((slot: any) => {
-          const startHour = parseInt(slot.start.split(':')[0], 10);
-          const endHour = parseInt(slot.end.split(':')[0], 10);
-          const baseDate = new Date(`${item.date}T00:00:00`);
-          return Array.from({ length: endHour - startHour }, (_, i) => ({
-            date: new Date(baseDate),
-            hour: startHour + i,
-            status: slot.status || 'scheduled',
-            slotId: slot._id
-          }));
-        })
-      );
-      setSchedule(adapted);
+      setRawSchedule((data as { schedule?: unknown[] }).schedule || []);
       // Solo desactiva loading la primera vez
       setLoading((prev) => prev ? false : prev);
     }
@@ -73,15 +50,15 @@ export default function TeachersPage() {
 
   const fetchSchedule = async () => {
     if (!session?.user) return;
-    const instructorId = (session.user as any).instructorId;
+    const instructorId = (session.user as { instructorId?: string }).instructorId;
     if (!instructorId) return;
     
     const res = await fetch(`/api/teachers?id=${instructorId}`);
     const data = await res.json();
-    setRawSchedule(data.schedule || []);
+    setRawSchedule((data as { schedule?: unknown[] }).schedule || []);
   };
 
-  if (status === "loading" || !session || !session.user || (session.user as any).role !== "instructor") {
+  if (status === "loading" || !session || !session.user || (session.user as { role?: string })?.role !== "instructor") {
     return null;
   }
 
@@ -109,14 +86,6 @@ export default function TeachersPage() {
           <span className="text-[#0056b3]">INSTRUCTOR</span>{' '}
           <span className="text-[#27ae60]">SCHEDULE</span>
         </h1>
-        <div className="flex flex-col items-center mb-10">
-          {(certifications || experience) && (
-            <div className="mt-2 text-lg text-gray-700 text-center">
-              {certifications && <span className="block font-semibold">Certifications: {certifications}</span>}
-              {experience && <span className="block font-semibold">Experience: {experience}</span>}
-            </div>
-          )}
-        </div>
         <div className="w-full max-w-8xl text-black flex flex-row gap-8">
           <div className="flex-1">
             <InstructorCalendar schedule={rawSchedule} onScheduleUpdate={fetchSchedule} />

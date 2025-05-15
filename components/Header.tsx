@@ -60,23 +60,7 @@ const Header = () => {
   // Helper to check if we are in a teacher section
   const isTeacherSection = pathname.startsWith("/teachers");
 
-  const transparentRoutes = [
-    "/",
-    "/Lessons",
-    "/Classes",
-    "/OnlineCourses",
-    "/Packages",
-    "/FAQ",
-    "/Location"
-  ];
-  const isTransparent = transparentRoutes.includes(pathname);
-
   const hideAuthButtons = pathname.startsWith("/complete-profile");
-
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    // Your click handler logic
-  };
 
   return (
     <header className={`fixed top-0 left-0 w-full z-50 px-4 ${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'}`}>
@@ -111,7 +95,7 @@ const Header = () => {
               </button>
               {isTeacherSection ? (
                 <span className="mt-2 text-[#0056b3] font-bold text-base text-center w-32 whitespace-normal break-words uppercase">
-                  {(session.user as any).instructorName}
+                  {(session.user as { instructorName?: string }).instructorName}
                 </span>
               ) : (
                 <span className="mt-1 text-[#0056b3] font-bold text-sm text-center w-32 whitespace-normal break-words uppercase">

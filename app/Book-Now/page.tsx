@@ -6,7 +6,6 @@ import "react-calendar/dist/Calendar.css";
 import "@/globals.css";
 import Modal from "@/components/Modal";
 import Image from "next/image";
-import useDrivingLessons from "@/app/hooks/useDrivingLessons";
 import { useSession, signIn } from "next-auth/react";
 
 interface Slot {
@@ -38,8 +37,6 @@ interface Location {
 export default function BookNowPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(true);
-
-  const lessons = useDrivingLessons("Road Skills for Life");
 
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
   const [instructors, setInstructors] = useState<Instructor[]>([]);

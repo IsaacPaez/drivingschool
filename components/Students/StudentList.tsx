@@ -9,7 +9,6 @@ interface Student {
 }
 
 interface Props {
-  students: Student[];
   filtered: Student[];
   search: string;
   setSearch: (s: string) => void;
@@ -18,7 +17,7 @@ interface Props {
   loadingStudents: boolean;
 }
 
-const StudentList: React.FC<Props> = ({ students, filtered, search, setSearch, handleSelect, handleOpenSingleMail, loadingStudents }) => {
+const StudentList: React.FC<Props> = ({ filtered, search, setSearch, handleSelect, handleOpenSingleMail, loadingStudents }) => {
   if (loadingStudents) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-12">

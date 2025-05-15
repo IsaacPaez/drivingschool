@@ -4,11 +4,10 @@ import React from "react";
 
 interface ActionButtonProps {
   type: "book" | "cart";
-  id: string;
   label?: string; // Nuevo prop opcional para cambiar el texto del botón
 }
 
-const ActionButton: React.FC<ActionButtonProps> = ({ type, id, label }) => {
+const ActionButton: React.FC<ActionButtonProps> = ({ type, label }) => {
   const handleClick = () => {
     if (type === "cart") {
       // console.log(`🛒 Adding item with ID: ${id} to cart`);

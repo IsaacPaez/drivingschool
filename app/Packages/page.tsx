@@ -25,9 +25,6 @@ const Page: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  // Este estado almacenará el paquete seleccionado para mostrar en el popup.
-  const [selectedItem, setSelectedItem] = useState<Package | null>(null);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -133,7 +130,6 @@ const Page: React.FC = () => {
               key={item._id}
               className="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex flex-col justify-between min-h-[400px] cursor-pointer hover:shadow-lg transition"
               whileHover={{ scale: 1.05 }}
-              onClick={() => setSelectedItem(item)}
             >
               {/* IMAGEN */}
               <div className="relative w-full h-44 flex justify-center">

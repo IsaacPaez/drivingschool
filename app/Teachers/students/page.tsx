@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { HiOutlineMail } from 'react-icons/hi';
 import StudentList from '@/components/Students/StudentList';
 import StudentDetails from '@/components/Students/StudentDetails';
 import MailModal from '@/components/Students/MailModal';
@@ -29,8 +28,31 @@ interface Course {
   price: number;
 }
 
+interface ClassResponse {
+  _id: string;
+  date: string;
+  hour: string;
+  type: string;
+  duration: string;
+}
+
+interface NoteResponse {
+  notes: {
+    _id: string;
+    text: string;
+    createdAt: string;
+    instructorId: string;
+    studentId: string;
+  }[];
+}
+
+interface Note {
+  text: string;
+  date: string;
+}
+
 // Custom hook para polling tipo webhook
-function useWebhook(instructorId: string | undefined, onUpdate: (data: any) => void) {
+function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) => void) {
   React.useEffect(() => {
     if (!instructorId) return;
     const fetchAndUpdate = () => {
@@ -46,7 +68,7 @@ function useWebhook(instructorId: string | undefined, onUpdate: (data: any) => v
 
 const StudentsPage = () => {
   const { data: session } = useSession();
-  const instructorId = (session?.user as any)?.instructorId;
+  const instructorId = (session?.user as { instructorId?: string })?.instructorId;
   const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -56,7 +78,7 @@ const StudentsPage = () => {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
-  const [notesHistory, setNotesHistory] = useState<{ text: string; date: string }[]>([]);
+  const [notesHistory, setNotesHistory] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   // Modal correo
   const [showMailModal, setShowMailModal] = useState(false);
@@ -70,8 +92,9 @@ const StudentsPage = () => {
   useWebhook(
     instructorId,
     (data) => {
-      setCourses(data.classes || []);
-      setStudents(data.students || []);
+      const typedData = data as { classes?: Course[]; students?: Student[] };
+      setCourses(typedData.classes || []);
+      setStudents(typedData.students || []);
       setLoading(false);
     }
   );
@@ -94,8 +117,8 @@ const StudentsPage = () => {
     if (!selectedCourse || !instructorId) return;
     // Traer historial de clases
     const res = await fetch(`/api/ticketclasses?instructorId=${instructorId}&studentId=${student._id}&classId=${selectedCourse._id}`);
-    const data = await res.json();
-    setHistory(data.map((c: any) => ({
+    const data = await res.json() as ClassResponse[];
+    setHistory(data.map((c) => ({
       _id: c._id,
       date: c.date,
       hour: c.hour,
@@ -104,8 +127,12 @@ const StudentsPage = () => {
     })));
     // Traer historial de notas
     const notesRes = await fetch(`/api/notes?studentId=${student._id}&instructorId=${instructorId}`);
-    const notesData = await notesRes.json();
-    setNotesHistory(notesData.notes || []);
+    const notesData = await notesRes.json() as NoteResponse;
+    const notesArr = notesData.notes.map(note => ({
+      text: note.text,
+      date: note.createdAt
+    }));
+    setNotesHistory(notesArr);
   };
 
   const filtered = students.filter(s =>
@@ -129,8 +156,12 @@ const StudentsPage = () => {
       setSaveMsg('Notes saved!');
       setNotes('');
       // Refrescar historial de notas
-      const notesData = await res.json();
-      setNotesHistory(notesData.notes || []);
+      const notesData = await res.json() as NoteResponse;
+      const notesArr = notesData.notes.map(note => ({
+        text: note.text,
+        date: note.createdAt
+      }));
+      setNotesHistory(notesArr);
     } else {
       setSaveMsg('Error saving notes');
     }
@@ -173,7 +204,7 @@ const StudentsPage = () => {
         setMailSent(false);
         alert('Error sending email');
       }
-    } catch (err) {
+    } catch {
       setMailSent(false);
       alert('Error sending email');
     }
@@ -247,7 +278,6 @@ const StudentsPage = () => {
         </div>
         <div className="flex gap-8">
           <StudentList
-            students={students}
             filtered={filtered}
             search={search}
             setSearch={setSearch}
