@@ -4,6 +4,7 @@ import StudentList from '@/components/Students/StudentList';
 import StudentDetails from '@/components/Students/StudentDetails';
 import MailModal from '@/components/Students/MailModal';
 import { useSession } from "next-auth/react";
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
 interface Student {
   _id: string;
@@ -214,16 +215,8 @@ const StudentsPage = () => {
   // Pantalla 1: My Classes
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]">
-        <div className="flex flex-col items-center">
-          {/* SVG volante animado */}
-          <svg className="animate-spin h-16 w-16 text-[#0056b3] mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="32" cy="32" r="28" stroke="#0056b3" strokeWidth="6" opacity="0.2" />
-            <path d="M32 8a24 24 0 1 1 0 48a24 24 0 1 1 0-48zm0 0v12m0 24v12m-17-17h12m24 0h12M16.93 16.93l8.49 8.49m12.12 12.12l8.49 8.49M16.93 47.07l8.49-8.49m12.12-12.12l8.49-8.49" stroke="#0056b3" strokeWidth="3" strokeLinecap="round" />
-            <circle cx="32" cy="32" r="6" fill="#0056b3" />
-          </svg>
-          <span className="text-[#0056b3] text-lg font-semibold">Loading...</span>
-        </div>
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]">
+        <LoadingSpinner />
       </div>
     );
   }

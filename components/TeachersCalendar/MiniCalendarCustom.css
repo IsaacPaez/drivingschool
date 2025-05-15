@@ -1,0 +1,66 @@
+/* MiniCalendarCustom.css: Mejora visual para el mini calendario react-calendar */
+.react-calendar {
+  border: none !important;
+  background: transparent !important;
+  font-family: inherit;
+}
+.react-calendar__navigation {
+  margin-bottom: 0.5rem;
+  background: none;
+}
+.react-calendar__navigation button {
+  background: none;
+  color: #0056b3;
+  font-weight: bold;
+  font-size: 1.2rem;
+  border-radius: 0.5rem;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+.react-calendar__navigation button:enabled:hover {
+  background: #e3f6fc;
+  color: #27ae60;
+  transform: scale(1.08);
+}
+.react-calendar__month-view__weekdays {
+  text-align: center;
+  font-weight: bold;
+  color: #0056b3;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  border-bottom: 1px dashed #b2dfdb;
+}
+.react-calendar__tile {
+  border-radius: 0.55rem !important;
+  font-weight: 1000;
+  font-size: 0.75rem;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+  padding: 0.65rem 0.35rem;
+}
+.react-calendar__tile--active {
+  background: #0056b3 !important;
+  color: #fff !important;
+  border: 2px solid #27ae60 !important;
+  box-shadow: 0 2px 8px #0056b3cc;
+  transform: scale(1.12);
+}
+.react-calendar__tile--now {
+  background: #27ae60cc !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px #27ae60cc;
+  transform: scale(1.06);
+}
+.react-calendar__tile:enabled:hover {
+  background: #e3f6fc !important;
+  color: #0056b3 !important;
+  transform: scale(1.08);
+}
+.react-calendar__tile--hasActive {
+  background: #b2dfdb !important;
+}
+.react-calendar__month-view__days__day--weekend {
+  color: #f44336 !important;
+}
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: #bdbdbd !important;
+  opacity: 0.5;
+} 

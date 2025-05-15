@@ -1,16 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-interface Slot {
-  start: string;
-  end: string;
-  status: 'free' | 'scheduled' | 'cancelled';
+// Nueva estructura de slot/planning según MongoDB
+export interface ScheduleSlot {
+  date: string; // '2025-05-15'
+  start: string; // '10:00'
+  end: string; // '10:30'
   booked: boolean;
   studentId: mongoose.Schema.Types.ObjectId | null;
-}
-
-interface Schedule {
-  date: string;
-  slots: Slot[];
+  status: 'free' | 'scheduled' | 'cancelled';
 }
 
 export interface IInstructor extends Document {
@@ -19,20 +16,16 @@ export interface IInstructor extends Document {
   email: string;
   certifications?: string;
   experience?: string;
-  schedule?: Schedule[];
+  schedule?: ScheduleSlot[];
 }
 
-const SlotSchema = new Schema<Slot>({
+const ScheduleSlotSchema = new Schema<ScheduleSlot>({
+  date: { type: String, required: true },
   start: { type: String, required: true },
   end: { type: String, required: true },
-  status: { type: String, enum: ['free', 'scheduled', 'cancelled'], default: 'free' },
   booked: { type: Boolean, default: false },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-});
-
-const ScheduleSchema = new Schema<Schedule>({
-  date: { type: String, required: true },
-  slots: [SlotSchema],
+  status: { type: String, enum: ['free', 'scheduled', 'cancelled'], default: 'free' },
 });
 
 const InstructorSchema = new Schema<IInstructor>(
@@ -43,7 +36,7 @@ const InstructorSchema = new Schema<IInstructor>(
     email: { type: String, required: true, unique: true },
     certifications: { type: String, default: "N/A" },
     experience: { type: String, default: "N/A" },
-    schedule: [ScheduleSchema],
+    schedule: [ScheduleSlotSchema],
   },
   { timestamps: true }
 );
