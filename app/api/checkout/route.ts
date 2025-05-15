@@ -41,7 +41,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     return NextResponse.json(
-      { error: "Error creando la sesión de pago" },
+      { 
+        error: "Error creando la sesión de pago",
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }

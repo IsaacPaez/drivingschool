@@ -3,7 +3,13 @@ import User from '@/models/User';
 import { connectDB } from '@/lib/mongodb';
 import mongoose from 'mongoose';
 
-export async function GET(req: Request, context: any) {
+interface RouteContext {
+  params: {
+    id: string;
+  };
+}
+
+export async function GET(req: Request, context: RouteContext) {
   await connectDB();
   const params = await context.params;
   const id = params.id;
@@ -22,7 +28,7 @@ export async function GET(req: Request, context: any) {
   return NextResponse.json(user);
 }
 
-export async function PUT(req: Request, context: any) {
+export async function PUT(req: Request, context: RouteContext) {
   await connectDB();
   const params = await context.params;
   const id = params.id;

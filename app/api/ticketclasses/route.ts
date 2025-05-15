@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import TicketClass from "@/models/TicketClass";
 
+interface TicketClassFilter {
+  instructorId?: string;
+  classId?: string;
+  students?: string;
+}
+
 export async function GET(request: Request) {
   await connectDB();
   const { searchParams } = new URL(request.url);
@@ -9,7 +15,7 @@ export async function GET(request: Request) {
   const classId = searchParams.get("classId");
   const studentId = searchParams.get("studentId");
 
-  const filter: any = {};
+  const filter: TicketClassFilter = {};
   if (instructorId) filter.instructorId = instructorId;
   if (classId) filter.classId = classId;
   if (studentId) filter.students = studentId;

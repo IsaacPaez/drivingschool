@@ -4,6 +4,7 @@ import Instructor from "@/models/Instructor";
 
 export async function GET(req: Request) {
   try {
+    await connectDB();
     // Extraer el ID desde la URL
     const { pathname } = new URL(req.url);
     const id = pathname.split("/").pop(); // Obtiene el último segmento de la URL

@@ -1,12 +1,11 @@
 "use client";
 import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import AuthRedirector from "../components/AuthRedirector";
 import { signIn } from "next-auth/react";
 
-export default function Page() {
+export default function CompleteProfilePage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const email = searchParams?.get("email") || "";
   const [form, setForm] = useState({
     email,
@@ -31,7 +30,7 @@ export default function Page() {
   const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
     if (name === "hasLicense") {
       setForm({ ...form, hasLicense: value === "true" });
     } else if (name === "sex") {
@@ -66,15 +65,13 @@ export default function Page() {
       }
       // Redirige automáticamente a Auth0
       signIn("auth0", { callbackUrl: "/" });
-    } catch (err) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Error:", errorMessage);
       setError("Error saving user profile");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSignIn = () => {
-    signIn("auth0", { callbackUrl: "/" });
   };
 
   return (

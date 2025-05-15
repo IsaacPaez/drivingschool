@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import Note from '@/models/Note';
 import { connectDB } from '@/lib/mongodb';
-import mongoose from 'mongoose';
 
 // GET /api/notes?studentId=...&instructorId=...
 export async function GET(req: Request) {

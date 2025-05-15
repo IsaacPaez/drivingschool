@@ -8,7 +8,6 @@ import CorporatePrograms from "./CorporatePrograms";
 import Link from "next/link";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
-import LessonsContent from "@/components/LessonsContent";
 
 // Fuente moderna
 const poppins = Poppins({

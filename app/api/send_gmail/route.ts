@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import mongoose from 'mongoose';
 import User from '../../../models/User';
-const handlebars = require('handlebars');
+import handlebars from 'handlebars';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,17 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Eliminar duplicados y correos vacíos
-    let emails = [...new Set(recipients.filter(e => !!e))];
-
-    // Footer HTML (puedes mejorarlo si quieres)
-    const footerHtml = `
-      <div style="background: linear-gradient(135deg, #0056b3, #000); color: white; padding: 24px; border-radius: 24px; text-align: center; margin-top: 32px;">
-        <img src='https://drivingschoolpalmbeach.com/DV-removebg-preview.png' alt='Logo' width='80' style='margin-bottom: 12px;'/>
-        <h2 style='font-size: 20px; font-weight: bold; margin: 0;'>Affordable Driving <br/> Traffic School</h2>
-        <div style='margin: 12px 0;'>West Palm Beach, FL | info@drivingschoolpalmbeach.com | 561 330 7007</div>
-        <div style='font-size: 12px; color: #ccc;'>&copy; ${new Date().getFullYear()} Powered By Botopia Technology S.A.S</div>
-      </div>
-    `;
+    const emails = [...new Set(recipients.filter(e => !!e))];
 
     let firstName = "Student";
     let lastName = "";
@@ -36,7 +25,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const logoUrl = "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1739549973/sxsfccyjjnvmxtzlkjpi.png";
     const template = handlebars.compile(`
       <div style="background: #f6f8fa; padding: 0; min-height: 100vh;">
@@ -89,8 +77,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, info });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('EMAIL ERROR:', error);
-    return NextResponse.json({ error: error.message, stack: error.stack, full: error }, { status: 500 });
+    return NextResponse.json({ 
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      stack: error instanceof Error ? error.stack : undefined
+    }, { status: 500 });
   }
 }

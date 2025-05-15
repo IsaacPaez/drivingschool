@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "@/globals.css";
@@ -8,35 +8,31 @@ import Modal from "@/components/Modal";
 import Image from "next/image";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
 import { useSession, signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
-// Custom hook para polling tipo webhook
-function useWebhook(instructorId: string | undefined, onUpdate: (data: any) => void) {
-  React.useEffect(() => {
-    if (!instructorId) return;
-    const fetchAndUpdate = () => {
-      fetch(`/api/book-now?id=${instructorId}`)
-        .then(res => res.json())
-        .then(onUpdate);
-    };
-    fetchAndUpdate();
-    const interval = setInterval(fetchAndUpdate, 5000);
-    return () => clearInterval(interval);
-  }, [instructorId, onUpdate]);
+interface Slot {
+  _id: string;
+  start: string;
+  end: string;
+  status: 'free' | 'scheduled' | 'cancelled';
+  studentId?: string;
 }
 
 interface Instructor {
-  id: string;
+  _id: string;
   name: string;
-  photo: string;
-  // Add other instructor properties as needed
+  photo?: string;
+  schedule?: Schedule[];
 }
 
-interface BookingData {
-  instructorId: string;
+interface Schedule {
   date: string;
-  time: string;
-  // Add other booking properties as needed
+  slots: Slot[];
+}
+
+interface Location {
+  title: string;
+  zone: string;
+  instructors: Instructor[];
 }
 
 export default function BookNowPage() {
@@ -44,44 +40,13 @@ export default function BookNowPage() {
   const [isModalOpen, setIsModalOpen] = useState(true);
 
   const lessons = useDrivingLessons("Road Skills for Life");
-  const [lessonPrice, setLessonPrice] = useState<number>(0);
 
-  const [selectedInstructor, setSelectedInstructor] =
-    useState<Instructor | null>(null);
+  const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [locations, setLocations] = useState<
-    { title: string; zone: string; instructors: Instructor[] }[]
-  >([]);
-
-  const fetchedInstructors = useRef(new Set());
-
-  interface Slot {
-    _id: string;
-    start: string;
-    end: string;
-    status: 'free' | 'scheduled' | 'cancelled';
-  }
-
-  interface Schedule {
-    date: string;
-    slots: Slot[];
-  }
-
-  interface Instructor {
-    _id: string;
-    name: string;
-    photo?: string;
-    schedule?: Schedule[];
-  }
-
-  const [weekBaseDate, setWeekBaseDate] = useState<Date | null>(null);
-  const prevInstructorId = useRef<string | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
 
   const { data: session } = useSession();
-  const router = useRouter();
-  const userId = (session?.user as any)?.id || (session?.user as any)?.sub || "";
-
-  const [bookingData, setBookingData] = useState<BookingData | null>(null);
+  const userId = session?.user?.id || "";
 
   useEffect(() => {
     async function fetchLocations() {
@@ -101,17 +66,8 @@ export default function BookNowPage() {
     fetchLocations();
   }, []);
 
-   // ✅ 2️⃣ Obtener el precio de la lección con "Book Now"
-   useEffect(() => {
-    const lesson = lessons.find((lesson) => lesson.buttonLabel === "Book Now");
-    if (lesson) {
-      setLessonPrice(lesson.price);
-    }
-  }, [lessons]);
-
   useEffect(() => {
     if (!selectedInstructor) return;
-    if (selectedInstructor._id === prevInstructorId.current) return;
     let isMounted = true;
 
     async function fetchInstructorSchedule() {
@@ -147,7 +103,6 @@ export default function BookNowPage() {
       selectedInstructor.schedule &&
       selectedInstructor.schedule.length > 0
     ) {
-      // Si la fecha seleccionada no está en el schedule, selecciona la primera disponible
       const pad = (n: number) => n.toString().padStart(2, '0');
       const availableDates = selectedInstructor.schedule.map(s => s.date);
       const selectedDateStr = selectedDate
@@ -157,13 +112,9 @@ export default function BookNowPage() {
         setSelectedDate(new Date(selectedInstructor.schedule[0].date));
       }
     }
-  }, [selectedInstructor]);
+  }, [selectedInstructor, selectedDate]);
 
-  const handleSelectLocation = (location: {
-    title: string;
-    zone: string;
-    instructors: Instructor[];
-  }) => {
+  const handleSelectLocation = (location: Location) => {
     setInstructors(location.instructors);
     setSelectedInstructor(null);
     setIsModalOpen(false);
@@ -175,9 +126,8 @@ export default function BookNowPage() {
   };
 
   const getWeekDates = (date: Date) => {
-    const base = weekBaseDate || date;
-    const startOfWeek = new Date(base);
-    startOfWeek.setDate(base.getDate() - startOfWeek.getDay()); // Mueve al domingo
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - startOfWeek.getDay());
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
@@ -266,25 +216,22 @@ export default function BookNowPage() {
           <thead>
             <tr className="bg-gray-100 text-center">
               <th className="border border-gray-300 p-2 text-black">Time</th>
-              {weekDates.map((date) => {
-                const dateString = `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
-                return (
-                  <th
-                    key={date.toDateString()}
-                    className="border border-gray-300 p-2 text-black"
-                  >
-                    <span className="block font-bold text-black">
-                      {date.toLocaleDateString("en-US", { weekday: "long" })}
-                    </span>
-                    <span className="block text-black">
-                      {date.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </th>
-                );
-              })}
+              {weekDates.map((date) => (
+                <th
+                  key={date.toDateString()}
+                  className="border border-gray-300 p-2 text-black"
+                >
+                  <span className="block font-bold text-black">
+                    {date.toLocaleDateString("en-US", { weekday: "long" })}
+                  </span>
+                  <span className="block text-black">
+                    {date.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -295,11 +242,13 @@ export default function BookNowPage() {
                   const dateString = `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
                   const isFree = freeBlocksByDate[dateString]?.[h];
                   // Buscar el slot real para saber si está reservado por el usuario
-                  let slot: any = null;
+                  let slot: Slot | null = null;
                   if (selectedInstructor?.schedule) {
-                    slot = selectedInstructor.schedule.find((s) => s.date === dateString);
+                    slot = selectedInstructor.schedule.find((s) => s.date === dateString)?.slots.find(s => 
+                      parseInt(s.start.split(":")[0], 10) === h
+                    ) || null;
                   }
-                  const isMine = slot && slot.booked && slot.studentId && userId && slot.studentId.toString() === userId;
+                  const isMine = slot && slot.status === 'scheduled' && slot.studentId && userId && slot.studentId.toString() === userId;
                   return (
                     <td
                       key={date.toDateString()}
@@ -320,7 +269,7 @@ export default function BookNowPage() {
                             setSelectedSlot({
                               start: `${pad(h)}:00`,
                               end: `${pad(h+1)}:00`,
-                              date: `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`,
+                              date: dateString,
                             });
                             setIsBookingModalOpen(true);
                           }
@@ -350,16 +299,6 @@ export default function BookNowPage() {
   // Estado para controlar el modal de reserva y el slot seleccionado
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: string, end: string, date: string } | null>(null);
-  const [selectedPrice, setSelectedPrice] = useState<number>(0);
-
-  // Función para abrir el modal de reserva al hacer clic en "Book Now"
-  const openBookingModal = (slot: Slot) => {
-    // Asegúrate de pasar la fecha al objeto seleccionado
-    const dateString = selectedDate ? `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth()+1)}-${pad(selectedDate.getDate())}` : "";
-    setSelectedSlot({ start: slot.start, end: slot.end, date: dateString });
-    setIsBookingModalOpen(true);
-    setSelectedPrice(lessonPrice); // ✅ 3️⃣ Actualizar precio con la lección correcta
-  };
 
   // Modal de reserva con confirmación
   const renderBookingModal = () => (
@@ -410,25 +349,6 @@ export default function BookNowPage() {
       </div>
     </Modal>
   );
-
-  // Resetear weekBaseDate al cambiar de instructor o fecha seleccionada
-  useEffect(() => {
-    if (
-      selectedInstructor &&
-      selectedInstructor._id !== prevInstructorId.current
-    ) {
-      setWeekBaseDate(new Date()); // Semana actual
-      prevInstructorId.current = selectedInstructor._id;
-    }
-  }, [selectedInstructor]);
-
-  const handleBooking = async (data: BookingData) => {
-    try {
-      // Your booking logic
-    } catch (error) {
-      console.error('Booking error:', error);
-    }
-  };
 
   return (
     <section className="bg-white pt-44 pb-10 px-6 flex flex-col items-center">
@@ -484,7 +404,6 @@ export default function BookNowPage() {
                     onClick={() => {
                       setSelectedInstructor(inst);
                       setSelectedDate(null);
-                      setWeekBaseDate(null);
                     }}
                   >
                     <Image
@@ -514,10 +433,10 @@ export default function BookNowPage() {
                   <button
                     className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
                     onClick={() => {
-                      const base = weekBaseDate || selectedDate || new Date();
+                      const base = selectedDate || new Date();
                       const prev = new Date(base);
                       prev.setDate(base.getDate() - 7);
-                      setWeekBaseDate(prev);
+                      setSelectedDate(prev);
                     }}
                   >
                     ← Previous week
@@ -525,10 +444,10 @@ export default function BookNowPage() {
                   <button
                     className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
                     onClick={() => {
-                      const base = weekBaseDate || selectedDate || new Date();
+                      const base = selectedDate || new Date();
                       const next = new Date(base);
                       next.setDate(base.getDate() + 7);
-                      setWeekBaseDate(next);
+                      setSelectedDate(next);
                     }}
                   >
                     Next week →

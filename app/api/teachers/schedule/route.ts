@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import Instructor from '@/models/Instructor';
 
+interface ScheduleSlot {
+  start: string;
+  end: string;
+  status: 'free' | 'scheduled' | 'cancelled';
+}
+
+interface ScheduleDay {
+  date: string;
+  slots: ScheduleSlot[];
+}
+
 export async function POST(request: Request) {
   try {
     await connectToDatabase();
@@ -14,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     // Buscar si ya existe un schedule para esa fecha
-    let scheduleDay = instructor.schedule.find((s: any) => s.date === date);
+    const scheduleDay = instructor.schedule.find((s: ScheduleDay) => s.date === date);
     if (scheduleDay) {
       // Agregar slot al día existente
       scheduleDay.slots.push({ start, end, status: status || 'free' });
@@ -25,8 +36,9 @@ export async function POST(request: Request) {
 
     await instructor.save();
     return NextResponse.json({ success: true, data: instructor.schedule });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to save schedule', details: (error as any)?.message || String(error) }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: 'Failed to save schedule', details: errorMessage }, { status: 500 });
   }
 }
 
@@ -40,7 +52,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Instructor not found' }, { status: 404 });
     }
     return NextResponse.json({ success: true, data: instructor.schedule });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch schedules' }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: 'Failed to fetch schedules', details: errorMessage }, { status: 500 });
   }
 } 

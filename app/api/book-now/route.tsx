@@ -29,6 +29,6 @@ export async function GET(req: Request) {
         return NextResponse.json({ schedule: instructor.schedule }, { status: 200 });
 
     } catch (error) {
-        return NextResponse.json({ error: "Error fetching instructor" }, { status: 500 });
+        return NextResponse.json({ error: "Error fetching instructor", details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 }

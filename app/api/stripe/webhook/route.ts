@@ -13,11 +13,8 @@ export const config = {
 };
 
 export async function POST(req: Request) {
-  // console.log("📩 Webhook recibido en el servidor");
-
   const sig = req.headers.get("stripe-signature");
   if (!sig) {
-    // console.error("❌ No se encontró la firma de Stripe");
     return NextResponse.json({ error: "No Stripe Signature" }, { status: 400 });
   }
 
@@ -29,30 +26,23 @@ export async function POST(req: Request) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET as string
     );
-    // console.log(`✅ Webhook recibido: ${event.type}`);
-    // console.log("🔍 Evento completo:", JSON.stringify(event, null, 2));
   } catch (err: unknown) {
     if (err instanceof Error) {
-      // console.error("⚠️ Error en el Webhook:", err.message);
-    } else {
-      // console.error("⚠️ Error en el Webhook:", err);
+      return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
     }
     return NextResponse.json({ error: "Webhook Error" }, { status: 400 });
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    // console.log("📄 Datos de la sesión:", session);
 
     const db = await connectToDatabase();
     if (!db) {
-      // console.error("❌ No se pudo conectar a MongoDB");
       return NextResponse.json(
         { error: "Database connection failed" },
         { status: 500 }
       );
     }
-    // console.log("✅ Conexión a MongoDB exitosa");
 
     // 🔹 1️⃣ Obtener el email del cliente
     let customerEmail = session.customer_email;
@@ -62,12 +52,14 @@ export async function POST(req: Request) {
         const customer = await stripe.customers.retrieve(
           session.customer as string
         );
-        // console.log("📩 Cliente recuperado desde Stripe:", customer);
         if (customer && typeof customer === "object" && "email" in customer) {
           customerEmail = customer.email as string;
         }
-      } catch (error) {
-        // console.error("❌ Error obteniendo el email del cliente:", error);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          return NextResponse.json({ error: `Error retrieving customer email: ${err.message}` }, { status: 500 });
+        }
+        return NextResponse.json({ error: "Error retrieving customer email" }, { status: 500 });
       }
     }
 
@@ -83,14 +75,16 @@ export async function POST(req: Request) {
         price: item.amount_total ? item.amount_total / 100 : 0, // Convertir a dólares
         quantity: item.quantity || 0,
       }));
-      // console.log("🛒 Productos comprados:", products);
-    } catch (error) {
-      // console.error("❌ Error obteniendo los productos comprados:", error);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return NextResponse.json({ error: `Error retrieving purchased products: ${err.message}` }, { status: 500 });
+      }
+      return NextResponse.json({ error: "Error retrieving purchased products" }, { status: 500 });
     }
 
     // 🔹 3️⃣ Guardar los datos en MongoDB
     try {
-      const insertResult = await db.collection("payments").insertOne({
+      await db.collection("payments").insertOne({
         stripeSessionId: session.id,
         amountTotal: session.amount_total ? session.amount_total / 100 : 0, // Convertir a dólares
         currency: session.currency,
@@ -99,10 +93,11 @@ export async function POST(req: Request) {
         products, // Guardar los productos comprados
         createdAt: new Date(),
       });
-
-      // console.log("✅ Información del pago guardada en MongoDB", insertResult);
-    } catch (error) {
-      // console.error("❌ Error guardando el pago en MongoDB:", error);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return NextResponse.json({ error: `Error saving payment to database: ${err.message}` }, { status: 500 });
+      }
+      return NextResponse.json({ error: "Error saving payment to database" }, { status: 500 });
     }
   }
 

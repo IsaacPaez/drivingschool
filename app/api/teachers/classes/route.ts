@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import TicketClass from "@/models/TicketClass";
 import Classes from "@/models/Classes";
 import User from "@/models/User";
+import mongoose from "mongoose";
 
 export async function GET(request: Request) {
   await connectDB();
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
 
   // Obtener los studentIds únicos
   const studentIds = [
-    ...new Set(ticketclasses.flatMap(tc => (tc.students || []).map((s: any) => s.toString())))
+    ...new Set(ticketclasses.flatMap(tc => (tc.students || []).map((s: mongoose.Types.ObjectId) => s.toString())))
   ];
 
   // Buscar los estudiantes

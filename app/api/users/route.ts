@@ -44,8 +44,11 @@ export async function POST(req: Request) {
   try {
     const user = await User.create(userData);
     return NextResponse.json(user);
-  } catch (err: any) {
-    console.error("Error al guardar usuario:", err);
-    return NextResponse.json({ error: 'Error saving user', details: err.message }, { status: 400 });
+  } catch (error: unknown) {
+    console.error("Error al guardar usuario:", error);
+    return NextResponse.json({ 
+      error: 'Error saving user', 
+      details: error instanceof Error ? error.message : 'Unknown error occurred'
+    }, { status: 400 });
   }
 } 

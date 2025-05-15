@@ -3,6 +3,12 @@ import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 
+interface User {
+  role: 'instructor' | 'new' | 'user';
+  instructorId?: string;
+  email?: string;
+}
+
 export default function AuthRedirector() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -10,7 +16,7 @@ export default function AuthRedirector() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      const user = session.user as any;
+      const user = session.user as User;
       if (
         user.role === "instructor" &&
         !pathname.startsWith("/teachers")
@@ -25,8 +31,8 @@ export default function AuthRedirector() {
 
   // Loader: muestra mientras está autenticando o redirigiendo
   if (status === "authenticated" && (
-    ((session.user as any).role === "instructor" && !pathname.startsWith("/teachers")) ||
-    ((session.user as any).role === "new" && !pathname.startsWith("/complete-profile"))
+    ((session.user as User).role === "instructor" && !pathname.startsWith("/teachers")) ||
+    ((session.user as User).role === "new" && !pathname.startsWith("/complete-profile"))
   )) {
     return (
       <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(255,255,255,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>

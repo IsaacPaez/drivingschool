@@ -5,7 +5,6 @@ import Header from "@/components/Header";
 import { connectDB } from "@/lib/mongodb";
 import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
 import { Providers } from "./providers";
-import AuthRedirector from "./components/AuthRedirector";
 import BodyWithDynamicBg from "./components/BodyWithDynamicBg";
 
 // ✅ Generamos la metadata sin usar `fetch()`

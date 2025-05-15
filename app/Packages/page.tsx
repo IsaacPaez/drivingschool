@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { FaSearch } from "react-icons/fa";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
 
+
 interface Package {
   _id: string;
   title: string;
@@ -179,9 +180,7 @@ const Page: React.FC = () => {
       </div>
 
       {/* MODAL - POPUP PACKAGE */}
-      {selectedItem && (
-        <PopupPackages item={selectedItem} onClose={() => setSelectedItem(null)} />
-      )}
+
     </section>
   );
 };

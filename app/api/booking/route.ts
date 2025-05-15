@@ -3,9 +3,24 @@ import { connectToDatabase } from '@/lib/mongodb';
 import Instructor from '@/models/Instructor';
 import mongoose from 'mongoose';
 
-// Añadir declaración global para evitar error TS7017
+// Define proper types for socket.io
 declare global {
-  var io: any;
+  const io: {
+    emit: (event: string, data: unknown) => void;
+  };
+}
+
+interface Slot {
+  start: string;
+  end: string;
+  status: 'free' | 'scheduled';
+  booked: boolean;
+  studentId?: mongoose.Types.ObjectId;
+}
+
+interface ScheduleDay {
+  date: string;
+  slots: Slot[];
 }
 
 export async function POST(request: Request) {
@@ -21,15 +36,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Instructor not found' }, { status: 404 });
     }
     // Buscar el día
-    const scheduleDay = instructor.schedule.find((s: any) => s.date === date);
+    const scheduleDay = instructor.schedule.find((s: ScheduleDay) => s.date === date);
     if (!scheduleDay) {
       return NextResponse.json({ error: 'No schedule for this date' }, { status: 404 });
     }
-    // Log temporal para depuración de slots
-    console.log('Comparando:', { start, end });
-    scheduleDay.slots.forEach(s => console.log('Slot:', { start: s.start, end: s.end }));
     // Buscar el slot
-    const slot = scheduleDay.slots.find((slot: any) => slot.start === start && slot.end === end);
+    const slot = scheduleDay.slots.find((slot: Slot) => slot.start === start && slot.end === end);
     if (!slot) {
       return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
     }
@@ -44,7 +56,9 @@ export async function POST(request: Request) {
     await instructor.save();
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in booking:', error);
-    return NextResponse.json({ error: 'Failed to book slot', details: (error as any)?.message || String(error) }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to book slot', 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 } 
