@@ -15,9 +15,6 @@ export const connectDB = async () => {
     await mongoose.connect(MONGODB_URI, {
       dbName: "DrivingSchool_Admin",
     });
-    console.log(
-      "✅ Conectado a MongoDB Atlas - Base de datos: DrivingSchool_Admin"
-    );
     return mongoose.connection.db; // ✅ Ahora devuelve el `Db`
   } catch (error) {
     console.error("❌ Error conectando a MongoDB Atlas:", error);

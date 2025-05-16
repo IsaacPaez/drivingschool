@@ -9,8 +9,6 @@ export async function POST(req: Request) {
 
     const newContact = await Contact.create(data);
 
-    console.log("✅ Contacto guardado en MongoDB:", newContact);
-
     return NextResponse.json(
       { message: "Contacto guardado exitosamente.", contact: newContact },
       { status: 201 }

@@ -1,180 +1,126 @@
 import React from 'react';
-import { HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock } from 'react-icons/hi';
+import { HiOutlineClock, HiCheck } from 'react-icons/hi';
 
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const hours = ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM'];
-
-// Simulación de bloques por día/hora
-const sampleBlocks = [
-  // Día, hora, estado
-  { day: 0, hour: 0, status: 'scheduled' },
-  { day: 1, hour: 1, status: 'free' },
-  { day: 2, hour: 2, status: 'canceled' },
-  { day: 3, hour: 3, status: 'scheduled' },
-  { day: 4, hour: 4, status: 'free' },
-];
-
-const statusStyles: Record<string, string> = {
-  free: 'bg-[#f3f4f6] text-gray-400 border border-gray-200',
-  scheduled: 'bg-[#0056b3] text-white border-0 shadow-lg',
-  canceled: 'bg-[#f44336] text-white border-0 shadow-lg',
-};
-
-const statusLabel: Record<string, string> = {
-  free: '',
-  scheduled: 'Scheduled',
-  canceled: 'Canceled',
-};
-
-const statusIcon: Record<string, React.ReactNode> = {
-  free: <HiOutlineClock className="w-5 h-5 text-gray-300" />,
-  scheduled: <HiOutlineCheckCircle className="w-5 h-5 text-white" />,
-  canceled: <HiOutlineXCircle className="w-5 h-5 text-white" />,
-};
-
-type Props = {
-  view: 'week' | 'month';
-  onTimeBlockClick: (block: any) => void;
-  selectedDate: Date;
-  classes: any[];
-};
-
-function getMonthMatrix(year: number, month: number) {
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const matrix = [];
-  let week: (number | null)[] = [];
-  let dayOfWeek = (firstDay.getDay() + 6) % 7; // Monday as first
-  for (let i = 0; i < dayOfWeek; i++) week.push(null);
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    week.push(d);
-    if (week.length === 7) {
-      matrix.push(week);
-      week = [];
-    }
-  }
-  if (week.length) {
-    while (week.length < 7) week.push(null);
-    matrix.push(week);
-  }
-  return matrix;
+interface TimeBlock {
+  id: string;
+  time: string;
+  status: 'scheduled' | 'cancelled' | 'free' | 'booked' | 'available' | 'unavailable';
+  date?: Date;
 }
 
-const CalendarGrid: React.FC<Props> = ({ view, onTimeBlockClick, selectedDate, classes }) => {
-  if (view === 'month') {
-    const today = selectedDate;
-    const matrix = getMonthMatrix(today.getFullYear(), today.getMonth());
-    const daysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const getStatus = (day: number | null) => {
-      if (!day) return 'free';
-      const found = classes.find(
-        c => c.date.getDate() === day && c.date.getMonth() === today.getMonth() && c.date.getFullYear() === today.getFullYear()
-      );
-      return found ? found.status : 'free';
-    };
-    return (
-      <div className="rounded-3xl shadow-2xl p-8 overflow-x-auto min-h-[520px] bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1] border border-[#e0e0e0]">
-        <div className="grid grid-cols-7 gap-2 mb-3 sticky top-0 z-10">
-          {daysShort.map((d) => (
-            <div key={d} className="text-center font-bold text-[#0056b3] bg-white/80 py-2 rounded-xl shadow text-base tracking-wide uppercase border border-[#e0e0e0]">
-              {d}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-2">
-          {matrix.map((week, i) => (
-            <React.Fragment key={i}>
-              {week.map((day, j) => {
-                const status = getStatus(day);
-                return (
-                  <button
-                    key={j}
-                    className={`h-20 w-full rounded-xl font-semibold text-base flex flex-col items-center justify-center gap-1 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27ae60] ${statusStyles[status]} ${status !== 'free' ? 'hover:scale-105 hover:shadow-2xl' : 'hover:bg-gray-200'}`}
-                    disabled={!day}
-                    onClick={() => day && onTimeBlockClick({ day, week: i, status })}
-                  >
-                    <span className="text-lg font-bold">{day || ''}</span>
-                    {status !== 'free' && (
-                      <span className="flex items-center gap-1 mt-1">
-                        {statusIcon[status]}
-                        <span className="text-xs font-bold">{statusLabel[status]}</span>
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-    );
+interface CalendarGridProps {
+  blocks: TimeBlock[];
+  onBlockClick: (block: TimeBlock) => void;
+  selectedDate?: Date;
+}
+
+export default function CalendarGrid({ blocks, onBlockClick, selectedDate }: CalendarGridProps) {
+  // Generar los labels de tiempo de 30 minutos con ambos extremos
+  const startHour = 6;
+  const endHour = 20;
+  const timeLabels: string[] = [];
+  for (let h = startHour; h < endHour; h++) {
+    timeLabels.push(`${h.toString().padStart(2, '0')}:00-${h.toString().padStart(2, '0')}:30`);
+    timeLabels.push(`${h.toString().padStart(2, '0')}:30-${(h+1).toString().padStart(2, '0')}:00`);
   }
-  // Vista semanal
-  // Calcula el rango de la semana seleccionada (lunes a domingo)
-  const startOfWeek = new Date(selectedDate);
-  startOfWeek.setDate(selectedDate.getDate() - ((startOfWeek.getDay() + 6) % 7));
-  const weekDates = Array.from({ length: 7 }, (_, i) => {
+
+  // Calcular los días de la semana actual (lunes a domingo)
+  const startOfWeek = selectedDate ? new Date(selectedDate) : new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)); // Lunes
+  const weekDays: Date[] = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
+    d.setHours(0, 0, 0, 0);
     return d;
+  });
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  // Agrupar los bloques por día y hora
+  const blocksByDayHour: Record<string, Record<string, TimeBlock>> = {};
+  blocks.forEach(b => {
+    if (!b.date) return;
+    const dayKey = `${b.date.getFullYear()}-${(b.date.getMonth()+1).toString().padStart(2, '0')}-${b.date.getDate().toString().padStart(2, '0')}`;
+    if (!blocksByDayHour[dayKey]) blocksByDayHour[dayKey] = {};
+    blocksByDayHour[dayKey][b.time] = b;
   });
 
   return (
-    <div className="rounded-3xl shadow-2xl p-8 overflow-x-auto min-h-[520px] bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1] border border-[#e0e0e0]">
-      {/* Header días */}
-      <div className="grid grid-cols-8 gap-2 mb-3 sticky top-0 z-10">
-        <div></div>
-        {weekDays.map((d, idx) => (
-          <div key={d} className="text-center font-bold text-[#0056b3] bg-white/80 py-2 rounded-xl shadow text-base tracking-wide uppercase border border-[#e0e0e0]">
-            {d}
-            <div className="text-xs text-gray-400 font-normal">{weekDates[idx].getDate()}</div>
-          </div>
-        ))}
-      </div>
-      {/* Grid horas x días */}
-      <div className="grid grid-cols-8 gap-2">
-        {/* Columna de horas */}
-        <div className="flex flex-col gap-2">
-          {hours.map((h) => (
-            <div key={h} className="h-14 flex items-center justify-end pr-3 text-sm text-[#27ae60] font-bold bg-white/80 rounded-xl shadow border border-[#e0e0e0]">
-              {h}
-            </div>
-          ))}
-        </div>
-        {/* Bloques */}
-        {weekDays.map((_, dayIdx) => (
-          <div key={dayIdx} className="flex flex-col gap-2">
-            {hours.map((_, hourIdx) => {
-              const date = weekDates[dayIdx];
-              const found = classes.find(
-                c => c.date.toDateString() === date.toDateString() && c.hour === hourIdx + 9 // 9 AM = 0
-              );
-              const status = found ? found.status : 'free';
-              return (
-                <button
-                  key={hourIdx}
-                  className={`h-14 w-full rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27ae60] ${statusStyles[status]} ${status !== 'free' ? 'hover:scale-105 hover:shadow-2xl' : 'hover:bg-gray-200'}`}
-                  onClick={() => onTimeBlockClick({ day: dayIdx, hour: hourIdx + 9, status })}
-                >
-                  {statusIcon[status]}
-                  {statusLabel[status] && (
-                    <span className="ml-1 px-2 py-1 rounded-full text-xs font-bold tracking-wide"
-                      style={{
-                        background: status === 'scheduled' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.18)',
-                        color: 'inherit',
-                      }}
+    <div className="overflow-x-auto">
+      <table className="min-w-full border-collapse rounded-2xl" style={{ border: '2px solid #27ae60', borderRadius: '18px', overflow: 'hidden', tableLayout: 'fixed' }}>
+        <thead>
+          <tr>
+            <th className="p-2 bg-white text-center font-bold w-32 sticky left-0 z-10" style={{ color: '#27ae60', border: '1px solid #e0e0e0', fontSize: '1rem', background: '#f8fafd', minWidth: 110, maxWidth: 110 }}>Time</th>
+            {weekDays.map((d, i) => (
+              <th key={i} className="p-2 text-center font-bold" style={{ color: '#0056b3', border: '1px solid #e0e0e0', fontSize: '1rem', minWidth: 110, maxWidth: 110, background: '#f8fafd' }}>
+                <div className="flex flex-col items-center justify-center">
+                  <span className="uppercase tracking-wide" style={{ fontSize: '0.95rem' }}>{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                  <span className="font-extrabold text-lg" style={{ letterSpacing: 1 }}>{d.getDate()}</span>
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {timeLabels.map((label) => (
+            <tr key={label}>
+              <td className="p-2 border text-center font-bold w-32 sticky left-0 z-10" style={{ color: '#27ae60', border: '1px solid #e0e0e0', background: '#fff', minWidth: 110, maxWidth: 110 }}>{label}</td>
+              {weekDays.map((d, colIdx) => {
+                const dayKey = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+                const block = blocksByDayHour[dayKey]?.[label];
+                if (block?.status === 'booked' || block?.status === 'scheduled') {
+                  return (
+                    <td
+                      key={colIdx}
+                      className="p-0 border text-center align-middle"
+                      style={{ background: '#0056b3', border: '1px solid #e0e0e0', borderRadius: 0, cursor: 'pointer', height: '22px', minHeight: '22px', minWidth: 110, maxWidth: 110 }}
+                      onClick={() => block && onBlockClick(block)}
                     >
-                      {statusLabel[status]}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+                      <div className="flex items-center justify-center w-full font-bold gap-1" style={{ borderRadius: 0, height: '22px', fontSize: '0.95rem', color: '#fff' }}>
+                        <HiCheck className="text-white" size={15} /> Scheduled
+                      </div>
+                    </td>
+                  );
+                }
+                if (block?.status === 'cancelled') {
+                  return (
+                    <td
+                      key={colIdx}
+                      className="p-0 border text-center align-middle"
+                      style={{ background: '#f44336', border: '1px solid #e0e0e0', borderRadius: 0, height: '22px', minHeight: '22px', minWidth: 110, maxWidth: 110 }}
+                    >
+                      <div className="flex items-center justify-center w-full font-bold gap-1" style={{ borderRadius: 0, height: '22px', fontSize: '0.95rem', color: '#fff' }}>
+                        <span style={{fontSize: '1em', marginRight: 4, color: '#fff', filter: 'brightness(1000%)'}}>❌</span> Cancelled
+                      </div>
+                    </td>
+                  );
+                }
+                if (block?.status === 'free' || block?.status === 'available') {
+                  return (
+                    <td
+                      key={colIdx}
+                      className="p-0 border text-center align-middle"
+                      style={{ background: '#b0b0b0', border: '1px solid #e0e0e0', borderRadius: 0, height: '22px', minHeight: '22px', minWidth: 110, maxWidth: 110 }}
+                    >
+                      <div className="flex items-center justify-center w-full font-bold gap-1" style={{ borderRadius: 0, height: '22px', fontSize: '0.95rem', color: '#fff' }}>
+                        <HiOutlineClock className="text-white" size={13} /> Free
+                      </div>
+                    </td>
+                  );
+                }
+                // Celda vacía o sin slot: ícono de reloj gris claro
+                return (
+                  <td key={colIdx} className="p-0 border text-center align-middle bg-white" style={{ border: '1px solid #e0e0e0', height: '22px', minHeight: '22px', minWidth: 110, maxWidth: 110 }}>
+                    <div className="flex items-center justify-center w-full" style={{ height: '22px' }}>
+                      <HiOutlineClock className="text-gray-300" size={16} />
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-};
-
-export default CalendarGrid; 
+} 

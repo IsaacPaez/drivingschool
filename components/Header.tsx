@@ -5,14 +5,32 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import CartIcon from "./CartIcon";
+import { useSession, signOut } from "next-auth/react";
+import { useState as useReactState } from "react";
+
+interface User {
+  name: string;
+  email: string;
+  image?: string;
+}
 
 const Header = () => {
   const pathname = usePathname();
   const [isHome, setIsHome] = useState(false);
+  const { data: session } = useSession();
+  const [showMenu, setShowMenu] = useState(false);
+  const [userFullName, setUserFullName] = useReactState<string>('');
 
   useEffect(() => {
     setIsHome(pathname === "/"); // Se actualiza correctamente en cada cambio de ruta
   }, [pathname]);
+
+  useEffect(() => {
+    if (session?.user) {
+      setUserFullName((session.user as User).name || '');
+    }
+  }, [session?.user, setUserFullName]);
+
   // Estado para controlar si el menú móvil está abierto
   const [isOpen, setIsOpen] = useState(false);
 
@@ -27,10 +45,27 @@ const Header = () => {
     { name: "Location", href: "/Location" },
   ];
 
+  // Links para estudiantes
+  const studentNavItems = [
+    { name: "My Courses", href: "/Students" },
+    { name: "My Schedule", href: "/myagenda" },
+  ];
+
+  // New teacher links for center navigation
+  const teacherNavItems = [
+    { name: "My Schedule", href: "/teachers" },
+    { name: "My Students", href: "/teachers/students" },
+  ];
+
+  // Helper to check if we are in a teacher section
+  const isTeacherSection = typeof pathname === "string" && pathname.startsWith("/teachers");
+
+  const hideAuthButtons = typeof pathname === "string" && pathname.startsWith("/complete-profile");
+
   return (
-    <header className="fixed top-0 left-0 w-full z-50 px-4">
+    <header className={`fixed top-0 left-0 w-full z-50 px-4 ${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'}`}>
       {/* Top Row with Phone and Login */}
-      <div className="bg-transparent flex lg:justify-center gap-4 items-center py-2 text-sm font-sans relative">
+      <div className={`${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'} flex lg:justify-center gap-4 items-center py-2 text-sm font-sans relative`}>
         <span
           className={`hidden lg:flex ${isHome ? "text-white" : "text-blue-800"} font-semibold`}
         >
@@ -41,19 +76,61 @@ const Header = () => {
           color={` ${isHome ? "black" : "black"}`}
         />
         {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
-        <div className="fixed top-4 right-8 flex gap-4 z-50">
-          <button
-            className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
-            onClick={() => window.location.href = '/sign-in'}
-          >
-            Login
-          </button>
-          <button
-            className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
-            onClick={() => window.location.href = '/sign-in'}
-          >
-            Sign In
-          </button>
+        <div className="fixed top-4 right-8 flex items-end z-50 mt-0">
+          {session && session.user ? (
+            <div className="relative flex flex-col items-center">
+              <button
+                onClick={() => setShowMenu((v) => !v)}
+                className="focus:outline-none mt-6"
+              >
+                {session?.user?.image && (
+                  <Image
+                    src={session.user.image}
+                    alt="User profile"
+                    width={40}
+                    height={40}
+                    className="rounded-full"
+                  />
+                )}
+              </button>
+              {isTeacherSection ? (
+                <span className="mt-2 text-[#0056b3] font-bold text-base text-center w-32 whitespace-normal break-words uppercase">
+                  {(session.user as { instructorName?: string }).instructorName}
+                </span>
+              ) : (
+                <span className="mt-1 text-[#0056b3] font-bold text-sm text-center w-32 whitespace-normal break-words uppercase">
+                  {userFullName}
+                </span>
+              )}
+              {showMenu && (
+                <div className="absolute top-14 right-0 bg-white border rounded shadow-lg py-2 px-4 z-50">
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="text-red-600 font-semibold hover:underline"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            !hideAuthButtons && (
+              <div className="flex gap-4">
+                <button
+                  className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+                  onClick={() => window.location.href = '/sign-in'}
+                >
+                  Login
+                </button>
+                <button
+                  className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+                  onClick={() => window.location.href = '/sign-in'}
+                >
+                  Sign In
+                </button>
+              </div>
+            )
+          )}
         </div>
       </div>
 
@@ -87,30 +164,68 @@ const Header = () => {
           <div className="w-6 h-1 bg-gray-800" />
         </button>
 
+        {/* Centered Teacher Navigation (Desktop only) */}
+        {isTeacherSection && (
+          <nav className="hidden lg:flex space-x-8 mx-auto">
+            {teacherNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-semibold text-base transition ${pathname === item.href
+                  ? "text-[#27ae60] font-bold"
+                  : "text-blue-800 hover:text-green-600"
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        )}
+        {/* Centered Student Navigation (Desktop only) */}
+        {typeof pathname === "string" && pathname.startsWith("/Students") && !isTeacherSection && (
+          <nav className="hidden lg:flex space-x-8 mx-auto">
+            {studentNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-semibold text-base transition ${pathname === item.href
+                  ? "text-[#27ae60] font-bold"
+                  : "text-blue-800 hover:text-green-600"
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        )}
         {/* Navegación Desktop */}
-        <nav className="hidden lg:flex space-x-6">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`font-medium transition ${pathname === item.href
+        {!isTeacherSection && typeof pathname === "string" && !pathname.startsWith("/Students") && (
+          <nav className="hidden lg:flex space-x-6">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-medium transition ${pathname === item.href
                   ? "text-[#27ae60] font-bold"
                   : "text-gray-800 hover:text-green-600"
                 }`}
-            >
-              {item.name}
-            </Link>
-          ))}
-        </nav>
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         {/* Botón Book Now (sólo en desktop) */}
-        <div className="hidden lg:block text-left">
-          <Link href="/Book-Now" passHref>
-            <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg  shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
-              Book Now
-            </div>
-          </Link>
-        </div>
+        {!isTeacherSection && typeof pathname === "string" && !pathname.startsWith("/Students") && (
+          <div className="hidden lg:block text-left">
+            <Link href="/Book-Now" passHref>
+              <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg  shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
+                Book Now
+              </div>
+            </Link>
+          </div>
+        )}
 
         {/* Navegación Móvil (Dropdown) */}
         {isOpen && (
@@ -123,7 +238,22 @@ const Header = () => {
             >
               {/* Links de navegación en modo móvil */}
               <nav className="flex flex-col items-center space-y-3">
-                {navItems.map((item) => (
+                {/* Teacher links first in mobile, only if in teacher section */}
+                {isTeacherSection && teacherNavItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`font-semibold text-base transition ${pathname === item.href
+                      ? "text-[#27ae60] font-bold"
+                      : "text-blue-800 hover:text-green-600"
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+                {/* Main nav items */}
+                {!isTeacherSection && navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}

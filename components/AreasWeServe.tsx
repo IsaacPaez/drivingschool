@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Modal from "@/components/Modal";
+import LoadingSpinner from './common/LoadingSpinner';
 
 // Definir interfaces
 interface Instructor {
@@ -65,7 +66,7 @@ const AreasWeServe = () => {
                 </p>
               ))
             ) : (
-              <p className="text-gray-500">Loading areas...</p>
+              <LoadingSpinner label="Loading areas..." />
             )}
           </div>
         </div>

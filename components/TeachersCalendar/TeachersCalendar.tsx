@@ -1,13 +1,14 @@
 import React from 'react';
 import CalendarView from './CalendarView';
+import type { Class } from './CalendarView';
 
-const InstructorCalendar: React.FC<{ schedule?: any[] }> = ({ schedule = [] }) => {
+const TeachersCalendar: React.FC<{ schedule?: Class[] }> = ({ schedule = [] }) => {
   // Placeholder for real-time sync and double booking logic
   return (
     <div>
-      <CalendarView schedule={schedule} />
+      <CalendarView classes={schedule} onClassClick={() => {}} />
     </div>
   );
 };
 
-export default InstructorCalendar; 
+export default TeachersCalendar; 
