@@ -26,7 +26,10 @@ export async function GET(req: Request) {
         if (Array.isArray(instructor)) {
             return NextResponse.json({ error: "Instructor not found" }, { status: 404 });
         }
-        return NextResponse.json({ schedule: instructor.schedule }, { status: 200 });
+        return NextResponse.json({ schedule: (instructor.schedule || []).map(sched => ({
+            ...sched,
+            slots: Array.isArray(sched.slots) ? sched.slots : [],
+        })) }, { status: 200 });
 
     } catch (error) {
         return NextResponse.json({ error: "Error fetching instructor", details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });

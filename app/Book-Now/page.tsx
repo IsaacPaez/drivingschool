@@ -38,12 +38,15 @@ export default function BookNowPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(true);
 
+  const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
 
   const { data: session } = useSession();
   const userId = session?.user?.id || "";
+
+  const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
     async function fetchLocations() {
@@ -64,35 +67,42 @@ export default function BookNowPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedInstructor) return;
+    if (!selectedInstructorId) return;
     let isMounted = true;
-
+    let polling: NodeJS.Timeout;
     async function fetchInstructorSchedule() {
       try {
-        const res = await fetch(`/api/book-now?id=${selectedInstructor?._id}`);
-        if (!res.ok)
-          throw new Error(
-            `Error fetching schedule: ${res.statusText} (${res.status})`
-          );
-
+        const res = await fetch(`/api/book-now?id=${selectedInstructorId}`);
+        if (!res.ok) throw new Error(`Error fetching schedule: ${res.statusText} (${res.status})`);
         const data = await res.json();
-
-        if (isMounted) {
-          setSelectedInstructor((prev) =>
-            prev ? { ...prev, schedule: data.schedule } : null
-          );
+        // Agrupa el schedule plano por fecha
+        const groupedSchedule: Schedule[] = Array.isArray(data.schedule)
+          ? Object.values(
+              data.schedule.reduce((acc, curr) => {
+                if (!acc[curr.date]) acc[curr.date] = { date: curr.date, slots: [] };
+                acc[curr.date].slots.push({
+                  start: curr.start,
+                  end: curr.end,
+                  status: curr.status,
+                  studentId: curr.studentId,
+                  _id: curr._id,
+                });
+                return acc;
+              }, {} as Record<string, { date: string; slots: Slot[] }>))
+          : [];
+        // Busca el instructor base por ID
+        const base = instructors.find(i => i._id === selectedInstructorId);
+        if (isMounted && base) {
+          setSelectedInstructor({ ...base, schedule: groupedSchedule });
         }
       } catch (error) {
-        console.error("❌ Error loading schedule:", error);
+        // No log
       }
     }
-
     fetchInstructorSchedule();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedInstructor]);
+    polling = setInterval(fetchInstructorSchedule, 5000);
+    return () => { isMounted = false; clearInterval(polling); };
+  }, [selectedInstructorId, instructors]);
 
   useEffect(() => {
     if (
@@ -105,15 +115,21 @@ export default function BookNowPage() {
       const selectedDateStr = selectedDate
         ? `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth() + 1)}-${pad(selectedDate.getDate())}`
         : null;
+      const firstAvailableDate = selectedInstructor.schedule[0].date;
       if (!selectedDateStr || !availableDates.includes(selectedDateStr)) {
-        setSelectedDate(new Date(selectedInstructor.schedule[0].date));
+        // Solo actualiza si la fecha es diferente
+        if (!selectedDateStr || selectedDateStr !== firstAvailableDate) {
+          setSelectedDate(new Date(firstAvailableDate));
+        }
       }
     }
-  }, [selectedInstructor, selectedDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedInstructor]);
 
   const handleSelectLocation = (location: Location) => {
     setInstructors(location.instructors);
     setSelectedInstructor(null);
+    setSelectedInstructorId(null);
     setIsModalOpen(false);
   };
 
@@ -123,8 +139,10 @@ export default function BookNowPage() {
   };
 
   const getWeekDates = (date: Date) => {
-    const startOfWeek = new Date(date);
-    startOfWeek.setDate(date.getDate() - startOfWeek.getDay());
+    const base = new Date(date);
+    base.setDate(base.getDate() + weekOffset * 7);
+    const startOfWeek = new Date(base);
+    startOfWeek.setDate(base.getDate() - startOfWeek.getDay());
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
@@ -138,8 +156,9 @@ export default function BookNowPage() {
       // Mostrar tabla vacía con mensaje
       const weekDates = getWeekDates(selectedDate || new Date());
       const allTimes: string[] = [];
-      for (let h = 6; h < 19; h++) {
-        allTimes.push(`${h}:00-${h+1}:00`);
+      for (let h = 6; h < 20; h++) {
+        allTimes.push(`${h}:00-${h}:30`);
+        allTimes.push(`${h}:30-${h+1}:00`);
       }
       return (
         <div className="overflow-x-auto w-full mt-6">
@@ -170,7 +189,7 @@ export default function BookNowPage() {
                 <tr key={index} className="text-center">
                   <td className="border border-gray-300 p-2 font-bold text-black">{time}</td>
                   {weekDates.map((date) => (
-                    <td key={date.toDateString()} className="border border-gray-300 p-4 bg-gray-300 text-black">-</td>
+                    <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-300 text-black">-</td>
                   ))}
                 </tr>
               ))}
@@ -180,32 +199,13 @@ export default function BookNowPage() {
         </div>
       );
     }
-  
-    // Adaptar la lógica de TeachersCalendar: expandir slots a bloques horarios individuales
+
     const weekDates = getWeekDates(selectedDate);
-    // Mapa: { '2025-05-09': { 6: true, 7: true, ... } }
-    const freeBlocksByDate: Record<string, Record<number, boolean>> = {};
-    for (const sched of selectedInstructor?.schedule || []) {
-      // Normaliza la fecha a YYYY-MM-DD
-      let date = sched.date;
-      if (date.length !== 10) {
-        const d = new Date(date);
-        date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-      }
-      if (!freeBlocksByDate[date]) freeBlocksByDate[date] = {};
-      for (const slot of sched.slots) {
-        if (slot.status === 'free') {
-          const startHour = parseInt(slot.start.split(":")[0], 10);
-          const endHour = parseInt(slot.end.split(":")[0], 10);
-          for (let h = startHour; h < endHour; h++) {
-            freeBlocksByDate[date][h] = true;
-          }
-        }
-      }
-    }
-    const allTimes: number[] = [];
-    for (let h = 6; h < 19; h++) {
-      allTimes.push(h);
+    // Generar bloques de 30 minutos
+    const allTimes: { start: string, end: string }[] = [];
+    for (let h = 6; h < 20; h++) {
+      allTimes.push({ start: `${pad(h)}:00`, end: `${pad(h)}:30` });
+      allTimes.push({ start: `${pad(h)}:30`, end: `${pad(h+1)}:00` });
     }
     return (
       <div className="overflow-x-auto w-full mt-6">
@@ -232,55 +232,51 @@ export default function BookNowPage() {
             </tr>
           </thead>
           <tbody>
-            {allTimes.map((h, index) => (
+            {allTimes.map((block, index) => (
               <tr key={index} className="text-center">
-                <td className="border border-gray-300 p-2 font-bold text-black">{`${h}:00-${h+1}:00`}</td>
+                <td className="border border-gray-300 p-2 font-bold text-black">{`${block.start}-${block.end}`}</td>
                 {weekDates.map((date) => {
                   const dateString = `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
-                  const isFree = freeBlocksByDate[dateString]?.[h];
-                  // Buscar el slot real para saber si está reservado por el usuario
+                  // Buscar el slot correspondiente
+                  const sched = selectedInstructor.schedule?.find(s => s.date === dateString);
                   let slot: Slot | null = null;
-                  if (selectedInstructor?.schedule) {
-                    slot = selectedInstructor.schedule.find((s) => s.date === dateString)?.slots.find(s => 
-                      parseInt(s.start.split(":")[0], 10) === h
-                    ) || null;
+                  if (sched && Array.isArray(sched.slots)) {
+                    slot = sched.slots.find(s => s.start === block.start && s.end === block.end) ?? null;
                   }
-                  const isMine = slot && slot.status === 'scheduled' && slot.studentId && userId && slot.studentId.toString() === userId;
-                  return (
-                    <td
-                      key={date.toDateString()}
-                      className={`border border-gray-300 p-4
-                        ${isMine ? "bg-blue-500 text-white font-bold" : ""}
-                        ${slot && slot.status === 'scheduled' && !isMine ? "bg-blue-100 text-blue-900" : ""}
-                        ${isFree ? "bg-green-200 text-black font-bold cursor-pointer hover:bg-green-300" : ""}
-                        ${!isFree && (!slot || slot.status !== 'scheduled') ? "bg-gray-50 text-black" : ""}
-                      `}
-                      onClick={() => {
-                        if (isFree) {
-                          if (!session || !session.user) {
-                            signIn("auth0", { callbackUrl: "/Book-Now" });
-                            return;
-                          }
-                          if (userId) {
-                            const pad = (n: number) => n.toString().padStart(2, '0');
-                            setSelectedSlot({
-                              start: `${pad(h)}:00`,
-                              end: `${pad(h+1)}:00`,
-                              date: dateString,
-                            });
+                  // Mostrar solo si es 'free' o 'scheduled' del usuario
+                  if (slot) {
+                    if (slot.status === 'free') {
+                      return (
+                        <td key={date.toDateString()} className="border border-gray-300 py-1 bg-green-200 text-black font-bold cursor-pointer hover:bg-green-300"
+                          onClick={() => {
+                            setSelectedSlot({ start: block.start, end: block.end, date: dateString });
                             setIsBookingModalOpen(true);
-                          }
-                        }
-                      }}
-                    >
-                      {isMine
-                        ? <span><span role="img" aria-label="check">✅</span> Your Booking</span>
-                        : slot && slot.status === 'scheduled'
-                        ? <span><span role="img" aria-label="calendar">📘</span> Scheduled</span>
-                        : isFree
-                        ? <span><span role="img" aria-label="clock">⏰</span> Free</span>
-                        : "-"}
-                    </td>
+                          }}
+                        >
+                          Free
+                        </td>
+                      );
+                    }
+                    if (slot.status === 'scheduled' && slot.studentId && userId && slot.studentId.toString() === userId) {
+                      return (
+                        <td key={date.toDateString()} className="border border-gray-300 py-1 bg-blue-500 text-white font-bold">
+                          Your Booking
+                        </td>
+                      );
+                    }
+                    // Si es scheduled pero de otro usuario, mostrar como reservado pero sin nombre
+                    if (slot.status === 'scheduled') {
+                      return (
+                        <td key={date.toDateString()} className="border border-gray-300 py-1 bg-blue-100 text-blue-900">
+                          Booked
+                        </td>
+                      );
+                    }
+                    // No mostrar cancelados
+                  }
+                  // Si no hay slot, mostrar '-'
+                  return (
+                    <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black">-</td>
                   );
                 })}
               </tr>
@@ -304,7 +300,7 @@ export default function BookNowPage() {
       onClose={() => setIsBookingModalOpen(false)}
     >
       <div className="p-6 text-black">
-        <h2 className="text-xl font-bold mb-2">Confirm Reservation</h2>
+        <h2 className="text-xl font-bold mb-2">Confirm Appointment</h2>
         <p>
           <strong>Instructor:</strong> {selectedInstructor?.name}
         </p>
@@ -332,15 +328,14 @@ export default function BookNowPage() {
               });
               if (res.ok) {
                 setIsBookingModalOpen(false);
-                // Recarga el horario del instructor
-                setSelectedInstructor(null);
-                setTimeout(() => setSelectedInstructor(selectedInstructor), 0);
+                setSelectedSlot(null);
+                // El polling refrescará el horario automáticamente
               } else {
                 alert('Could not book the slot. Please try again.');
               }
             }}
           >
-            Confirm Reservation
+            Confirm
           </button>
         </div>
       </div>
@@ -399,7 +394,7 @@ export default function BookNowPage() {
             : "bg-white"
         }`}
                     onClick={() => {
-                      setSelectedInstructor(inst);
+                      setSelectedInstructorId(inst._id);
                       setSelectedDate(null);
                     }}
                   >
@@ -429,23 +424,13 @@ export default function BookNowPage() {
                 <div className="flex justify-center items-center mb-2 gap-4">
                   <button
                     className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
-                    onClick={() => {
-                      const base = selectedDate || new Date();
-                      const prev = new Date(base);
-                      prev.setDate(base.getDate() - 7);
-                      setSelectedDate(prev);
-                    }}
+                    onClick={() => setWeekOffset(weekOffset - 1)}
                   >
                     ← Previous week
                   </button>
                   <button
                     className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
-                    onClick={() => {
-                      const base = selectedDate || new Date();
-                      const next = new Date(base);
-                      next.setDate(base.getDate() + 7);
-                      setSelectedDate(next);
-                    }}
+                    onClick={() => setWeekOffset(weekOffset + 1)}
                   >
                     Next week →
                   </button>

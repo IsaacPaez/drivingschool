@@ -35,13 +35,8 @@ export async function POST(request: Request) {
     if (!instructor) {
       return NextResponse.json({ error: 'Instructor not found' }, { status: 404 });
     }
-    // Buscar el día
-    const scheduleDay = instructor.schedule.find((s: ScheduleDay) => s.date === date);
-    if (!scheduleDay) {
-      return NextResponse.json({ error: 'No schedule for this date' }, { status: 404 });
-    }
-    // Buscar el slot
-    const slot = scheduleDay.slots.find((slot: Slot) => slot.start === start && slot.end === end);
+    // Buscar el slot directamente en el array plano
+    const slot = instructor.schedule.find((slot: any) => slot.date === date && slot.start === start && slot.end === end);
     if (!slot) {
       return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
     }
