@@ -16,7 +16,7 @@ export default function AuthRedirector() {
         user.role === "instructor" &&
         typeof pathname === 'string' && !pathname.startsWith("/teachers")
       ) {
-        router.replace(`/teachers?id=${user.instructorId}`);
+        router.replace(`/teachers/${user.instructorId}`);
       } else if (user.role === "new" && typeof pathname === 'string' && !pathname.startsWith("/complete-profile")) {
         router.replace(`/complete-profile?email=${user.email}`);
       }
