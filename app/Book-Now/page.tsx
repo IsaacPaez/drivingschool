@@ -314,7 +314,11 @@ export default function BookNowPage() {
           <button
             className="bg-blue-500 text-white px-6 py-2 rounded"
             onClick={async () => {
-              if (!userId || !selectedInstructor?._id || !selectedSlot) return;
+              if (!userId) {
+                signIn(); // Redirige al login
+                return;
+              }
+              if (!selectedInstructor?._id || !selectedSlot) return;
               const res = await fetch('/api/booking', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
