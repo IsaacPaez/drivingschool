@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/mongodb";
 import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
 import { Providers } from "./providers";
 import BodyWithDynamicBg from "./components/BodyWithDynamicBg";
+import TrackingProvider from '@/components/TrackingProvider';
 
 // ✅ Generamos la metadata sin usar `fetch()`
 export async function generateMetadata(): Promise<Metadata> {
@@ -43,6 +44,7 @@ export default function RootLayout({
         <BodyWithDynamicBg>
           <Providers>
             <Header />
+            <TrackingProvider />
             <main className="min-h-screen relative">
               {children}
             </main>
