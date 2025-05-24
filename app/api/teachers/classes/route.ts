@@ -14,8 +14,34 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "instructorId is required" }, { status: 400 });
   }
 
-  // Buscar todas las ticketclasses de ese instructor
+  // Buscar todas las ticketclasses de ese instructor y popular los estudiantes
   const ticketclasses = await TicketClass.find({ instructorId }).lean();
+
+  // Obtener los studentIds únicos
+  const studentIds = [
+    ...new Set(
+      ticketclasses
+        .flatMap(tc => (tc.students || []))
+        .map(s => typeof s === 'object' && s._id ? s._id.toString() : s.toString())
+    )
+  ];
+
+  // Filtra solo los que son ObjectId válidos
+  const validStudentIds = studentIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+
+  // Convertir los IDs a ObjectId
+  const objectIds = validStudentIds
+    .filter(id => mongoose.Types.ObjectId.isValid(id))
+    .map(id => new mongoose.Types.ObjectId(id));
+
+  // Buscar los estudiantes por ObjectId
+  const students = await User.find({
+    $or: [
+      { _id: { $in: objectIds } },
+      { _id: { $in: validStudentIds.map(id => id.toString()) } }
+    ]
+  }).lean();
+  console.log('students found:', students);
 
   // Obtener los classId únicos
   const classIds = [
@@ -25,13 +51,5 @@ export async function GET(request: Request) {
   // Buscar los cursos en el modelo Classes
   const classes = await Classes.find({ _id: { $in: classIds } }).lean();
 
-  // Obtener los studentIds únicos
-  const studentIds = [
-    ...new Set(ticketclasses.flatMap(tc => (tc.students || []).map((s: mongoose.Types.ObjectId) => s.toString())))
-  ];
-
-  // Buscar los estudiantes
-  const students = await User.find({ _id: { $in: studentIds } }).lean();
-
-  return NextResponse.json({ classes, students });
+  return NextResponse.json({ classes, students, ticketclasses });
 } 

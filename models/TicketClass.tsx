@@ -8,7 +8,7 @@ export interface ITicketClass extends Document {
   type: string;
   duration: string;
   instructorId: mongoose.Schema.Types.ObjectId;
-  students: string[];
+  students: mongoose.Schema.Types.ObjectId[];
 }
 
 const TicketClassSchema = new Schema<ITicketClass>(
@@ -20,7 +20,7 @@ const TicketClassSchema = new Schema<ITicketClass>(
     type: { type: String, required: true },
     duration: { type: String, required: true },
     instructorId: { type: mongoose.Schema.Types.ObjectId, ref: "Instructor", required: true },
-    students: [{ type: String }],
+    students: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
 );

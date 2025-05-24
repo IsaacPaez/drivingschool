@@ -71,7 +71,8 @@ const StudentsPage = () => {
   const { data: session } = useSession();
   const instructorId = (session?.user as { instructorId?: string })?.instructorId;
   const [courses, setCourses] = useState<Course[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [classStudents, setClassStudents] = useState<Student[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Student | null>(null);
@@ -88,19 +89,21 @@ const StudentsPage = () => {
   const [mailBody, setMailBody] = useState('');
   const [mailSending, setMailSending] = useState(false);
   const [mailSent, setMailSent] = useState(false);
+  const [ticketclasses, setTicketclasses] = useState<any[]>([]);
 
   // Hook profesional para actualización en vivo
   useWebhook(
     instructorId,
     (data) => {
-      const typedData = data as { classes?: Course[]; students?: Student[] };
+      const typedData = data as { classes?: Course[]; students?: Student[]; ticketclasses?: any[] };
       setCourses(typedData.classes || []);
-      setStudents(typedData.students || []);
+      setAllStudents(typedData.students || []);
+      setTicketclasses(typedData.ticketclasses || []);
       setLoading(false);
     }
   );
 
-  // 2. Cuando seleccionas un curso, limpiar selección de estudiante y notas
+  // Limpiar selección SOLO cuando cambia el curso
   useEffect(() => {
     setSelected(null);
     setHistory([]);
@@ -108,6 +111,35 @@ const StudentsPage = () => {
     setNotesHistory([]);
     setSaveMsg('');
   }, [selectedCourse]);
+
+  // Actualizar estudiantes de la clase cuando cambian los datos
+  useEffect(() => {
+    if (!selectedCourse || ticketclasses.length === 0) {
+      setClassStudents([]);
+      return;
+    }
+
+    const tc = ticketclasses.find(tc => tc.classId?.toString() === selectedCourse._id);
+    if (!tc?.students) {
+      setClassStudents([]);
+      return;
+    }
+
+    // LOGS DE DEPURACIÓN
+    console.log('allStudents:', allStudents);
+    console.log('tc.students:', tc.students);
+
+    const studentsInClass = allStudents.filter(st =>
+      tc.students.some((s: any) => {
+        const sId = (typeof s === 'object' && (s.studentId || s._id)) ? s.studentId || s._id : s;
+        return st._id?.toString() === sId?.toString();
+      })
+    );
+
+    setClassStudents(prev =>
+      JSON.stringify(prev) !== JSON.stringify(studentsInClass) ? studentsInClass : prev
+    );
+  }, [selectedCourse, ticketclasses, allStudents]);
 
   // 3. Cuando seleccionas un estudiante, traer su historial en ese curso
   const handleSelect = async (student: Student) => {
@@ -136,12 +168,12 @@ const StudentsPage = () => {
     setNotesHistory(notesArr);
   };
 
-  const filtered = students.filter(s =>
-    s.firstName?.toLowerCase().includes(search.toLowerCase()) ||
-    s.lastName?.toLowerCase().includes(search.toLowerCase()) ||
-    s.email?.toLowerCase().includes(search.toLowerCase()) ||
-    s.dni?.toLowerCase().includes(search.toLowerCase()) ||
-    s._id.includes(search)
+  const filtered = classStudents.filter(s =>
+    (s.firstName || '').toLowerCase().includes(search.toLowerCase()) ||
+    (s.lastName || '').toLowerCase().includes(search.toLowerCase()) ||
+    (s.email || '').toLowerCase().includes(search.toLowerCase()) ||
+    (s.dni || '').toLowerCase().includes(search.toLowerCase()) ||
+    (s._id || '').includes(search)
   );
 
   const handleSaveNotes = async () => {
@@ -171,7 +203,7 @@ const StudentsPage = () => {
 
   // Función para abrir modal de correo masivo
   const handleOpenMassMail = () => {
-    setMailRecipients(students.map(s => s.email));
+    setMailRecipients(classStudents.map(s => s.email));
     setMailSubject('');
     setMailBody('');
     setMailSent(false);
