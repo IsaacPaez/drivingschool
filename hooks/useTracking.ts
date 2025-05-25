@@ -103,16 +103,17 @@ export const useTracking = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
           sessionId: SESSION_ID,
-          pageUrl: window.location.href,
-          eventType,
-          x,
-          y,
-          elementId: element?.id,
-          elementClass: element?.className,
-          elementTag: element?.tagName,
-          timestamp: new Date().toISOString(),
+          page: window.location.href,
+          event: {
+            eventType,
+            x,
+            y,
+            timestamp: new Date().toISOString(),
+            elementId: element?.id,
+            elementClass: element?.className,
+            elementTag: element?.tagName,
+          }
         }),
       });
     } catch (error) {
@@ -135,11 +136,47 @@ export const useTracking = () => {
     }
     // Al cargar la primera vez, crear la sesión
     if (!sessionStarted.current) {
-      trackSession(false, document.referrer || '');
+      // Página inicial: no hay referrer, duración 0
+      fetch('/api/track-visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          sessionId: SESSION_ID,
+          page: window.location.href,
+          referrer: document.referrer || '',
+          duration: 0,
+          timestamp: new Date().toISOString(),
+        }),
+      });
       sessionStarted.current = true;
     } else if (lastPage.current !== pathname) {
-      // Al cambiar de página, agregar página a la sesión
-      trackSession(false, lastPage.current || '');
+      // Al cambiar de página, guardar la anterior con su duración y referrer
+      fetch('/api/track-visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          sessionId: SESSION_ID,
+          page: lastPage.current,
+          referrer: lastReferrer.current,
+          duration: Date.now() - startTime.current,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      // Nueva página: duración 0, referrer es la anterior
+      fetch('/api/track-visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          sessionId: SESSION_ID,
+          page: window.location.href,
+          referrer: lastPage.current,
+          duration: 0,
+          timestamp: new Date().toISOString(),
+        }),
+      });
       startTime.current = Date.now();
       lastReferrer.current = lastPage.current || '';
       lastPage.current = pathname;
