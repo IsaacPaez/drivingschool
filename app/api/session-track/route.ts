@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Session from '@/models/Session';
-import geoip from 'geoip-lite';
 
 function getClientIp(req: NextRequest) {
   const forwarded = req.headers.get('x-forwarded-for');
@@ -27,20 +26,16 @@ export async function POST(req: NextRequest) {
     };
     const ipAddress = getClientIp(req);
     const userAgent = req.headers.get('user-agent') || '';
-    // Lookup geolocation si no viene del frontend
-    let geo = geolocation;
-    if (!geo && ipAddress) {
-      const lookup = geoip.lookup(ipAddress);
-      if (lookup) {
-        geo = {
-          country: lookup.country || '',
-          city: lookup.city || '',
-          latitude: lookup.ll ? lookup.ll[0] : null,
-          longitude: lookup.ll ? lookup.ll[1] : null,
-          vpn: false,
-        };
-      }
-    }
+    
+    // Use provided geolocation or default values
+    const geo = geolocation || {
+      country: '',
+      city: '',
+      latitude: null,
+      longitude: null,
+      vpn: false,
+    };
+
     if (!session) {
       session = new Session({
         sessionId,
@@ -56,7 +51,7 @@ export async function POST(req: NextRequest) {
       await session.save();
       return NextResponse.json({ success: true, created: true });
     }
-    // Si la página no está en el array, la agregamos
+    // If the page is not in the array, add it
     if (!session.pages.some((p: any) => p.url === page)) {
       session.pages.push(pageObj);
     }
