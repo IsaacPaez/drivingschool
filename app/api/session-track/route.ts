@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Session from '@/models/Session';
 
+const IPINFO_TOKEN = process.env.IPINFO_TOKEN;
+
+async function getGeoData(ip: string) {
+  try {
+    const res = await fetch(`https://ipinfo.io/${ip}?token=${IPINFO_TOKEN}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      country: data.country || "",
+      city: data.city || "",
+      region: data.region || "",
+      latitude: data.loc ? data.loc.split(',')[0] : null,
+      longitude: data.loc ? data.loc.split(',')[1] : null,
+      vpn: data.privacy ? !!data.privacy.vpn : false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function getClientIp(req: NextRequest) {
   const forwarded = req.headers.get('x-forwarded-for');
   if (forwarded) return forwarded.split(',')[0].trim();
@@ -27,14 +47,13 @@ export async function POST(req: NextRequest) {
     const ipAddress = getClientIp(req);
     const userAgent = req.headers.get('user-agent') || '';
     
-    // Use provided geolocation or default values
-    const geo = geolocation || {
-      country: '',
-      city: '',
-      latitude: null,
-      longitude: null,
-      vpn: false,
-    };
+    let geo = geolocation;
+    if (!geo && ipAddress) {
+      geo = await getGeoData(ipAddress);
+      if (!geo) {
+        geo = { country: "", city: "", region: "", latitude: null, longitude: null, vpn: false };
+      }
+    }
 
     if (!session) {
       session = new Session({
