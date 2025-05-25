@@ -9,6 +9,7 @@ async function getGeoData(ip: string) {
     const res = await fetch(`https://ipinfo.io/${ip}?token=${IPINFO_TOKEN}`);
     if (!res.ok) return null;
     const data = await res.json();
+    console.log('IPINFO DATA:', data); // Log para depuración
     return {
       country: data.country || "",
       city: data.city || "",
@@ -16,8 +17,10 @@ async function getGeoData(ip: string) {
       latitude: data.loc ? data.loc.split(',')[0] : null,
       longitude: data.loc ? data.loc.split(',')[1] : null,
       vpn: data.privacy ? !!data.privacy.vpn : false,
+      raw: data // Guardar toda la respuesta para depuración
     };
-  } catch {
+  } catch (e) {
+    console.error('Error fetching ipinfo:', e);
     return null;
   }
 }
@@ -51,9 +54,11 @@ export async function POST(req: NextRequest) {
     if (!geo && ipAddress) {
       geo = await getGeoData(ipAddress);
       if (!geo) {
-        geo = { country: "", city: "", region: "", latitude: null, longitude: null, vpn: false };
+        geo = { country: "", city: "", region: "", latitude: null, longitude: null, vpn: false, raw: null };
       }
     }
+    // Log para depuración
+    //console.log('GEO TO SAVE:', geo);
 
     if (!session) {
       session = new Session({
@@ -76,6 +81,10 @@ export async function POST(req: NextRequest) {
     }
     session.lastActive = timestamp ? new Date(timestamp) : new Date();
     session.sessionActive = true;
+    // Aseguramos que se actualice la geolocalización si está vacía
+    if (!session.geolocation || !session.geolocation.country) {
+      session.geolocation = geo;
+    }
     await session.save();
     return NextResponse.json({ success: true, created: false });
   } catch (error) {
