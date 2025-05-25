@@ -6,8 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --no-lint",
     "start": "next start",
-    "lint": "next lint",
-    "postinstall": "node -e \"require('geoip-lite').reloadDataSync()\""
+    "lint": "next lint"
+
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.5.1",
