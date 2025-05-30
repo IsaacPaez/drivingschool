@@ -57,7 +57,7 @@ export const useTracking = () => {
     const payload = {
       userId,
       sessionId: SESSION_ID,
-      page: window.location.href,
+      page: pathname,
       referrer,
       duration,
       endSession,
@@ -99,17 +99,32 @@ export const useTracking = () => {
     element?: Element
   ) => {
     try {
+      // Coordenadas absolutas
+      const scrollX = window.scrollX || window.pageXOffset || 0;
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const absX = x + scrollX;
+      const absY = y + scrollY;
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      const timestamp = new Date().toISOString();
+
       await fetch('/api/heatmap-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: SESSION_ID,
-          page: window.location.href,
+          page: pathname,
           event: {
             eventType,
-            x,
-            y,
-            timestamp: new Date().toISOString(),
+            x: absX,
+            y: absY,
+            screenWidth,
+            screenHeight,
+            devicePixelRatio,
+            scrollX,
+            scrollY,
+            timestamp,
             elementId: element?.id,
             elementClass: element?.className,
             elementTag: element?.tagName,
@@ -136,6 +151,20 @@ export const useTracking = () => {
     }
     // Al cargar la primera vez, crear la sesión
     if (!sessionStarted.current) {
+      // Crear la sesión en la base de datos
+      fetch('/api/session-track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          sessionId: SESSION_ID,
+          page: pathname,
+          referrer: document.referrer ? new URL(document.referrer).pathname : '',
+          duration: 0,
+          endSession: false,
+          timestamp: new Date().toISOString(),
+        }),
+      });
       // Página inicial: no hay referrer, duración 0
       fetch('/api/track-visit', {
         method: 'POST',
@@ -143,8 +172,8 @@ export const useTracking = () => {
         body: JSON.stringify({
           userId,
           sessionId: SESSION_ID,
-          page: window.location.href,
-          referrer: document.referrer || '',
+          page: pathname,
+          referrer: document.referrer ? new URL(document.referrer).pathname : '',
           duration: 0,
           timestamp: new Date().toISOString(),
         }),
@@ -171,7 +200,7 @@ export const useTracking = () => {
         body: JSON.stringify({
           userId,
           sessionId: SESSION_ID,
-          page: window.location.href,
+          page: pathname,
           referrer: lastPage.current,
           duration: 0,
           timestamp: new Date().toISOString(),

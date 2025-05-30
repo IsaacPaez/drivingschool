@@ -4,6 +4,11 @@ interface IHeatmapEvent {
   eventType: 'click' | 'move' | 'scroll';
   x: number;
   y: number;
+  screenWidth: number;
+  screenHeight: number;
+  devicePixelRatio: number;
+  scrollX: number;
+  scrollY: number;
   timestamp: Date;
   elementId?: string;
   elementClass?: string;
@@ -41,6 +46,11 @@ const HeatmapEventSchema = new Schema<IHeatmapEvent>({
   eventType: { type: String, enum: ['click', 'move', 'scroll'], required: true },
   x: { type: Number, required: true },
   y: { type: Number, required: true },
+  screenWidth: { type: Number, required: true },
+  screenHeight: { type: Number, required: true },
+  devicePixelRatio: { type: Number, required: true },
+  scrollX: { type: Number, required: true },
+  scrollY: { type: Number, required: true },
   timestamp: { type: Date, required: true },
   elementId: String,
   elementClass: String,
