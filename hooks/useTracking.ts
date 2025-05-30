@@ -108,13 +108,21 @@ export const useTracking = () => {
       const screenHeight = window.innerHeight;
       const devicePixelRatio = window.devicePixelRatio || 1;
       const timestamp = new Date().toISOString();
+      // Coordenadas relativas
+      const relX = absX / screenWidth;
+      const relY = absY / screenHeight;
+      // Asegurar que elementClass sea string solo en click
+      let elementClass = '';
+      if (eventType === 'click' && element) {
+        elementClass = typeof element.className === 'string' ? element.className : '';
+      }
 
       await fetch('/api/heatmap-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: SESSION_ID,
-          page: pathname,
+          page: pathname, // Usar solo el path
           event: {
             eventType,
             x: absX,
@@ -124,10 +132,12 @@ export const useTracking = () => {
             devicePixelRatio,
             scrollX,
             scrollY,
+            relX,
+            relY,
             timestamp,
-            elementId: element?.id,
-            elementClass: element?.className,
-            elementTag: element?.tagName,
+            elementId: eventType === 'click' && element ? element.id : '',
+            elementClass,
+            elementTag: eventType === 'click' && element ? element.tagName : '',
           }
         }),
       });
@@ -247,19 +257,16 @@ export const useTracking = () => {
       trackHeatmapEvent('click', e.clientX, e.clientY, e.target as Element);
     };
     const handleMouseMove = (e: MouseEvent) => {
-      const { clientX, clientY } = e;
       const now = Date.now();
-      if (
-        now - lastEventTime > THROTTLE_DELAY &&
-        (Math.abs(clientX - lastEvent.current.x) > 10 || Math.abs(clientY - lastEvent.current.y) > 10)
-      ) {
-        lastEvent.current = { x: clientX, y: clientY };
+      if (now - lastEventTime > THROTTLE_DELAY &&
+        (Math.abs(e.clientX - lastEvent.current.x) > 10 || Math.abs(e.clientY - lastEvent.current.y) > 10)) {
+        lastEvent.current = { x: e.clientX, y: e.clientY };
         lastEventTime = now;
-        trackHeatmapEvent('move', clientX, clientY);
+        trackHeatmapEvent('move', e.clientX, e.clientY);
       }
     };
     const handleScroll = () => {
-      trackHeatmapEvent('scroll', window.scrollX, window.scrollY);
+      trackHeatmapEvent('scroll', 0, 0);
     };
     document.addEventListener('click', handleClick);
     document.addEventListener('mousemove', handleMouseMove);

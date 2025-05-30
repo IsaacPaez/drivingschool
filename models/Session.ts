@@ -9,6 +9,8 @@ interface IHeatmapEvent {
   devicePixelRatio: number;
   scrollX: number;
   scrollY: number;
+  relX: number;
+  relY: number;
   timestamp: Date;
   elementId?: string;
   elementClass?: string;
@@ -51,6 +53,8 @@ const HeatmapEventSchema = new Schema<IHeatmapEvent>({
   devicePixelRatio: { type: Number, required: true },
   scrollX: { type: Number, required: true },
   scrollY: { type: Number, required: true },
+  relX: { type: Number, required: true },
+  relY: { type: Number, required: true },
   timestamp: { type: Date, required: true },
   elementId: String,
   elementClass: String,
