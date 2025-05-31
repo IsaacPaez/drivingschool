@@ -81,10 +81,8 @@ export async function POST(req: NextRequest) {
     }
     session.lastActive = timestamp ? new Date(timestamp) : new Date();
     session.sessionActive = true;
-    // Aseguramos que se actualice la geolocalización si está vacía
-    if (!session.geolocation || !session.geolocation.country) {
-      session.geolocation = geo;
-    }
+    // Actualizamos siempre la geolocalización para reflejar el valor correcto de vpn
+    session.geolocation = geo;
     await session.save();
     return NextResponse.json({ success: true, created: false });
   } catch (error) {
