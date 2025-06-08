@@ -29,18 +29,32 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // 🛒 Cargar el carrito desde localStorage al iniciar
+  // 🛒 Cargar el carrito desde localStorage al iniciar (solo si está vacío)
   useEffect(() => {
-    const storedCart = localStorage.getItem("cart");
-    if (storedCart) {
-      setCart(JSON.parse(storedCart));
+    if (cart.length === 0) {
+      const storedCart = localStorage.getItem("cart");
+      if (storedCart) {
+        setCart(JSON.parse(storedCart));
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 💾 Guardar el carrito en localStorage cada vez que cambie
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
+
+  // 🔄 Sincronizar el carrito entre pestañas
+  useEffect(() => {
+    const syncCart = (e: StorageEvent) => {
+      if (e.key === "cart") {
+        setCart(e.newValue ? JSON.parse(e.newValue) : []);
+      }
+    };
+    window.addEventListener("storage", syncCart);
+    return () => window.removeEventListener("storage", syncCart);
+  }, []);
 
   // 🚀 Función para agregar productos al carrito
   const addToCart = (item: CartItem) => {

@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi';
 import { Class as CalendarClass } from './types';
 import LoadingSpinner from '../common/LoadingSpinner';
+import useIsMobile from '../hooks/useIsMobile';
 
 const MiniCalendar = dynamic(() => import('./MiniCalendar'), { ssr: false });
 
@@ -349,6 +350,43 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
     if (c.status === 'free') summaryByStatus.free.push({ day: dayStr, time: timeStr });
   });
 
+  const isMobile = useIsMobile();
+
+  // Vista móvil tipo agenda
+  function renderMobileAgenda() {
+    // Agrupa bloques por día
+    const grouped = classes.reduce((acc, b) => {
+      const key = b.date instanceof Date ? b.date.toLocaleDateString() : new Date(b.date).toLocaleDateString();
+      acc[key] = acc[key] || [];
+      acc[key].push(b);
+      return acc;
+    }, {} as Record<string, CalendarClass[]>);
+    return (
+      <div className="space-y-4">
+        {Object.entries(grouped).map(([date, dayBlocks]) => (
+          <div key={date} className="bg-white rounded-xl shadow p-3">
+            <div className="font-bold text-[#0056b3] text-lg mb-2">{date}</div>
+            {dayBlocks.sort((a, b) => (a.start || '').localeCompare(b.start || '')).map((b) => (
+              <div
+                key={b.id}
+                className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
+                  ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
+                  ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
+                  ${b.status === 'free' ? 'bg-gray-200 text-gray-700' : ''}
+                `}
+                onClick={() => handleTimeBlockClick(b)}
+              >
+                <span className="font-mono">{b.start}-{b.end}</span>
+                <span className="ml-2 capitalize">{b.status}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // El return principal del componente debe estar fuera de cualquier función
   return (
     <div className="w-full">
       {/* Encabezado único y margen superior responsivo */}
@@ -364,7 +402,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       </div>
       <div className="flex gap-8 w-full flex-col lg:flex-row">
       {/* Sidebar izquierda */}
-      {!hideSidebars && (
+      {!hideSidebars && !isMobile && (
           <aside className="hidden md:flex flex-col w-full md:w-72 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] border-l-4 border-[#27ae60] rounded-2xl shadow-2xl p-6 h-[95%] min-h-[600px] relative overflow-hidden" style={{ height: '95vh' }}>
           <div className="mb-6">
             <h2 className="text-lg font-bold text-[#0056b3] mb-2">Calendars</h2>
@@ -390,15 +428,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       )}
       {/* Calendario central */}
         <main className="flex-1 min-w-0">
-          {view === 'month' && (
-            <div className="text-[#27ae60] font-extrabold text-2xl mb-2 text-center tracking-wide uppercase drop-shadow-sm select-none">
-              {selectedDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+          {isMobile ? (
+            <div className="rounded-3xl border-2 border-[#27ae60] shadow-2xl p-2 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] max-w-full mx-auto transition-all duration-500 min-w-[320px]">
+              {renderMobileAgenda()}
             </div>
-          )}
-          <div className="rounded-3xl border-2 border-[#27ae60] shadow-2xl p-0 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] max-w-full overflow-x-auto mx-auto transition-all duration-500 min-w-[320px] md:min-w-0 md:max-w-full sm:max-w-[380px]" style={{ minWidth: 0, minHeight: 320 }}>
-            {view === 'month' ? (
-              <div style={{ minWidth: 900, minHeight: 600 }}>
-                {renderMonthView()}
+          ) : (
+            view === 'month' ? (
+              <div className="text-[#27ae60] font-extrabold text-2xl mb-2 text-center tracking-wide uppercase drop-shadow-sm select-none">
+                {selectedDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
               </div>
             ) : (
             <CalendarGrid
@@ -406,14 +443,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                   ...slot,
                   time: `${slot.start}-${slot.end}`
                 }))}
-              onBlockClick={handleBlockClick}
+                onBlockClick={handleBlockClick}
                 selectedDate={selectedDate}
             />
-            )}
-          </div>
+            )
+          )}
       </main>
       {/* Sidebar derecha */}
-      {!hideSidebars && (
+      {!hideSidebars && !isMobile && (
           <aside className="hidden lg:flex flex-col w-full lg:w-80 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] border-r-4 border-[#0056b3] rounded-2xl shadow-2xl p-6 h-[95%] min-h-[600px] relative overflow-hidden" style={{ height: '95vh' }}>
           <h2 className="text-lg font-bold text-[#0056b3] mb-4">Class Summary</h2>
           <div className="flex gap-2 mb-4">

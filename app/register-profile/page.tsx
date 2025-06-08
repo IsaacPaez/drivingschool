@@ -1,0 +1,210 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { FaArrowLeft } from "react-icons/fa";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+export default function RegisterProfilePage() {
+  const [form, setForm] = useState({
+    email: "",
+    dni: "",
+    password: "",
+    confirmPassword: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    ssnLast4: "",
+    hasLicense: false,
+    licenseNumber: "",
+    birthDate: "",
+    sex: "M",
+    streetAddress: "",
+    apartmentNumber: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    phoneNumber: "",
+    role: "user"
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [birthDateObj, setBirthDateObj] = useState<Date | null>(null);
+  const router = useRouter();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    if (name === "hasLicense" && type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setForm({ ...form, hasLicense: checked, licenseNumber: checked ? form.licenseNumber : "" });
+    } else if (name === "sex") {
+      setForm({ ...form, sex: value });
+    } else if (name === "birthDate") {
+        setForm({ ...form, birthDate: value });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+
+  const handleDateChange = (date: Date | null) => {
+    setBirthDateObj(date);
+    setForm({ ...form, birthDate: date ? date.toISOString().split("T")[0] : "" });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const requiredFields = [
+      "email", "dni", "password", "confirmPassword", "firstName", "middleName", "lastName", "ssnLast4", "birthDate", "streetAddress", "city", "state", "zipCode", "phoneNumber", "sex"
+    ];
+    for (const field of requiredFields) {
+      if (!form[field as keyof typeof form]) {
+        setError(`Please fill in the ${field} field.`);
+        setLoading(false);
+        return;
+      }
+    }
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      setLoading(false);
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+    try {
+      const payload = { ...form };
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Error saving user profile");
+        setLoading(false);
+        return;
+      }
+      setSuccess(true);
+      setTimeout(() => {
+      router.replace("/");
+      }, 2000);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setError("Error saving user profile: " + errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Botón Back to Home */}
+      <button
+        onClick={() => router.replace("/")}
+        className="absolute top-6 left-6 flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition"
+      >
+        <FaArrowLeft className="mr-2" /> Back to Home
+      </button>
+      <div className="max-w-2xl w-full bg-white p-10 rounded-2xl shadow-2xl border border-blue-100 mt-8 mt-16">
+        <h2 className="text-center text-2xl font-extrabold text-blue-700 mb-8 drop-shadow-lg tracking-wide mt-8">Sign Up & Complete Your Profile</h2>
+        <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
+          {/* Email ocupa dos columnas */}
+          <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} required className="col-span-1 md:col-span-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          {/* DNI ocupa dos columnas */}
+          <input name="dni" placeholder="DNI" value={form.dni || ''} onChange={handleChange} required className="col-span-1 md:col-span-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          {/* Password y Confirm Password */}
+          <input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} required className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          <input name="confirmPassword" type="password" placeholder="Confirm Password" value={form.confirmPassword} onChange={handleChange} required className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          {/* First and Middle Name */}
+          <input name="firstName" placeholder="First Name" value={form.firstName} onChange={handleChange} required className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          <input name="middleName" placeholder="Middle Name" value={form.middleName} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          {/* Last Name and SSN */}
+          <input name="lastName" placeholder="Last Name" value={form.lastName} onChange={handleChange} required className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          <input name="ssnLast4" placeholder="SSN Last 4" value={form.ssnLast4} onChange={handleChange} required className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          {/* Street Address and Apartment */}
+          <input name="streetAddress" placeholder="Street Address" value={form.streetAddress} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          <input name="apartmentNumber" placeholder="Apartment Number" value={form.apartmentNumber} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          {/* City and State */}
+          <input name="city" placeholder="City" value={form.city} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          <input name="state" placeholder="State" value={form.state} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          {/* Zip and Phone */}
+          <input name="zipCode" placeholder="Zip Code" value={form.zipCode} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          <input name="phoneNumber" placeholder="Phone Number" value={form.phoneNumber} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+          {/* License Checkbox and License Number */}
+          <div className="flex items-center gap-2 col-span-1">
+            <input
+              id="hasLicense"
+              name="hasLicense"
+              type="checkbox"
+              checked={form.hasLicense}
+              onChange={handleChange}
+              className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="hasLicense" className="text-gray-700 font-medium select-none cursor-pointer">With License</label>
+          </div>
+          <input
+            name="licenseNumber"
+            placeholder="License Number"
+            value={form.licenseNumber}
+            onChange={handleChange}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+            disabled={!form.hasLicense}
+          />
+          {/* Birth Date and Sex */}
+          <div>
+            <DatePicker
+              selected={birthDateObj}
+              onChange={handleDateChange}
+              dateFormat="MM/dd/yyyy"
+              placeholderText="Birth Date"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900 w-full"
+              showMonthDropdown
+              showYearDropdown
+              dropdownMode="select"
+              maxDate={new Date()}
+              isClearable
+              required
+              locale="en"
+            />
+          </div>
+          <select name="sex" value={form.sex} onChange={handleChange} required className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900 bg-white">
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+            </select>
+          {/* Error message (ocupa dos columnas) */}
+          {error && <div className="col-span-1 md:col-span-2 text-red-600 text-center mt-2">{error}</div>}
+          {/* Register button (ocupa dos columnas) */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="col-span-1 md:col-span-2 w-full py-3 mt-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-md"
+          >
+            {loading ? "Registering..." : "Register"}
+          </button>
+        </form>
+        {success && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+            <div className="bg-white p-8 rounded-xl shadow-2xl border-2 border-blue-600 text-center max-w-md w-full">
+              <div className="flex flex-col items-center">
+                <svg className="w-16 h-16 text-green-500 mb-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="white" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2l4-4" /></svg>
+                <h3 className="text-2xl font-bold mb-2 text-black">Registration complete!</h3>
+                <p className="mb-6 text-black">Please log in to continue.</p>
+                <button
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg shadow transition"
+                  onClick={() => router.replace('/?showLogin=1')}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 
 function generateSessionId() {
   return Math.random().toString(36).substring(7);
@@ -9,8 +8,7 @@ function generateSessionId() {
 
 export const useTracking = () => {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const userId = session?.user?.id || 'anonymous';
+  const userId = 'anonymous';
   const startTime = useRef(Date.now());
   const lastPage = useRef<string>(pathname);
   const lastReferrer = useRef<string>('');
@@ -55,7 +53,7 @@ export const useTracking = () => {
     const duration = Date.now() - startTime.current;
     const referrer = (referrerOverride ?? lastReferrer.current) || '';
     const payload = {
-      userId,
+      userId: lastUserId.current,
       sessionId: SESSION_ID,
       page: pathname,
       referrer,
@@ -148,12 +146,12 @@ export const useTracking = () => {
 
   useEffect(() => {
     // Si el usuario cambia (login/logout), reiniciar la sesión
-    if (lastUserId.current !== userId) {
+    if (lastUserId.current !== 'anonymous') {
       window.sessionStorage.removeItem('sessionId');
       window.sessionStorage.removeItem('userId');
       SESSION_ID = getOrKeepSessionId();
       sessionStarted.current = false;
-      lastUserId.current = userId;
+      lastUserId.current = 'anonymous';
       startTime.current = Date.now();
       lastPage.current = pathname;
       lastReferrer.current = '';
@@ -166,7 +164,7 @@ export const useTracking = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
+          userId: lastUserId.current,
           sessionId: SESSION_ID,
           page: pathname,
           referrer: document.referrer ? new URL(document.referrer).pathname : '',
@@ -180,7 +178,7 @@ export const useTracking = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
+          userId: lastUserId.current,
           sessionId: SESSION_ID,
           page: pathname,
           referrer: document.referrer ? new URL(document.referrer).pathname : '',
@@ -195,7 +193,7 @@ export const useTracking = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
+          userId: lastUserId.current,
           sessionId: SESSION_ID,
           page: lastPage.current,
           referrer: lastReferrer.current,
@@ -208,7 +206,7 @@ export const useTracking = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
+          userId: lastUserId.current,
           sessionId: SESSION_ID,
           page: pathname,
           referrer: lastPage.current,
@@ -282,5 +280,5 @@ export const useTracking = () => {
       window.removeEventListener('scroll', handleScroll);
     };
     // eslint-disable-next-line
-  }, [pathname, userId]);
+  }, [pathname, lastUserId.current]);
 }; 

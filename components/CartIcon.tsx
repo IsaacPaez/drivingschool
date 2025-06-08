@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
+import { useAuth } from "@/components/AuthContext";
 import { FaShoppingCart, FaTimes } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -11,28 +12,50 @@ interface CartIconProps {
 
 const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
   const { cart, removeFromCart } = useCart();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showAuthWarning, setShowAuthWarning] = useState(false);
 
   const handleCheckout = async () => {
+    if (!user) {
+      setShowAuthWarning(true);
+      return;
+    }
     if (cart.length === 0) {
-      alert("❌ No hay productos en el carrito.");
+      alert("❌ Your cart is empty.");
+      return;
+    }
+    // Validación extra de productos
+    const invalid = cart.some(item => !item.id || !item.title || typeof item.price !== 'number' || item.price <= 0 || typeof item.quantity !== 'number' || item.quantity <= 0);
+    if (invalid) {
+      alert("❌ There are invalid products in your cart. The cart will be emptied. Please add products again.");
+      localStorage.removeItem("cart");
+      window.location.reload();
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/checkout", {
+      // Calculate total amount
+      const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+      const formattedTotal = total.toFixed(2); // Always string with two decimals
+      console.log("Total amount sent to Elavon:", formattedTotal); // Log the formatted total
+      const res = await fetch("/api/elavon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart }),
+        body: JSON.stringify({ amount: formattedTotal, items: cart }),
       });
-      if (!res.ok) throw new Error("Error en la respuesta del servidor.");
-      const { url } = await res.json();
-      if (url) window.location.href = url;
-      else alert("❌ Error al procesar el pago.");
+      if (!res.ok) throw new Error("Server response error.");
+      const { token } = await res.json();
+      console.log("Token received from backend:", token);
+      if (token) {
+        window.location.href = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}`;
+      } else {
+        alert("❌ Error processing payment.");
+      }
     } catch (error) {
-      console.error("❌ Error en la solicitud:", error);
-      alert("❌ Hubo un error al procesar el pago. Inténtalo de nuevo.");
+      console.error("❌ Request error:", error);
+      alert("❌ There was an error processing the payment. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -82,7 +105,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             className="fixed left-0 top-0 h-full w-full sm:w-96 bg-white shadow-lg p-6 z-50 overflow-auto"
           >
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold dark:text-black">Tu Carrito</h2>
+              <h2 className="text-xl font-bold dark:text-black">Your Cart</h2>
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-gray-500 hover:text-gray-700 transition"
@@ -93,7 +116,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
 
             {cart.length === 0 ? (
               <p className="text-gray-500 text-center dark:text-black">
-                Tu carrito está vacío.
+                Your cart is empty.
               </p>
             ) : (
               <>
@@ -123,12 +146,27 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                   className="w-full bg-green-500 hover:bg-green-600 text-white mt-6 py-3 rounded-lg disabled:opacity-50 transition"
                   disabled={loading}
                 >
-                  {loading ? "Procesando..." : "Checkout"}
+                  {loading ? "Processing..." : "Checkout"}
                 </button>
               </>
             )}
           </motion.div>
         </>
+      )}
+      {/* Modal de advertencia de autenticación */}
+      {showAuthWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-2xl shadow-2xl border-2 border-blue-600 max-w-md w-full p-8 relative animate-fadeIn">
+            <h2 className="text-xl font-bold mb-4 text-red-600 text-center">Authentication Required</h2>
+            <p className="mb-4 text-center text-black">You must be logged in to checkout. Please sign in first.</p>
+            <button
+              className="bg-blue-500 text-white px-6 py-2 rounded mx-auto block"
+              onClick={() => setShowAuthWarning(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

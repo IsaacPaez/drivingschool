@@ -1,42 +1,91 @@
 "use client";
-import { useEffect } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function Page() {
-  const { status } = useSession();
+export default function SignInPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      // Si ya está autenticado, redirige al home o dashboard
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    // Aquí deberías llamar a tu endpoint de login personalizado
+    // Simulación de éxito
+    setTimeout(() => {
+      setLoading(false);
+      // Redirige o muestra mensaje de éxito
       router.replace("/");
-    } else if (status === "unauthenticated") {
-      // Si no hay sesión, inicia el login con Auth0
-      signIn("auth0", { prompt: "login" });
-    }
-    // Si status es "loading", no hacemos nada aún
-  }, [status, router]);
+    }, 1200);
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <h1 style={{ marginBottom: 24, color: "#222", fontWeight: 600 }}>Redirecting to Auth0...</h1>
-        <div style={{
-          border: "6px solid #f3f3f3",
-          borderTop: "6px solid #0070f3",
-          borderRadius: "50%",
-          width: 48,
-          height: 48,
-          animation: "spin 1s linear infinite"
-        }} />
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 min-h-screen">
+      <div className="bg-white rounded-2xl shadow-2xl border-2 border-blue-600 max-w-md w-full p-8 relative animate-fadeIn">
+        <h2 className="text-3xl font-extrabold text-blue-700 text-center mb-6 drop-shadow-lg">Sign In</h2>
+        <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+            autoFocus
+            required
+          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 w-full focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              required
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800"
+              onClick={() => setShowPassword(v => !v)}
+              tabIndex={-1}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+          {error && <div className="text-red-600 text-center">{error}</div>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-md mt-2"
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+        <div className="flex flex-col items-center mt-6 gap-2">
+          <button
+            className="text-blue-600 hover:underline text-sm"
+            onClick={() => alert('Password recovery coming soon!')}
+          >
+            Forgot password?
+          </button>
+          <button
+            className="text-green-600 hover:underline text-sm font-semibold"
+            onClick={() => router.replace("/register-profile")}
+          >
+            Don't have an account? Register
+          </button>
+        </div>
       </div>
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.3s ease; }
+      `}</style>
     </div>
   );
 }

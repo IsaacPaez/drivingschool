@@ -2,11 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import User from '@/models/User';
 import { connectDB } from '@/lib/mongodb';
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 // Handler para crear usuario (POST)
 export async function POST(req: Request) {
   await connectDB();
   const data = await req.json();
+  console.log("Nuevo usuario recibido:", data);
+
+  // Validar campos requeridos
+  const requiredFields = [
+    "firstName", "middleName", "lastName", "email", "dni", "ssnLast4", "hasLicense",
+    "birthDate", "streetAddress", "city", "state", "zipCode", "phoneNumber", "sex", "password"
+  ];
+  for (const field of requiredFields) {
+    if (!data[field] && data[field] !== false) {
+      return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
+    }
+  }
+
+  // Hashear la contraseña
+  const hashedPassword = await bcrypt.hash(data.password, 10);
 
   // Formatear birthDate a 'YYYY-MM-DD' como string
   let birthDate: string | undefined = undefined;
@@ -25,6 +41,7 @@ export async function POST(req: Request) {
     middleName: data.middleName,
     lastName: data.lastName,
     email: data.email,
+    dni: data.dni,
     ssnLast4: data.ssnLast4,
     hasLicense: data.hasLicense === true || data.hasLicense === 'true',
     licenseNumber: data.licenseNumber,
@@ -38,6 +55,7 @@ export async function POST(req: Request) {
     sex: data.sex === 'M' || data.sex === 'F' ? data.sex : (data.sex === 'Male' ? 'M' : 'F'),
     howDidYouHear: 'Online Ad',
     role: 'user',
+    password: hashedPassword,
     createdAt: new Date(),
     updatedAt: new Date(),
     privateNotes: "",
@@ -50,7 +68,7 @@ export async function POST(req: Request) {
     console.error("Error al guardar usuario:", error);
     return NextResponse.json({ 
       error: 'Error saving user', 
-      details: error instanceof Error ? error.message : 'Unknown error occurred'
+      details: error instanceof Error ? error.message : JSON.stringify(error)
     }, { status: 400 });
   }
 }

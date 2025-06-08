@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       { _id: { $in: validStudentIds.map(id => id.toString()) } }
     ]
   }).lean();
-  console.log('students found:', students);
+  //console.log('students found:', students);
 
   // Obtener los classId únicos
   const classIds = [
