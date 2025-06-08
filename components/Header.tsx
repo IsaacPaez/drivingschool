@@ -5,8 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import CartIcon from "./CartIcon";
-import { useSession, signOut } from "next-auth/react";
-import { useState as useReactState } from "react";
+import { useAuth } from "@/components/AuthContext";
+import LoginModal from "@/components/LoginModal";
+import { useCart } from "@/app/context/CartContext";
 
 interface User {
   name: string;
@@ -17,19 +18,21 @@ interface User {
 const Header = () => {
   const pathname = usePathname();
   const [isHome, setIsHome] = useState(false);
-  const { data: session } = useSession();
   const [showMenu, setShowMenu] = useState(false);
-  const [userFullName, setUserFullName] = useReactState<string>('');
+  const [userFullName, setUserFullName] = useState<string>('');
+  const [showLogin, setShowLogin] = useState(false);
+  const { user, setUser, logout } = useAuth();
+  const { clearCart } = useCart();
 
   useEffect(() => {
     setIsHome(pathname === "/"); // Se actualiza correctamente en cada cambio de ruta
   }, [pathname]);
 
   useEffect(() => {
-    if (session?.user) {
-      setUserFullName((session.user as User).name || '');
+    if (user) {
+      setUserFullName(user.name || '');
     }
-  }, [session?.user, setUserFullName]);
+  }, [user, setUserFullName]);
 
   // Estado para controlar si el menú móvil está abierto
   const [isOpen, setIsOpen] = useState(false);
@@ -77,35 +80,33 @@ const Header = () => {
         />
         {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
         <div className="fixed top-4 right-8 flex items-end z-50 mt-0">
-          {session && session.user ? (
+          {user ? (
             <div className="relative flex flex-col items-center">
               <button
                 onClick={() => setShowMenu((v) => !v)}
                 className="focus:outline-none mt-6"
               >
-                {session?.user?.image && (
+                {user.photo ? (
                   <Image
-                    src={session.user.image}
+                    src={user.photo}
                     alt="User profile"
                     width={40}
                     height={40}
                     className="rounded-full"
                   />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-700 flex items-center justify-center text-white text-xl font-bold">
+                    {(user.name?.[0] || 'U').toUpperCase()}
+                  </div>
                 )}
               </button>
-              {isTeacherSection ? (
-                <span className="mt-2 text-[#0056b3] font-bold text-base text-center w-32 whitespace-normal break-words uppercase">
-                  {(session.user as { instructorName?: string }).instructorName}
-                </span>
-              ) : (
-                <span className="mt-1 text-[#0056b3] font-bold text-sm text-center w-32 whitespace-normal break-words uppercase">
-                  {userFullName}
-                </span>
-              )}
+              <span className="mt-1 text-[#0056b3] font-bold text-sm text-center w-32 whitespace-normal break-words uppercase">
+                {user.name}
+              </span>
               {showMenu && (
                 <div className="absolute top-14 right-0 bg-white border rounded shadow-lg py-2 px-4 z-50">
                   <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
+                    onClick={() => logout()}
                     className="text-red-600 font-semibold hover:underline"
                   >
                     Log out
@@ -118,15 +119,15 @@ const Header = () => {
               <div className="flex gap-4">
                 <button
                   className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
-                  onClick={() => window.location.href = '/sign-in'}
+                  onClick={() => setShowLogin(true)}
                 >
                   Login
                 </button>
                 <button
                   className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
-                  onClick={() => window.location.href = '/sign-in'}
+                  onClick={() => window.location.href = '/register-profile'}
                 >
-                  Sign In
+                  Sign Up
                 </button>
               </div>
             )
@@ -280,6 +281,17 @@ const Header = () => {
           </div>
         )}
       </div>
+
+      {/* Al final del header, renderiza el modal */}
+      <LoginModal 
+        open={showLogin} 
+        onClose={() => setShowLogin(false)} 
+        onLoginSuccess={(user) => {
+          clearCart();
+          localStorage.removeItem("cart");
+          setUser(user);
+        }} 
+      />
     </header>
   );
 };

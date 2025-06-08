@@ -9,7 +9,7 @@ async function getGeoData(ip: string) {
     const res = await fetch(`https://ipinfo.io/${ip}?token=${IPINFO_TOKEN}`);
     if (!res.ok) return null;
     const data = await res.json();
-    console.log('IPINFO DATA:', data); // Log para depuración
+    //console.log('IPINFO DATA:', data); // Log para depuración
     return {
       country: data.country || "",
       city: data.city || "",

@@ -7,6 +7,7 @@ import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
 import { Providers } from "./providers";
 import BodyWithDynamicBg from "./components/BodyWithDynamicBg";
 import TrackingProvider from '@/components/TrackingProvider';
+import { AuthProvider } from "@/components/AuthContext";
 
 // ✅ Generamos la metadata sin usar `fetch()`
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,16 +42,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <BodyWithDynamicBg>
-          <Providers>
-            <Header />
-            <TrackingProvider />
-            <main className="min-h-screen relative">
-              {children}
-            </main>
-            <Footer />
-          </Providers>
-        </BodyWithDynamicBg>
+        <AuthProvider>
+          <BodyWithDynamicBg>
+            <Providers>
+              <Header />
+              <TrackingProvider />
+              <main className="min-h-screen relative">
+                {children}
+              </main>
+              <Footer />
+            </Providers>
+          </BodyWithDynamicBg>
+        </AuthProvider>
       </body>
     </html>
   );

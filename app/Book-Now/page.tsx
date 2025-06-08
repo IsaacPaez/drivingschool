@@ -6,7 +6,8 @@ import "react-calendar/dist/Calendar.css";
 import "@/globals.css";
 import Modal from "@/components/Modal";
 import Image from "next/image";
-import { useSession, signIn } from "next-auth/react";
+import { useAuth } from "@/components/AuthContext";
+import LoginModal from "@/components/LoginModal";
 
 interface Slot {
   _id: string;
@@ -43,10 +44,12 @@ export default function BookNowPage() {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
 
-  const { data: session } = useSession();
-  const userId = session?.user?.id || "";
+  const { user } = useAuth();
+  const userId = user?._id || "";
 
   const [weekOffset, setWeekOffset] = useState(0);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showAuthWarning, setShowAuthWarning] = useState(false);
 
   useEffect(() => {
     async function fetchLocations() {
@@ -315,7 +318,7 @@ export default function BookNowPage() {
             className="bg-blue-500 text-white px-6 py-2 rounded"
             onClick={async () => {
               if (!userId) {
-                signIn(); // Redirige al login
+                setShowAuthWarning(true);
                 return;
               }
               if (!selectedInstructor?._id || !selectedSlot) return;
@@ -333,7 +336,6 @@ export default function BookNowPage() {
               if (res.ok) {
                 setIsBookingModalOpen(false);
                 setSelectedSlot(null);
-                // El polling refrescará el horario automáticamente
               } else {
                 alert('Could not book the slot. Please try again.');
               }
@@ -446,7 +448,23 @@ export default function BookNowPage() {
         </div>
       )}
       {renderBookingModal()}
-      
+      <Modal isOpen={showAuthWarning} onClose={() => setShowAuthWarning(false)}>
+        <div className="p-6 text-center">
+          <h2 className="text-xl font-bold mb-4 text-red-600">Authentication Required</h2>
+          <p className="mb-4">You must be logged in to book a class. Please sign in first.</p>
+          <button
+            className="bg-blue-500 text-white px-6 py-2 rounded"
+            onClick={() => setShowAuthWarning(false)}
+          >
+            Close
+          </button>
+        </div>
+      </Modal>
+      <LoginModal
+        open={showLogin}
+        onClose={() => setShowLogin(false)}
+        onLoginSuccess={() => setShowLogin(false)}
+      />
     </section>
   );
 }

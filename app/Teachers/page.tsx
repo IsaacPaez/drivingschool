@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import InstructorCalendar from '../../components/TeachersCalendar/InstructorCalendar';
-import { useSession } from "next-auth/react";
 import AuthRedirector from "../components/AuthRedirector";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useAuth } from "@/components/AuthContext";
 
 // Custom hook para polling tipo webhook
 function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) => void) {
@@ -22,24 +22,23 @@ function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) 
 }
 
 export default function TeachersPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
+  const { user } = useAuth();
   const [rawSchedule, setRawSchedule] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "loading") return;
-    if (!session || !session.user) {
+    if (user === null) {
       router.replace("/api/auth/signin/auth0?callbackUrl=/teachers");
       return;
     }
-    if ((session.user as { role?: string })?.role !== "instructor") {
+    if ((user as { role?: string })?.role !== "instructor") {
       router.replace("/");
     }
-  }, [session, status, router]);
+  }, [user, router]);
 
   // Hook profesional para actualización en vivo
-  const instructorId = (session?.user as { instructorId?: string })?.instructorId;
+  const instructorId = (user as { instructorId?: string })?.instructorId;
   useWebhook(
     instructorId,
     (data) => {
@@ -50,8 +49,8 @@ export default function TeachersPage() {
   );
 
   const fetchSchedule = async () => {
-    if (!session?.user) return;
-    const instructorId = (session.user as { instructorId?: string }).instructorId;
+    if (user === null) return;
+    const instructorId = (user as { instructorId?: string }).instructorId;
     if (!instructorId) return;
     
     const res = await fetch(`/api/teachers?id=${instructorId}`);
@@ -59,7 +58,7 @@ export default function TeachersPage() {
     setRawSchedule((data as { schedule?: unknown[] }).schedule || []);
   };
 
-  if (status === "loading" || !session || !session.user || (session.user as { role?: string })?.role !== "instructor") {
+  if (user === null) {
     return null;
   }
 

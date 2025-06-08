@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import InstructorCalendar from '../../../components/TeachersCalendar/InstructorCalendar';
-import { useSession } from "next-auth/react";
 import AuthRedirector from "../../components/AuthRedirector";
 import { useRouter, useParams } from "next/navigation";
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { useAuth } from "@/components/AuthContext";
 
 // Custom hook para polling tipo webhook
 function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) => void) {
@@ -22,24 +22,23 @@ function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) 
 }
 
 export default function TeacherProfilePage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
   const idParam = params?.id;
   const id = Array.isArray(idParam) ? idParam[0] : idParam || '';
   const [rawSchedule, setRawSchedule] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (status === "loading") return;
-    if (!session || !session.user) {
+    if (user === null) {
       router.replace("/api/auth/signin/auth0?callbackUrl=/teachers");
       return;
     }
-    if ((session.user as { role?: string })?.role !== "instructor") {
+    if ((user as { role?: string })?.role !== "instructor") {
       router.replace("/");
     }
-  }, [session, status, router]);
+  }, [user, router]);
 
   // Hook profesional para actualización en vivo
   useWebhook(
@@ -57,7 +56,7 @@ export default function TeacherProfilePage() {
     setRawSchedule((data as { schedule?: unknown[] }).schedule || []);
   };
 
-  if (status === "loading" || !session || !session.user || (session.user as { role?: string })?.role !== "instructor") {
+  if (user === null) {
     return null;
   }
 

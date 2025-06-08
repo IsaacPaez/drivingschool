@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import StudentList from '@/components/Students/StudentList';
 import StudentDetails from '@/components/Students/StudentDetails';
 import MailModal from '@/components/Students/MailModal';
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/AuthContext";
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
 interface Student {
@@ -68,8 +68,8 @@ function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) 
 }
 
 const StudentsPage = () => {
-  const { data: session } = useSession();
-  const instructorId = (session?.user as { instructorId?: string })?.instructorId;
+  const { user } = useAuth();
+  const instructorId = (user as { instructorId?: string })?.instructorId;
   const [courses, setCourses] = useState<Course[]>([]);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [classStudents, setClassStudents] = useState<Student[]>([]);
