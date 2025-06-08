@@ -14,6 +14,7 @@ export interface IInstructor extends Document {
   name: string;
   photo: string;
   email: string;
+  password: string;
   certifications?: string;
   experience?: string;
   schedule?: ScheduleSlot[];
@@ -34,6 +35,7 @@ const InstructorSchema = new Schema<IInstructor>(
     name: { type: String, required: true },
     photo: { type: String, required: true },
     email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
     certifications: { type: String, default: "N/A" },
     experience: { type: String, default: "N/A" },
     schedule: [ScheduleSlotSchema],

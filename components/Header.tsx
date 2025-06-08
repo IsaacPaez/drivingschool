@@ -3,26 +3,30 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import CartIcon from "./CartIcon";
 import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
 import { useCart } from "@/app/context/CartContext";
+import LoadingSpinner from "./common/LoadingSpinner";
 
 interface User {
   name: string;
   email: string;
   image?: string;
+  type?: string;
 }
 
 const Header = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [isHome, setIsHome] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [userFullName, setUserFullName] = useState<string>('');
   const [showLogin, setShowLogin] = useState(false);
   const { user, setUser, logout } = useAuth();
   const { clearCart } = useCart();
+  const [showTeacherLoading, setShowTeacherLoading] = useState(false);
 
   useEffect(() => {
     setIsHome(pathname === "/"); // Se actualiza correctamente en cada cambio de ruta
@@ -64,6 +68,12 @@ const Header = () => {
   const isTeacherSection = typeof pathname === "string" && pathname.startsWith("/teachers");
 
   const hideAuthButtons = typeof pathname === "string" && pathname.startsWith("/complete-profile");
+
+  useEffect(() => {
+    if (showTeacherLoading && typeof pathname === 'string' && pathname.startsWith("/teachers")) {
+      setShowTeacherLoading(false);
+    }
+  }, [pathname, showTeacherLoading]);
 
   return (
     <header className={`fixed top-0 left-0 w-full z-50 px-4 ${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'}`}>
@@ -290,8 +300,17 @@ const Header = () => {
           clearCart();
           localStorage.removeItem("cart");
           setUser(user);
+          if (user && (user as any).type === 'instructor') {
+            setShowTeacherLoading(true);
+            router.replace("/teachers");
+          }
         }} 
       />
+      {showTeacherLoading && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80">
+          <LoadingSpinner />
+        </div>
+      )}
     </header>
   );
 };

@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     // Buscar la sesión
     const session = await Session.findOne({ sessionId });
     if (!session) {
+      // No intentar session.save() si no existe
       return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
     }
 
@@ -86,6 +87,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, created: true });
   } catch (error) {
     console.error('Error in track-visit:', error);
+    // Si el error es VersionError, devolver un mensaje más claro
+    if (error?.name === 'VersionError') {
+      return NextResponse.json({ success: false, error: 'Session document not found or version mismatch.' }, { status: 409 });
+    }
     return NextResponse.json({ success: false, error: 'Error in track-visit' }, { status: 500 });
   }
 } 
