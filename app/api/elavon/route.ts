@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   await connectDB();
   const { amount, items, userId } = await req.json();
 
-  // Validar el total en el backend
+  // Validate total on backend
   const backendTotal = items && Array.isArray(items)
     ? items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0).toFixed(2)
     : amount;
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Cart total mismatch." }, { status: 400 });
   }
 
-  // Buscar usuario en la base de datos
+  // Find user in database
   if (!userId) {
     return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
   }
@@ -25,6 +25,12 @@ export async function POST(req: NextRequest) {
   }
   const user = userDoc.toObject();
 
+  // Helper to ensure valid values
+  function safe(val: any) {
+    return val ? val : "";
+  }
+
+  // Call the payment proxy to get the token
   const response = await fetch("http://3.149.101.8:3000/api/payments/proxy", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -38,18 +44,18 @@ export async function POST(req: NextRequest) {
         ssl_user_id: "apiuser",
         ssl_pin: "F172ZQCH30G5SCBTVS19YBZK0XUMKQ9KBLBXI1QMXMQYAQI4J591BY5GY1PKGL1E",
         ssl_amount: amount,
-        ssl_first_name: user.firstName,
-        ssl_last_name: user.lastName,
-        ssl_company: "",
-        ssl_avs_address: user.streetAddress,
-        ssl_city: user.city,
-        ssl_state: user.state,
-        ssl_avs_zip: user.zipCode,
+        ssl_first_name: safe(user.firstName),
+        ssl_last_name: safe(user.lastName),
+        ssl_company: "Driving School",
+        ssl_avs_address: safe(user.streetAddress),
+        ssl_city: safe(user.city),
+        ssl_state: safe(user.state),
+        ssl_avs_zip: safe(user.zipCode),
         ssl_country: "US",
-        ssl_email: user.email,
-        ssl_phone: user.phoneNumber,
+        ssl_email: safe(user.email),
+        ssl_phone: safe(user.phoneNumber),
         ssl_description: items.map((i: any) => i.title).join(", ") || "Purchase",
-        ssl_customer_code: user.dni || "",
+        ssl_customer_code: safe(user.dni),
         ssl_salestax: "",
         ssl_get_token: "Y",
         ssl_add_token: "Y",
@@ -60,13 +66,6 @@ export async function POST(req: NextRequest) {
     }),
   });
 
-  // Log de depuración
-  console.log("ConvergePay response status:", response.status);
-  const token = await response.text();
-  console.log("ConvergePay response body:", token);
-  // Validar que el token recibido sea válido (no vacío, no contenga 'error', y tenga longitud razonable)
-  if (!token || token.toLowerCase().includes("error") || token.length < 10) {
-    return NextResponse.json({ error: "Token generation failed.", details: token }, { status: 500 });
-  }
+  const token = await response.text(); // Elavon responds with plain string
   return NextResponse.json({ token });
 }

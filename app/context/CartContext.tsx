@@ -7,6 +7,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { useAuth } from "@/components/AuthContext";
 
 interface CartItem {
   id: string;
@@ -28,6 +29,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const { user } = useAuth();
 
   // 🛒 Cargar el carrito desde localStorage al iniciar (solo si está vacío)
   useEffect(() => {
@@ -55,6 +57,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     window.addEventListener("storage", syncCart);
     return () => window.removeEventListener("storage", syncCart);
   }, []);
+
+  // Save cart to DB every time it changes and user is logged in
+  useEffect(() => {
+    async function saveCartToDB() {
+      if (user && user._id && cart.length > 0) {
+        try {
+          await fetch("/api/cart", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user._id, items: cart }),
+          });
+        } catch (err) {
+          console.error("[CartContext] Failed to save cart to DB:", err);
+        }
+      }
+    }
+    saveCartToDB();
+  }, [cart, user]);
 
   // 🚀 Función para agregar productos al carrito
   const addToCart = (item: CartItem) => {

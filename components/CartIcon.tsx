@@ -23,40 +23,23 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
       return;
     }
     if (cart.length === 0) {
-      alert("❌ Your cart is empty.");
+      alert("❌ Tu carrito está vacío.");
       return;
     }
     // Validación extra de productos
     const invalid = cart.some(item => !item.id || !item.title || typeof item.price !== 'number' || item.price <= 0 || typeof item.quantity !== 'number' || item.quantity <= 0);
     if (invalid) {
-      alert("❌ There are invalid products in your cart. The cart will be emptied. Please add products again.");
+      alert("❌ Hay productos inválidos en tu carrito. El carrito será vaciado. Por favor, agrega los productos nuevamente.");
       localStorage.removeItem("cart");
       window.location.reload();
       return;
     }
     setLoading(true);
     try {
-      // Calculate total amount
-      const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
-      const formattedTotal = total.toFixed(2); // Always string with two decimals
-      const res = await fetch("/api/elavon", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: formattedTotal, items: cart, userId: user?._id }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.token) {
-        let errorMsg = "❌ There was an error processing the payment.";
-        if (data && data.error) {
-          errorMsg += `\n${data.error}`;
-          if (data.details) errorMsg += `\nDetails: ${data.details}`;
-        }
-        alert(errorMsg);
-        return;
-      }
-      window.location.href = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${data.token}`;
+      // Redirect to backend payment redirect endpoint with userId
+      window.location.href = `/api/payments/redirect?userId=${user._id}`;
     } catch (error) {
-      console.error("❌ Request error:", error);
+      console.error("❌ Payment error:", error);
       alert("❌ There was an error processing the payment. Please try again.");
     } finally {
       setLoading(false);
