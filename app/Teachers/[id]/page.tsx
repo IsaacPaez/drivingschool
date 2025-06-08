@@ -32,10 +32,9 @@ export default function TeacherProfilePage() {
 
   useEffect(() => {
     if (user === null) {
-      router.replace("/api/auth/signin/auth0?callbackUrl=/teachers");
       return;
     }
-    if ((user as { role?: string })?.role !== "instructor") {
+    if ((user as any)?.type !== "instructor") {
       router.replace("/");
     }
   }, [user, router]);

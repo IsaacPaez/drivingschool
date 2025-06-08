@@ -25,11 +25,13 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({
       success: true,
-      type: 'instructor',
       user: {
+        _id: instructor._id,
+        instructorId: instructor._id,
         name: instructor.name,
         email: instructor.email,
         photo: instructor.photo,
+        type: 'instructor',
       },
     });
   }
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
       used: false,
     });
 
-    // Enviar correo bonito
+    // Enviar correo
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
