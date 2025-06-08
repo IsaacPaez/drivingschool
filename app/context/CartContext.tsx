@@ -61,11 +61,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       if (existingItem) {
-        return prevCart.map((cartItem) =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
+        // Si ya existe, no hacer nada (solo uno por producto)
+        return prevCart;
       }
       return [...prevCart, { ...item, quantity: 1 }];
     });

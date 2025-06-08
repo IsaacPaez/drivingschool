@@ -39,20 +39,22 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
       // Calculate total amount
       const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
       const formattedTotal = total.toFixed(2); // Always string with two decimals
-      console.log("Total amount sent to Elavon:", formattedTotal); // Log the formatted total
       const res = await fetch("/api/elavon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: formattedTotal, items: cart }),
+        body: JSON.stringify({ amount: formattedTotal, items: cart, userId: user?._id }),
       });
-      if (!res.ok) throw new Error("Server response error.");
-      const { token } = await res.json();
-      console.log("Token received from backend:", token);
-      if (token) {
-        window.location.href = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}`;
-      } else {
-        alert("❌ Error processing payment.");
+      const data = await res.json();
+      if (!res.ok || !data.token) {
+        let errorMsg = "❌ There was an error processing the payment.";
+        if (data && data.error) {
+          errorMsg += `\n${data.error}`;
+          if (data.details) errorMsg += `\nDetails: ${data.details}`;
+        }
+        alert(errorMsg);
+        return;
       }
+      window.location.href = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${data.token}`;
     } catch (error) {
       console.error("❌ Request error:", error);
       alert("❌ There was an error processing the payment. Please try again.");
@@ -113,6 +115,18 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                 <FaTimes size={24} />
               </button>
             </div>
+            {/* Total y botón para vaciar carrito */}
+            {cart.length > 0 && (
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-lg font-bold dark:text-black">Total: ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2)}</span>
+                <button
+                  onClick={() => { localStorage.removeItem("cart"); window.location.reload(); }}
+                  className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-700 transition text-sm"
+                >
+                  Empty Cart
+                </button>
+              </div>
+            )}
 
             {cart.length === 0 ? (
               <p className="text-gray-500 text-center dark:text-black">

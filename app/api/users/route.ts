@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 export async function POST(req: Request) {
   await connectDB();
   const data = await req.json();
-  console.log("Nuevo usuario recibido:", data);
+  //console.log("Nuevo usuario recibido:", data);
 
   // Validar campos requeridos
   const requiredFields = [
