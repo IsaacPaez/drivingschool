@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import StudentList from '@/components/Students/StudentList';
 import StudentDetails from '@/components/Students/StudentDetails';
 import MailModal from '@/components/Students/MailModal';
@@ -92,16 +92,14 @@ const StudentsPage = () => {
   const [ticketclasses, setTicketclasses] = useState<any[]>([]);
 
   // Hook profesional para actualización en vivo
-  useWebhook(
-    instructorId,
-    (data) => {
-      const typedData = data as { classes?: Course[]; students?: Student[]; ticketclasses?: any[] };
-      setCourses(typedData.classes || []);
-      setAllStudents(typedData.students || []);
-      setTicketclasses(typedData.ticketclasses || []);
-      setLoading(false);
-    }
-  );
+  const handleWebhookUpdate = useCallback((data: unknown) => {
+    const typedData = data as { classes?: Course[]; students?: Student[]; ticketclasses?: any[] };
+    setCourses(typedData.classes || []);
+    setAllStudents(typedData.students || []);
+    setTicketclasses(typedData.ticketclasses || []);
+    setLoading(false);
+  }, []);
+  useWebhook(instructorId, handleWebhookUpdate);
 
   // Limpiar selección SOLO cuando cambia el curso
   useEffect(() => {
@@ -126,8 +124,8 @@ const StudentsPage = () => {
     }
 
     // LOGS DE DEPURACIÓN
-    console.log('allStudents:', allStudents);
-    console.log('tc.students:', tc.students);
+    //console.log('allStudents:', allStudents);
+    //console.log('tc.students:', tc.students);
 
     const studentsInClass = allStudents.filter(st =>
       tc.students.some((s: any) => {
@@ -233,6 +231,8 @@ const StudentsPage = () => {
       });
       if (res.ok) {
         setMailSent(true);
+        setMailSubject('');
+        setMailBody('');
       } else {
         setMailSent(false);
         alert('Error sending email');

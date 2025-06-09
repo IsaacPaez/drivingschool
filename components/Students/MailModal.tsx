@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface MailModalProps {
   show: boolean;
@@ -13,20 +13,19 @@ interface MailModalProps {
   onSend: () => void;
 }
 
-const templates = [
-  {
-    label: 'Class Reminder',
-    subject: 'Class Reminder',
-    body: 'Hello! This is a reminder that you have a driving class scheduled soon. Please be on time and bring all required documents.'
-  },
-  {
-    label: 'Class Cancellation',
-    subject: 'Class Cancellation',
-    body: 'Hello, we regret to inform you that your upcoming driving class has been cancelled. Please contact us to reschedule. Sorry for the inconvenience.'
-  }
-];
-
 const MailModal: React.FC<MailModalProps> = ({ show, onClose, recipients, subject, setSubject, body, setBody, sending, sent, onSend }) => {
+  const [templates, setTemplates] = useState<{_id:string, name:string, subject:string, body:string}[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  useEffect(() => {
+    if (!show) return;
+    setLoadingTemplates(true);
+    fetch('/api/gmailtemplates?type=student')
+      .then(res => res.json())
+      .then(data => setTemplates(data.templates || []))
+      .finally(() => setLoadingTemplates(false));
+  }, [show]);
+
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
@@ -40,18 +39,25 @@ const MailModal: React.FC<MailModalProps> = ({ show, onClose, recipients, subjec
           </svg>
           <span className="text-xl font-bold text-[#ea4335]">Send Email</span>
         </div>
-        {/* Plantillas rápidas */}
-        <div className="flex gap-2 mb-4 w-full justify-center">
-          {templates.map(t => (
-            <button
-              key={t.label}
-              className={`px-3 py-1 rounded-full font-semibold text-xs transition-all ${t.label === 'Class Reminder' ? 'bg-[#0056b3] text-white hover:bg-[#003366]' : 'bg-[#f44336] text-white hover:bg-[#b71c1c]'}`}
-              onClick={() => { setSubject(t.subject); setBody(t.body); }}
-              disabled={sending || sent}
-            >
-              {t.label}
-            </button>
-          ))}
+        {/* Plantillas dinámicas */}
+        <div className="flex gap-2 mb-4 w-full justify-center flex-wrap">
+          {loadingTemplates ? (
+            <span className="text-gray-400 text-xs">Loading templates...</span>
+          ) : templates.length > 0 ? (
+            templates.map(t => (
+              <button
+                key={t._id}
+                className={`px-3 py-1 rounded-full font-semibold text-xs transition-all bg-[#0056b3] text-white hover:bg-[#003366]`}
+                onClick={() => { setSubject(t.subject); setBody(t.body); }}
+                disabled={sending || sent}
+                title={t.name}
+              >
+                {t.name}
+              </button>
+            ))
+          ) : (
+            <span className="text-gray-400 text-xs">No templates</span>
+          )}
         </div>
         <div className="w-full mb-2">
           <div className="text-xs text-gray-500 mb-1">To:</div>
