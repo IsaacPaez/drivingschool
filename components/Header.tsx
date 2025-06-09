@@ -94,7 +94,7 @@ const Header = () => {
             <div className="relative flex flex-col items-center">
               <button
                 onClick={() => setShowMenu((v) => !v)}
-                className="focus:outline-none mt-6"
+                className="focus:outline-none mt-0 lg:mt-6"
               >
                 {user.photo ? (
                   <Image
@@ -102,21 +102,22 @@ const Header = () => {
                     alt="User profile"
                     width={40}
                     height={40}
-                    className="rounded-full"
+                    className="rounded-full border-2 border-white shadow-lg"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-blue-700 flex items-center justify-center text-white text-xl font-bold">
+                  <div className="w-10 h-10 rounded-full bg-blue-700 flex items-center justify-center text-white text-xl font-bold border-2 border-white shadow-lg">
                     {(user.name?.[0] || 'U').toUpperCase()}
                   </div>
                 )}
               </button>
-              <span className="mt-1 text-[#0056b3] font-bold text-sm text-center w-32 whitespace-normal break-words uppercase">
+              {/* Solo mostrar el nombre en desktop */}
+              <span className="mt-1 text-[#0056b3] font-bold text-sm text-center w-32 whitespace-normal break-words uppercase hidden lg:block">
                 {user.name}
               </span>
               {showMenu && (
-                <div className="absolute top-14 right-0 bg-white border rounded shadow-lg py-2 px-4 z-50">
+                <div className="absolute top-14 left-0 bg-white border rounded shadow-lg py-2 px-4 z-50">
                   <button
-                    onClick={() => logout()}
+                    onClick={() => { logout(); router.replace("/"); }}
                     className="text-red-600 font-semibold hover:underline"
                   >
                     Log out

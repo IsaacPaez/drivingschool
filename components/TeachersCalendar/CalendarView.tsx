@@ -46,7 +46,7 @@ interface CalendarViewProps {
 
 const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, onClassClick, onScheduleUpdate, hideSidebars }) => {
   // All hooks must be at the top level
-  const [view, setView] = useState<'week' | 'month'>('week');
+  const [view, setView] = useState<'week' | 'month' | 'day'>('week');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState<CalendarClass | null>(null);
@@ -248,11 +248,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
     });
     return (
       <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse shadow-xl rounded-2xl bg-white">
+        <table className="min-w-full border-collapse shadow-2xl rounded-2xl bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4]">
           <thead>
             <tr>
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-                <th key={i} className="p-2 border-b bg-gradient-to-br from-[#e8f6ef] to-[#f0f6ff] text-[#0056b3] text-lg font-bold text-center">{d}</th>
+                <th key={i} className="p-2 border-b bg-gradient-to-br from-[#e8f6ef] to-[#f0f6ff] text-[#0056b3] text-lg font-bold text-center tracking-wide uppercase shadow-inner">{d}</th>
               ))}
             </tr>
           </thead>
@@ -264,11 +264,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                   return (
                     <td
                       key={dayIndex}
-                      className={`align-top min-h-[90px] h-[90px] w-[120px] border p-1 ${day === 0 ? 'bg-gray-50' : isToday ? 'bg-[#b2f2d7]' : 'bg-white'}`}
+                      className={`align-top min-h-[100px] h-[100px] w-[120px] border p-2 rounded-2xl transition-all duration-200 ${day === 0 ? 'bg-gray-50' : isToday ? 'bg-[#b2f2d7] border-2 border-[#27ae60] shadow-lg scale-105' : 'bg-white hover:bg-[#e3f6fc]'} group`}
                     >
                       {day !== 0 && (
                         <div className="flex flex-col h-full">
-                          <div className="text-[#0056b3] font-bold text-lg mb-1">{day}</div>
+                          <div className={`text-center font-extrabold text-lg mb-1 ${isToday ? 'text-[#27ae60]' : 'text-[#0056b3]'}`}>{day}</div>
                           <div className="flex flex-col gap-1 flex-1">
                             {/* Agrupar bloques contiguos por status y mostrar rangos */}
                             {(() => {
@@ -294,19 +294,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                               return grouped.map((g, idx) => (
                                 <div
                                   key={idx}
-                                  className={`rounded-lg px-2 py-1 text-xs font-semibold shadow transition-all mb-1
-                                    ${g.status === 'scheduled' ? 'bg-[#0056b3] text-white hover:bg-[#27ae60] cursor-pointer' : ''}
-                                    ${g.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-                                    ${g.status === 'free' ? 'bg-gray-200 text-gray-700' : ''}
+                                  className={`rounded-xl px-2 py-1 text-xs font-bold shadow transition-all mb-1 flex items-center gap-1
+                                    ${g.status === 'scheduled' ? 'bg-[#0056b3] text-white hover:bg-[#27ae60] cursor-pointer border-2 border-[#27ae60]' : ''}
+                                    ${g.status === 'cancelled' ? 'bg-[#f44336] text-white border-2 border-[#f44336]/60' : ''}
+                                    ${g.status === 'free' ? 'bg-[#eafaf1] text-[#0056b3] border-2 border-[#b2f2d7]' : ''}
                                   `}
                                   title={`${g.status.charAt(0).toUpperCase() + g.status.slice(1)} ${g.start} - ${g.end}`}
                                   {...(g.status === 'scheduled' ? { onClick: () => handleTimeBlockClick({ ...dayClasses.find(c => c.status === 'scheduled' && c.start === g.start && c.end === g.end)! }) } : {})}
                                 >
-                                  {g.status === 'scheduled' && 'Scheduled'}
-                                  {g.status === 'cancelled' && 'Cancelled'}
-                                  {g.status === 'free' && 'Free'}
+                                  <span className="capitalize">{g.status}</span>
                                   <span className="ml-1 font-normal">{g.start} - {g.end}</span>
-                              </div>
+                                </div>
                               ));
                             })()}
                           </div>
@@ -386,19 +384,146 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
     );
   }
 
+  // Vista móvil: selector de vista
+  function renderMobileViewSelector() {
+    return (
+      <div className="flex justify-center gap-2 mb-4">
+        <button onClick={() => { setView('day'); setSelectedDate(new Date()); }} className={`px-3 py-1 rounded font-semibold border ${view==='day' ? 'bg-[#27ae60] text-white' : 'bg-white text-[#27ae60] border-[#27ae60]'}`}>Day</button>
+        <button onClick={() => { setView('week'); setSelectedDate(new Date()); }} className={`px-3 py-1 rounded font-semibold border ${view==='week' ? 'bg-[#0056b3] text-white' : 'bg-white text-[#0056b3] border-[#0056b3]'}`}>Week</button>
+      </div>
+    );
+  }
+
+  // Flechas para avanzar día o semana en móvil
+  function renderMobileNavArrows() {
+    return (
+      <div className="flex justify-center items-center gap-4 mb-2">
+        <button onClick={() => {
+          if (view === 'day') {
+            const prev = new Date(selectedDate);
+            prev.setDate(selectedDate.getDate() - 1);
+            setSelectedDate(prev);
+          } else if (view === 'week') {
+            const prev = new Date(selectedDate);
+            prev.setDate(selectedDate.getDate() - 7);
+            setSelectedDate(prev);
+          }
+        }} className="p-2 rounded-full bg-[#e3f6fc] hover:bg-[#27ae60] text-[#0056b3] hover:text-white shadow transition-all">
+          <HiChevronLeft size={22} />
+        </button>
+        <span className="font-bold text-[#27ae60] text-lg">
+          {view === 'day' ? selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : weekRangeLabel(selectedDate)}
+        </span>
+        <button onClick={() => {
+          if (view === 'day') {
+            const next = new Date(selectedDate);
+            next.setDate(selectedDate.getDate() + 1);
+            setSelectedDate(next);
+          } else if (view === 'week') {
+            const next = new Date(selectedDate);
+            next.setDate(selectedDate.getDate() + 7);
+            setSelectedDate(next);
+          }
+        }} className="p-2 rounded-full bg-[#e3f6fc] hover:bg-[#27ae60] text-[#0056b3] hover:text-white shadow transition-all">
+          <HiChevronRight size={22} />
+        </button>
+      </div>
+    );
+  }
+
+  // Label de rango de semana
+  function weekRangeLabel(date: Date) {
+    const start = new Date(date);
+    start.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  }
+
+  // Vista móvil: semana actual
+  function renderMobileWeekView() {
+    const start = new Date(selectedDate);
+    start.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 6) % 7));
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return d;
+    });
+    return (
+      <div className="flex flex-col gap-2">
+        {days.map((day) => {
+          const dayClasses = classes.filter(c => {
+            const d = c.date instanceof Date ? c.date : new Date(c.date);
+            return d.toDateString() === day.toDateString();
+          }).sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+          return (
+            <div key={day.toISOString()} className={`bg-white rounded-xl shadow p-3 ${day.toDateString() === new Date().toDateString() ? 'border-2 border-[#27ae60]' : ''}`}>
+              <div className={`font-bold text-[#0056b3] text-md mb-2 text-center ${day.toDateString() === new Date().toDateString() ? 'text-[#27ae60]' : ''}`}>{day.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+              {dayClasses.length === 0 && <div className="text-gray-400 text-center">No classes</div>}
+              {dayClasses.map((b) => (
+                <div
+                  key={b.id}
+                  className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
+                    ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
+                    ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
+                    ${b.status === 'free' ? 'bg-gray-200 text-gray-700' : ''}
+                  `}
+                  onClick={() => handleTimeBlockClick(b)}
+                >
+                  <span className="font-mono">{b.start}-{b.end}</span>
+                  <span className="ml-2 capitalize">{b.status}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Vista móvil: día actual
+  function renderMobileDayView() {
+    const today = new Date(selectedDate);
+    const dayClasses = classes.filter(c => {
+      const d = c.date instanceof Date ? c.date : new Date(c.date);
+      return d.toDateString() === today.toDateString();
+    }).sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+    return (
+      <div className="bg-white rounded-xl shadow p-3 mb-4">
+        {dayClasses.length === 0 && <div className="text-gray-400 text-center">No classes</div>}
+        {dayClasses.map((b) => (
+          <div
+            key={b.id}
+            className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
+              ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
+              ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
+              ${b.status === 'free' ? 'bg-gray-200 text-gray-700' : ''}
+            `}
+            onClick={() => handleTimeBlockClick(b)}
+          >
+            <span className="font-mono">{b.start}-{b.end}</span>
+            <span className="ml-2 capitalize">{b.status}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   // El return principal del componente debe estar fuera de cualquier función
   return (
     <div className="w-full">
       {/* Encabezado único y margen superior responsivo */}
-      <div className="flex flex-col items-center justify-center mt-32 md:mt-16 pb-4 px-2 w-full">
+      <div className={`flex flex-col items-center justify-center ${isMobile ? 'mt-4' : 'mt-32 md:mt-16'} pb-4 px-2 w-full`}>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-center tracking-wide mb-2 w-full whitespace-pre-line break-words" style={{ wordBreak: 'break-word', lineHeight: 1.1 }}>
           <span className="text-[#0056b3]">INSTRUCTOR</span> <span className="text-[#27ae60]">SCHEDULE</span>
         </h1>
-        <div className="flex items-center gap-2 mb-4 bg-white/70 rounded-xl shadow p-2 w-fit mx-auto">
-          <button onClick={handlePrev} className="p-2 rounded-full bg-[#e3f6fc] hover:bg-[#27ae60] text-[#0056b3] hover:text-white shadow transition-all"><HiChevronLeft size={22} /></button>
-          <CalendarToolbar view={view} setView={setView} />
-          <button onClick={handleNext} className="p-2 rounded-full bg-[#e3f6fc] hover:bg-[#27ae60] text-[#0056b3] hover:text-white shadow transition-all"><HiChevronRight size={22} /></button>
-        </div>
+        {!isMobile && (
+          <div className="flex items-center gap-2 mb-4 bg-white/70 rounded-xl shadow p-2 w-fit mx-auto">
+            <button onClick={handlePrev} className="p-2 rounded-full bg-[#e3f6fc] hover:bg-[#27ae60] text-[#0056b3] hover:text-white shadow transition-all"><HiChevronLeft size={22} /></button>
+            <CalendarToolbar view={view} setView={setView} />
+            <button onClick={handleNext} className="p-2 rounded-full bg-[#e3f6fc] hover:bg-[#27ae60] text-[#0056b3] hover:text-white shadow transition-all"><HiChevronRight size={22} /></button>
+          </div>
+        )}
       </div>
       <div className="flex gap-8 w-full flex-col lg:flex-row">
       {/* Sidebar izquierda */}
@@ -430,22 +555,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
         <main className="flex-1 min-w-0">
           {isMobile ? (
             <div className="rounded-3xl border-2 border-[#27ae60] shadow-2xl p-2 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] max-w-full mx-auto transition-all duration-500 min-w-[320px]">
-              {renderMobileAgenda()}
+              {renderMobileViewSelector()}
+              {renderMobileNavArrows()}
+              {view === 'day' && renderMobileDayView()}
+              {view === 'week' && renderMobileWeekView()}
             </div>
           ) : (
             view === 'month' ? (
-              <div className="text-[#27ae60] font-extrabold text-2xl mb-2 text-center tracking-wide uppercase drop-shadow-sm select-none">
-                {selectedDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
-              </div>
+              <>
+                <div className="text-[#27ae60] font-extrabold text-2xl mb-2 text-center tracking-wide uppercase drop-shadow-sm select-none">
+                  {selectedDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                </div>
+                {renderMonthView()}
+              </>
             ) : (
-            <CalendarGrid
+              <CalendarGrid
                 blocks={classes.map(slot => ({
                   ...slot,
                   time: `${slot.start}-${slot.end}`
                 }))}
                 onBlockClick={handleBlockClick}
                 selectedDate={selectedDate}
-            />
+              />
             )
           )}
       </main>

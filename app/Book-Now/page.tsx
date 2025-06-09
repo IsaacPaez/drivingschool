@@ -349,7 +349,7 @@ export default function BookNowPage() {
   );
 
   return (
-    <section className="bg-white pt-44 pb-10 px-6 flex flex-col items-center">
+    <section className="bg-white pt-32 pb-8 px-2 sm:px-6 flex flex-col items-center w-full">
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-4 text-center">
@@ -373,80 +373,75 @@ export default function BookNowPage() {
         </div>
       </Modal>
 
-      {!isModalOpen && (
-        <div className="w-full max-w-7xl flex justify-between items-start">
-          <div className="flex flex-col items-center w-1/3">
-            <div className="mb-4 w-full flex justify-center">
-              <Calendar
-                onChange={(value) => handleDateChange(value as Date | null)}
-                value={selectedDate}
-                locale="en-US"
-                className="border rounded-lg shadow-md w-auto p-2"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              {instructors.map((inst) => {
-                // Divide el nombre completo en nombre y apellido
-                const [firstName, ...lastNameParts] = inst.name.split(' ');
-                const lastName = lastNameParts.join(' ');
-                return (
-                  <div
-                    key={inst._id}
-                    className={`shadow-lg rounded-lg p-4 text-center cursor-pointer hover:shadow-xl transition-all w-40 
-        ${
-          selectedInstructor?._id === inst._id
-            ? "border-4 border-blue-500 bg-blue-100"
-            : "bg-white"
-        }`}
-                    onClick={() => {
-                      setSelectedInstructorId(inst._id);
-                      setSelectedDate(null);
-                    }}
-                  >
-                    <Image
-                      src={inst.photo || "/default-avatar.png"}
-                      alt={inst.name}
-                      width={80}
-                      height={80}
-                      className="w-20 h-20 rounded-full mx-auto mb-2"
-                    />
-                    <div className="flex flex-col items-center mt-2">
-                      <span className="text-md font-semibold text-black leading-tight">{firstName}</span>
-                      <span className="text-sm text-gray-600 leading-tight">{lastName}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+      <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-6 items-start">
+        {/* Calendario y lista de instructores en columna en móvil */}
+        <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
+          <div className="mb-4 w-full flex justify-center">
+            <Calendar
+              onChange={(value) => handleDateChange(value as Date | null)}
+              value={selectedDate}
+              locale="en-US"
+              className="border rounded-lg shadow-md w-full max-w-xs p-2"
+            />
           </div>
-
-          <div className="w-2/3">
-            {selectedInstructor && (
-              <>
-                <h2 className="text-2xl font-bold text-center text-blue-700">
-                  {selectedInstructor.name}&apos;s Schedule
-                </h2>
-                <div className="flex justify-center items-center mb-2 gap-4">
-                  <button
-                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
-                    onClick={() => setWeekOffset(weekOffset - 1)}
-                  >
-                    ← Previous week
-                  </button>
-                  <button
-                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
-                    onClick={() => setWeekOffset(weekOffset + 1)}
-                  >
-                    Next week →
-                  </button>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2 w-full">
+            {instructors.map((inst) => {
+              const [firstName, ...lastNameParts] = inst.name.split(' ');
+              const lastName = lastNameParts.join(' ');
+              return (
+                <div
+                  key={inst._id}
+                  className={`shadow-lg rounded-xl p-2 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full ${selectedInstructor?._id === inst._id ? "border-4 border-blue-500 bg-blue-100" : "bg-white"}`}
+                  onClick={() => {
+                    setSelectedInstructorId(inst._id);
+                    setSelectedDate(null);
+                  }}
+                >
+                  <Image
+                    src={inst.photo || "/default-avatar.png"}
+                    alt={inst.name}
+                    width={60}
+                    height={60}
+                    className="w-14 h-14 sm:w-20 sm:h-20 rounded-full mx-auto mb-1 sm:mb-2"
+                  />
+                  <div className="flex flex-col items-center mt-1 sm:mt-2">
+                    <span className="text-sm sm:text-md font-semibold text-black leading-tight">{firstName}</span>
+                    <span className="text-xs sm:text-sm text-gray-600 leading-tight">{lastName}</span>
+                  </div>
                 </div>
-                {renderScheduleTable()}
-              </>
-            )}
+              );
+            })}
           </div>
         </div>
-      )}
+        {/* Horario en columna en móvil, tabla scrolleable */}
+        <div className="w-full lg:w-2/3 mt-6 lg:mt-0">
+          {selectedInstructor && (
+            <>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-8 mt-12">
+                <span className="text-blue-700">{selectedInstructor.name}&apos;s </span>
+                <span className="text-[#10B981]">Schedule</span>
+              </h2>
+              <div className="flex flex-row justify-center items-center mb-8 gap-2 sm:gap-4">
+                <button
+                  className="px-3 py-1.5 text-xs sm:text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600 font-semibold shadow transition-all duration-200"
+                  onClick={() => setWeekOffset(weekOffset - 1)}
+                >
+                  ← Previous week
+                </button>
+                <button
+                  className="px-3 py-1.5 text-xs sm:text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600 font-semibold shadow transition-all duration-200"
+                  onClick={() => setWeekOffset(weekOffset + 1)}
+                >
+                  Next week →
+                </button>
+              </div>
+              <div className="overflow-x-auto w-full">
+                {renderScheduleTable()}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
       {renderBookingModal()}
       <Modal isOpen={showAuthWarning} onClose={() => setShowAuthWarning(false)}>
         <div className="p-6 text-center">

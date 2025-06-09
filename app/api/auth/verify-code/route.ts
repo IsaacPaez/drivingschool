@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import User from '@/models/User';
+import Instructor from '@/models/Instructor';
 import { connectDB } from '@/lib/mongodb';  
 import AuthCode from '@/models/AuthCode';
 
@@ -22,18 +23,34 @@ export async function POST(req: NextRequest) {
   }
   // Eliminar el código después de usarse
   await AuthCode.deleteOne({ _id: codeDoc._id });
-  // Buscar usuario
-  const user = await User.findOne({ email });
-  if (!user) {
-    return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+  // Buscar primero en instructores
+  let user = await Instructor.findOne({ email });
+  if (user) {
+    return NextResponse.json({
+      success: true,
+      user: {
+        _id: user._id,
+        instructorId: user._id,
+        name: user.name,
+        email: user.email,
+        photo: user.photo || null,
+        type: 'instructor',
+      },
+    });
   }
-  return NextResponse.json({
-    success: true,
-    user: {
-      _id: user._id,
-      name: user.firstName + (user.lastName ? ' ' + user.lastName : ''),
-      email: user.email,
-      photo: user.photo || null,
-    },
-  });
+  // Si no es instructor, buscar en usuarios normales
+  user = await User.findOne({ email });
+  if (user) {
+    return NextResponse.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.firstName + (user.lastName ? ' ' + user.lastName : ''),
+        email: user.email,
+        photo: user.photo || null,
+        type: 'user',
+      },
+    });
+  }
+  return NextResponse.json({ error: 'User not found.' }, { status: 404 });
 } 

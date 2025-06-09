@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     ...new Set(
       ticketclasses
         .flatMap(tc => (tc.students || []))
-        .map(s => typeof s === 'object' && s._id ? s._id.toString() : s.toString())
+        .map(s => typeof s === 'object' && s.studentId ? s.studentId.toString() : s.toString())
     )
   ];
 

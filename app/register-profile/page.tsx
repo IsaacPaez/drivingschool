@@ -103,13 +103,6 @@ export default function RegisterProfilePage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8 relative">
-      {/* Botón Back to Home */}
-      <button
-        onClick={() => router.replace("/")}
-        className="absolute top-6 left-6 flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition"
-      >
-        <FaArrowLeft className="mr-2" /> Back to Home
-      </button>
       <div className="max-w-2xl w-full bg-white p-10 rounded-2xl shadow-2xl border border-blue-100 mt-8 mt-16">
         <h2 className="text-center text-2xl font-extrabold text-blue-700 mb-8 drop-shadow-lg tracking-wide mt-8">Sign Up & Complete Your Profile</h2>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
