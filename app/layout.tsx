@@ -6,7 +6,7 @@ import { connectDB } from "@/lib/mongodb";
 import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
 import { Providers } from "./providers";
 import BodyWithDynamicBg from "./components/BodyWithDynamicBg";
-import TrackingProvider from '@/components/TrackingProvider';
+import ConditionalTrackingProvider from '@/components/ConditionalTrackingProvider';
 import { AuthProvider } from "@/components/AuthContext";
 
 // ✅ Generamos la metadata sin usar `fetch()`
@@ -46,7 +46,7 @@ export default function RootLayout({
           <BodyWithDynamicBg>
             <Providers>
               <Header />
-              <TrackingProvider />
+              <ConditionalTrackingProvider />
               <main className="min-h-screen relative">
                 {children}
               </main>

@@ -1,8 +1,8 @@
 import React from 'react';
 
 type Props = {
-  view: 'week' | 'month';
-  setView: (view: 'week' | 'month') => void;
+  view: 'week' | 'month' | 'day';
+  setView: (view: 'week' | 'month' | 'day') => void;
 };
 
 const CalendarToolbar: React.FC<Props> = ({ view, setView }) => {
