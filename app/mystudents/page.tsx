@@ -4,7 +4,7 @@ import StudentList from '@/components/Students/StudentList';
 import StudentDetails from '@/components/Students/StudentDetails';
 import MailModal from '@/components/Students/MailModal';
 import { useAuth } from "@/components/AuthContext";
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useRouter } from "next/navigation";
 
 interface Student {

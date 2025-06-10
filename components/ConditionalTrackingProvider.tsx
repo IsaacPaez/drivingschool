@@ -4,7 +4,7 @@ import TrackingProvider from "@/components/TrackingProvider";
 
 export default function ConditionalTrackingProvider() {
   const pathname = usePathname() || "";
-  const isTeacherRoute = pathname.startsWith("/teachers");
+  const isTeacherRoute = pathname.startsWith("/teachers") || pathname.startsWith("/mystudents");
   if (isTeacherRoute) return null;
   return <TrackingProvider />;
 } 

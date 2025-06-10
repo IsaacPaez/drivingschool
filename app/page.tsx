@@ -9,8 +9,18 @@ import AreasWeServe from "@/components/AreasWeServe";
 import AuthRedirector from "./components/AuthRedirector";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/AuthContext";
 
 export default function Home() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && (user as any).type === "instructor") {
+      router.replace("/teachers");
+    }
+  }, [user, router]);
+
   return (
     <>
       <AuthRedirector />
