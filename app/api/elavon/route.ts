@@ -9,14 +9,14 @@ export async function POST(req: NextRequest) {
     await connectDB();
     const { amount, items, userId } = await req.json();
 
-    console.log("🔸 Incoming request body:", { amount, items, userId });
+    //console.log("🔸 Incoming request body:", { amount, items, userId });
 
     // Validar el total de los items
     const backendTotal = items && Array.isArray(items)
       ? items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0).toFixed(2)
       : amount;
 
-    console.log("🔹 Calculated backend total:", backendTotal);
+    //console.log("🔹 Calculated backend total:", backendTotal);
 
     if (items && parseFloat(backendTotal) !== parseFloat(amount)) {
       console.warn("⚠️ Cart total mismatch:", { received: amount, calculated: backendTotal });
@@ -35,12 +35,12 @@ export async function POST(req: NextRequest) {
     }
 
     const user = userDoc.toObject();
-    console.log("✅ Loaded user data:", {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phone: user.phoneNumber
-    });
+    //console.log("✅ Loaded user data:", {
+    //  firstName: user.firstName,
+    //  lastName: user.lastName,
+    //  email: user.email,
+    //  phone: user.phoneNumber
+    //});
 
     // Extraer todos los campos necesarios para el pago
     const payload = {
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       items: items || []
     };
 
-    console.log("📦 Payload sent to EC2:", payload);
+    //console.log("📦 Payload sent to EC2:", payload);
 
     // Enviar al backend EC2 para que genere el token
     const ec2Res = await fetch(`${EC2_URL}/api/payments/session-token`, {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload)
     });
 
-    console.log("📨 EC2 response status:", ec2Res.status);
+    //console.log("📨 EC2 response status:", ec2Res.status);
 
     if (!ec2Res.ok) {
       const err = await ec2Res.text();

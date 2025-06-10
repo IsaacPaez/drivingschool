@@ -301,7 +301,7 @@ const StudentsPage = () => {
             <span className="hidden md:inline">Email All</span>
           </button>
         </div>
-        <div className="flex gap-8">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-8">
           <StudentList
             filtered={filtered}
             search={search}
