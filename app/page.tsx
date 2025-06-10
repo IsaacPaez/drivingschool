@@ -17,7 +17,7 @@ export default function Home() {
 
   useEffect(() => {
     if (user && (user as any).type === "instructor") {
-      router.replace("/teachers");
+      router.replace("/myschedule");
     }
   }, [user, router]);
 
