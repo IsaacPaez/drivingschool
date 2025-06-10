@@ -29,6 +29,7 @@ export default function TeachersPage() {
 
   useEffect(() => {
     if (user === null) {
+      router.replace("/sign-in");
       return;
     }
     if ((user as any)?.type !== "instructor") {
