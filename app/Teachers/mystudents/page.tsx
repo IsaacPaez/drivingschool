@@ -5,6 +5,7 @@ import StudentDetails from '@/components/Students/StudentDetails';
 import MailModal from '@/components/Students/MailModal';
 import { useAuth } from "@/components/AuthContext";
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { useRouter } from "next/navigation";
 
 interface Student {
   _id: string;
@@ -68,6 +69,7 @@ function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) 
 }
 
 const StudentsPage = () => {
+  const router = useRouter();
   const { user } = useAuth();
   const instructorId = (user as { instructorId?: string })?.instructorId;
   const [courses, setCourses] = useState<Course[]>([]);
@@ -90,6 +92,13 @@ const StudentsPage = () => {
   const [mailSending, setMailSending] = useState(false);
   const [mailSent, setMailSent] = useState(false);
   const [ticketclasses, setTicketclasses] = useState<any[]>([]);
+
+  // Redirección si no hay usuario
+  useEffect(() => {
+    if (user === null) {
+      router.replace("/sign-in");
+    }
+  }, [user, router]);
 
   // Hook profesional para actualización en vivo
   const handleWebhookUpdate = useCallback((data: unknown) => {
