@@ -60,17 +60,17 @@ const Header = () => {
 
   // New teacher links for center navigation
   const teacherNavItems = [
-    { name: "My Schedule", href: "/teachers" },
+    { name: "My Schedule", href: "/myschedule" },
     { name: "My Students", href: "/mystudents" },
   ];
 
   // Helper to check if estamos en sección de profesor
-  const isTeacherSection = typeof pathname === "string" && (pathname.startsWith("/teachers") || pathname.startsWith("/mystudents"));
+  const isTeacherSection = typeof pathname === "string" && (pathname.startsWith("/myschedule") || pathname.startsWith("/mystudents"));
 
   const hideAuthButtons = typeof pathname === "string" && pathname.startsWith("/complete-profile");
 
   useEffect(() => {
-    if (showTeacherLoading && typeof pathname === 'string' && pathname.startsWith("/teachers")) {
+    if (showTeacherLoading && typeof pathname === 'string' && pathname.startsWith("/myschedule")) {
       setShowTeacherLoading(false);
     }
   }, [pathname, showTeacherLoading]);
@@ -303,7 +303,7 @@ const Header = () => {
           setUser(user);
           if (user && (user as any).type === 'instructor') {
             setShowTeacherLoading(true);
-            router.replace("/teachers");
+            router.replace("/myschedule");
           }
         }} 
       />
