@@ -61,11 +61,11 @@ const Header = () => {
   // New teacher links for center navigation
   const teacherNavItems = [
     { name: "My Schedule", href: "/teachers" },
-    { name: "My Students", href: "/teachers/mystudents" },
+    { name: "My Students", href: "/mystudents" },
   ];
 
-  // Helper to check if we are in a teacher section
-  const isTeacherSection = typeof pathname === "string" && pathname.startsWith("/teachers");
+  // Helper to check if estamos en sección de profesor
+  const isTeacherSection = typeof pathname === "string" && (pathname.startsWith("/teachers") || pathname.startsWith("/mystudents"));
 
   const hideAuthButtons = typeof pathname === "string" && pathname.startsWith("/complete-profile");
 
