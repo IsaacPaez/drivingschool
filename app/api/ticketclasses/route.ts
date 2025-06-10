@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import TicketClass from "@/models/TicketClass";
+import mongoose from "mongoose";
 
 interface TicketClassFilter {
   instructorId?: string;
@@ -15,10 +16,10 @@ export async function GET(request: Request) {
   const classId = searchParams.get("classId");
   const studentId = searchParams.get("studentId");
 
-  const filter: TicketClassFilter = {};
-  if (instructorId) filter.instructorId = instructorId;
-  if (classId) filter.classId = classId;
-  if (studentId) filter.students = studentId;
+  const filter: any = {};
+  if (instructorId && mongoose.Types.ObjectId.isValid(instructorId)) filter.instructorId = new mongoose.Types.ObjectId(instructorId);
+  if (classId && mongoose.Types.ObjectId.isValid(classId)) filter.classId = new mongoose.Types.ObjectId(classId);
+  if (studentId && mongoose.Types.ObjectId.isValid(studentId)) filter.students = new mongoose.Types.ObjectId(studentId);
 
   const ticketclasses = await TicketClass.find(filter).lean();
   return NextResponse.json(ticketclasses);

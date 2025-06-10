@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       items: cart.items
     };
 
-    console.log("📦 Sending payload to EC2:", payload);
+    //console.log("📦 Sending payload to EC2:", payload);
 
     const ec2Response = await fetch(`${EC2_URL}/api/payments/session-token`, {
       method: "POST",

@@ -61,7 +61,7 @@ const Header = () => {
   // New teacher links for center navigation
   const teacherNavItems = [
     { name: "My Schedule", href: "/teachers" },
-    { name: "My Students", href: "/teachers/students" },
+    { name: "My Students", href: "/teachers/mystudents" },
   ];
 
   // Helper to check if we are in a teacher section

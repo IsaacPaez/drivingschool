@@ -32,7 +32,7 @@ const StudentDetails: React.FC<Props> = ({ selected, history, notesHistory, note
     return <div className="text-gray-400">Select a student to view details</div>;
   }
   return (
-    <>
+    <div className="w-full">
       <h2 className="text-2xl font-bold mb-2 text-[#0056b3]">{selected.firstName} {selected.lastName}</h2>
       <div className="mb-4 text-gray-600">Email: {selected.email} | DNI: {selected.dni}</div>
       <h3 className="font-semibold text-lg mb-2 text-[#27ae60]">Class History</h3>
@@ -47,11 +47,15 @@ const StudentDetails: React.FC<Props> = ({ selected, history, notesHistory, note
       <h3 className="font-semibold text-lg mb-2 text-[#27ae60]">Private Notes</h3>
       {/* Historial de notas */}
       <ul className="mb-2">
-        {notesHistory.map((n, idx) => (
-          <li key={idx} className="text-sm text-gray-700 mb-1">
-            <span className="font-mono text-xs text-gray-500">{new Date(n.date).toLocaleString()}:</span> {n.text}
-          </li>
-        ))}
+        {notesHistory.map((n, idx) => {
+          const dateObj = new Date(n.date);
+          const isValid = !isNaN(dateObj.getTime());
+          return (
+            <li key={idx} className="text-sm text-gray-700 mb-1">
+              <span className="font-mono text-xs text-gray-500">{isValid ? dateObj.toLocaleString() : ""}:</span> {n.text}
+            </li>
+          );
+        })}
         {notesHistory.length === 0 && <li className="text-gray-400">No notes yet</li>}
       </ul>
       <textarea
@@ -62,7 +66,7 @@ const StudentDetails: React.FC<Props> = ({ selected, history, notesHistory, note
       />
       <button className="mt-2 bg-[#27ae60] text-white px-4 py-2 rounded disabled:opacity-50" onClick={handleSaveNotes} disabled={saving || !notes.trim()}>{saving ? 'Saving...' : 'Save Notes'}</button>
       {saveMsg && <div className="mt-2 text-sm text-gray-500">{saveMsg}</div>}
-    </>
+    </div>
   );
 };
 

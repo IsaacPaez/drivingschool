@@ -27,7 +27,7 @@ const StudentList: React.FC<Props> = ({ filtered, search, setSearch, handleSelec
     );
   }
   return (
-    <aside className="w-1/3 bg-white rounded-3xl shadow-2xl p-6 border border-[#e0e0e0]">
+    <aside className="w-full md:w-1/3 bg-white rounded-3xl shadow-2xl p-6 border border-[#e0e0e0]">
       <input
         type="text"
         placeholder="Search by name, ID or DNI..."
