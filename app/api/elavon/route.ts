@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
+import Order from '@/models/Order';
+import Cart from '@/models/Cart';
 
 const EC2_URL = "http://3.149.101.8:3000";
 
@@ -9,14 +11,14 @@ export async function POST(req: NextRequest) {
     await connectDB();
     const { amount, items, userId } = await req.json();
 
-    //console.log("🔸 Incoming request body:", { amount, items, userId });
+    console.log("🔸 Incoming request body:", { amount, items, userId });
 
     // Validar el total de los items
     const backendTotal = items && Array.isArray(items)
       ? items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0).toFixed(2)
       : amount;
 
-    //console.log("🔹 Calculated backend total:", backendTotal);
+    console.log("🔹 Calculated backend total:", backendTotal);
 
     if (items && parseFloat(backendTotal) !== parseFloat(amount)) {
       console.warn("⚠️ Cart total mismatch:", { received: amount, calculated: backendTotal });
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
       items: items || []
     };
 
-    //console.log("📦 Payload sent to EC2:", payload);
+    console.log("📦 Payload sent to EC2:", payload);
 
     // Enviar al backend EC2 para que genere el token
     const ec2Res = await fetch(`${EC2_URL}/api/payments/session-token`, {
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload)
     });
 
-    //console.log("📨 EC2 response status:", ec2Res.status);
+    console.log("📨 EC2 response status:", ec2Res.status);
 
     if (!ec2Res.ok) {
       const err = await ec2Res.text();
@@ -83,6 +85,20 @@ export async function POST(req: NextRequest) {
       console.error("❌ No token received from EC2 response");
       return NextResponse.json({ error: "No token received from EC2" }, { status: 500 });
     }
+
+    // Guardar la orden en la base de datos antes de redirigir a Elavon
+    const createdOrder = await Order.create({
+      userId,
+      items,
+      total: parseFloat(backendTotal),
+      estado: 'pendiente',
+      createdAt: new Date(),
+    });
+    console.log('📝 Orden creada:', createdOrder);
+
+    // Vaciar el carrito del usuario en la base de datos
+    const cartDeleteResult = await Cart.deleteOne({ userId });
+    console.log('🗑️ Resultado de borrar carrito:', cartDeleteResult);
 
     return NextResponse.json({ token });
 

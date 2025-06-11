@@ -4,5 +4,5 @@ export function middleware() {
 }
 
 export const config = {
-  matcher: ["/teachers/:path*", "/(api|trpc)(.*)"],
+  matcher: ["/myschedule/:path*", "/(api|trpc)(.*)"],
 };
