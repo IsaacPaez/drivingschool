@@ -36,8 +36,20 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
     }
     setLoading(true);
     try {
-      // Redirect to backend payment redirect endpoint with userId
-      window.location.href = `/api/payments/redirect?userId=${user._id}`;
+      // Llama al backend y espera la respuesta
+      const res = await fetch(`/api/payments/redirect?userId=${user._id}`);
+      if (!res.ok) {
+        alert("❌ There was an error processing the payment. Please try again.");
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      if (data.redirectUrl) {
+        localStorage.removeItem("cart");
+        window.location.href = data.redirectUrl;
+      } else {
+        alert("Error en el pago. Intenta de nuevo.");
+      }
     } catch (error) {
       console.error("❌ Payment error:", error);
       alert("❌ There was an error processing the payment. Please try again.");

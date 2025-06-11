@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Cart from "@/models/Cart";
+import Order from '@/models/Order';
 
 const BASE_URL = "https://driving-school-mocha.vercel.app";
 const EC2_URL = "http://3.149.101.8:3000";
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
       items: cart.items
     };
 
-    //console.log("📦 Sending payload to EC2:", payload);
+    console.log("📦 Enviando datos de pago a EC2:", payload);  // Log de los datos enviados al backend
 
     const ec2Response = await fetch(`${EC2_URL}/api/payments/session-token`, {
       method: "POST",
@@ -60,25 +61,47 @@ export async function GET(req: NextRequest) {
 
     if (!ec2Response.ok) {
       const errorText = await ec2Response.text();
-      console.error("[API][session-token] ❌ EC2 error response:", errorText);
+      console.error("[API][session-token] ❌ Respuesta de error de EC2:", errorText);
       throw new Error(`EC2 error: ${ec2Response.status}`);
     }
 
     const responseData = await ec2Response.json();
+    console.log("[API][session-token] ✅ Token recibido desde EC2:", responseData);  // Log de la respuesta de EC2
+
     const token = responseData.token;
 
     if (!token || typeof token !== "string") {
-      console.error("❌ Invalid or missing token from EC2:", responseData);
+      console.error("❌ Token inválido o ausente de EC2:", responseData);
       throw new Error("Invalid token received from EC2");
     }
 
+    // Verificar el token antes de redirigir
+    console.log("✅ Redirigiendo a ConvergePay con el token:", token);
     const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}`;
-    console.log("✅ Redirecting to:", hostedUrl);
 
-    return NextResponse.redirect(hostedUrl);
+    // Calcular el siguiente número de orden para el usuario
+    const lastOrder = await Order.findOne({ userId }).sort({ orderNumber: -1 });
+    const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
+
+    // Guardar la orden en la base de datos antes de redirigir
+    const createdOrder = await Order.create({
+      userId,
+      items: cart.items,
+      total: Number(total.toFixed(2)),
+      estado: 'pending',
+      createdAt: new Date(),
+      orderNumber: nextOrderNumber,
+    });
+    console.log('📝 Orden creada:', createdOrder);
+
+    // Vaciar el carrito del usuario en la base de datos
+    const cartDeleteResult = await Cart.deleteOne({ userId });
+    console.log('🗑️ Resultado de borrar carrito:', cartDeleteResult);
+
+    return NextResponse.json({ redirectUrl: hostedUrl });
 
   } catch (error) {
-    console.error("[API][session-token] Unhandled error:", error);
-    return NextResponse.redirect(`${BASE_URL}/cart?error=payment`);
+    console.error("[API][session-token] Error no manejado:", error);
+    return NextResponse.json({ error: "payment", message: "There was an error processing the payment." }, { status: 500 });
   }
 }
