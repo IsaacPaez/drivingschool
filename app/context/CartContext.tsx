@@ -175,6 +175,31 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     };
   }, [reloadCartFromDB, user]);
 
+  // Webhook/polling: sincroniza el carrito con la base de datos cada 3 segundos si el usuario está logueado
+  useEffect(() => {
+    if (!user || !user._id) return;
+    let interval: NodeJS.Timeout;
+    let lastCartString = JSON.stringify(cart);
+    const pollCart = async () => {
+      try {
+        const res = await fetch(`/api/cart?userId=${user._id}`);
+        const data = await res.json();
+        if (data.cart && Array.isArray(data.cart.items)) {
+          const newCartString = JSON.stringify(data.cart.items);
+          if (newCartString !== lastCartString) {
+            setCart(data.cart.items);
+            lastCartString = newCartString;
+          }
+        }
+      } catch (err) {
+        // Silenciar errores de polling
+      }
+    };
+    interval = setInterval(pollCart, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   return (
     <CartContext.Provider
       value={{ cart, addToCart, removeFromCart, clearCart, reloadCartFromDB }}
