@@ -11,7 +11,7 @@ interface CartIconProps {
 }
 
 const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
-  const { cart, removeFromCart } = useCart();
+  const { cart, removeFromCart, clearCart } = useCart();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
       }
       const data = await res.json();
       if (data.redirectUrl) {
-        localStorage.removeItem("cart");
+        clearCart();
         window.location.href = data.redirectUrl;
       } else {
         alert("Error en el pago. Intenta de nuevo.");
