@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       items: cart.items
     };
 
-    console.log("📦 Enviando datos de pago a EC2:", payload);  // Log de los datos enviados al backend
+    //console.log("📦 Enviando datos de pago a EC2:", payload);  // Log de los datos enviados al backend
 
     const ec2Response = await fetch(`${EC2_URL}/api/payments/session-token`, {
       method: "POST",
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     }
 
     const responseData = await ec2Response.json();
-    console.log("[API][session-token] ✅ Token recibido desde EC2:", responseData);  // Log de la respuesta de EC2
+    //console.log("[API][session-token] ✅ Token recibido desde EC2:", responseData);  // Log de la respuesta de EC2
 
     const token = responseData.token;
 
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Verificar el token antes de redirigir
-    console.log("✅ Redirigiendo a ConvergePay con el token:", token);
+    //console.log("✅ Redirigiendo a ConvergePay con el token:", token);
     const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}`;
 
     // Calcular el siguiente número de orden para el usuario
@@ -92,11 +92,11 @@ export async function GET(req: NextRequest) {
       createdAt: new Date(),
       orderNumber: nextOrderNumber,
     });
-    console.log('📝 Orden creada:', createdOrder);
+    //console.log('📝 Orden creada:', createdOrder);
 
     // Vaciar el carrito del usuario en la base de datos
     const cartDeleteResult = await Cart.deleteOne({ userId });
-    console.log('🗑️ Resultado de borrar carrito:', cartDeleteResult);
+    //console.log('🗑️ Resultado de borrar carrito:', cartDeleteResult);
 
     return NextResponse.json({ redirectUrl: hostedUrl });
 

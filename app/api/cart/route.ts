@@ -22,4 +22,19 @@ export async function POST(req: NextRequest) {
     console.log("[API][cart] Failed to save cart:", error);
     return NextResponse.json({ error: "Failed to save cart", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
+}
+
+export async function GET(req: NextRequest) {
+  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const userId = searchParams.get("userId");
+  if (!userId) {
+    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+  }
+  try {
+    const cart = await Cart.findOne({ userId });
+    return NextResponse.json({ cart });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch cart", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
+  }
 } 
