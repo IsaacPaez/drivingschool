@@ -35,7 +35,7 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
-    if (loading || added) return;
+    if (loading || added || cartLoading) return;
     switch (type) {
       case "buy":
         if (
@@ -81,8 +81,13 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 10 18 4 12" /></svg>
           <span className="font-bold text-[#27ae60]">Added to cart!</span>
         </span>
+      ) : loading ? (
+        <span className="flex items-center justify-center gap-2 animate-fadeIn">
+          <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0056b3" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" stroke="#0056b3" strokeWidth="3" fill="none" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#0056b3" strokeWidth="3"/></svg>
+          <span className="font-bold text-white">Adding...</span>
+        </span>
       ) : (
-        <span className={loading ? "opacity-60" : ""}>{label}</span>
+        <span>{label}</span>
       )}
       <style jsx>{`
         @keyframes fadeIn {
@@ -90,6 +95,13 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
           to { opacity: 1; transform: scale(1); }
         }
         .animate-fadeIn { animation: fadeIn 0.4s ease; }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
       `}</style>
     </button>
   );

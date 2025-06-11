@@ -146,6 +146,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                         className={`ml-2 flex-shrink-0 text-red-500 text-lg hover:text-red-700 transition ${cartLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         disabled={cartLoading}
                         aria-label="Remove from cart"
+                        style={{ minWidth: 32, minHeight: 32 }}
                       >
                         ❌
                       </button>
