@@ -21,6 +21,7 @@ interface CartContextType {
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
+  reloadCartFromDB: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -140,9 +141,43 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart, user]);
 
+  // Función para recargar el carrito desde la base de datos
+  const reloadCartFromDB = async () => {
+    if (user && user._id) {
+      try {
+        const res = await fetch(`/api/cart?userId=${user._id}`);
+        const data = await res.json();
+        if (data.cart && Array.isArray(data.cart.items)) {
+          setCart(data.cart.items);
+        }
+      } catch (err) {
+        console.error("[CartContext] Failed to reload cart from DB:", err);
+      }
+    }
+  };
+
+  // Sincronizar el carrito al volver, navegar con flechas o recargar
+  useEffect(() => {
+    const handleSync = () => {
+      reloadCartFromDB();
+    };
+    window.addEventListener("popstate", handleSync);
+    window.addEventListener("focus", handleSync);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        handleSync();
+      }
+    });
+    return () => {
+      window.removeEventListener("popstate", handleSync);
+      window.removeEventListener("focus", handleSync);
+      document.removeEventListener("visibilitychange", handleSync);
+    };
+  }, [reloadCartFromDB, user]);
+
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, clearCart }}
+      value={{ cart, addToCart, removeFromCart, clearCart, reloadCartFromDB }}
     >
       {children}
     </CartContext.Provider>
