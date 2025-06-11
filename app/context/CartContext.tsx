@@ -31,16 +31,31 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   const [cart, setCart] = useState<CartItem[]>([]);
   const { user } = useAuth();
 
-  // 🛒 Cargar el carrito desde localStorage al iniciar (solo si está vacío)
+  // 🛒 Cargar el carrito desde la base de datos si el usuario está logueado, si no, desde localStorage
   useEffect(() => {
-    if (cart.length === 0) {
-      const storedCart = localStorage.getItem("cart");
-      if (storedCart) {
-        setCart(JSON.parse(storedCart));
+    async function loadCart() {
+      if (user && user._id) {
+        try {
+          const res = await fetch(`/api/cart?userId=${user._id}`);
+          const data = await res.json();
+          if (data.cart && Array.isArray(data.cart.items)) {
+            setCart(data.cart.items);
+            return;
+          }
+        } catch (err) {
+          console.error("[CartContext] Failed to load cart from DB:", err);
+        }
+      } else {
+        // Solo si no hay usuario, usa localStorage
+        const storedCart = localStorage.getItem("cart");
+        if (storedCart) {
+          setCart(JSON.parse(storedCart));
+        }
       }
     }
+    loadCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
 
   // 💾 Guardar el carrito en localStorage cada vez que cambie
   useEffect(() => {
@@ -76,6 +91,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     saveCartToDB();
   }, [cart, user]);
 
+  // Función auxiliar para guardar el carrito en la base de datos
+  const saveCartToDB = async (cartItems: CartItem[]) => {
+    if (user && user._id) {
+      try {
+        await fetch("/api/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user._id, items: cartItems }),
+        });
+      } catch (err) {
+        console.error("[CartContext] Failed to save cart to DB:", err);
+      }
+    }
+  };
+
   // 🚀 Función para agregar productos al carrito
   const addToCart = (item: CartItem) => {
     setCart((prevCart) => {
@@ -90,13 +120,25 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
 
   // ❌ Función para eliminar un producto del carrito
   const removeFromCart = (id: string) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
+    setCart((prevCart) => {
+      const updatedCart = prevCart.filter((item) => item.id !== id);
+      saveCartToDB(updatedCart);
+      return updatedCart;
+    });
   };
 
   // 🧹 Función para vaciar el carrito
   const clearCart = () => {
     setCart([]);
   };
+
+  // Sincronizar la base de datos cuando el carrito se vacía
+  useEffect(() => {
+    if (user && user._id && cart.length === 0) {
+      saveCartToDB([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart, user]);
 
   return (
     <CartContext.Provider
