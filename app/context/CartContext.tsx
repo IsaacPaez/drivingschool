@@ -18,8 +18,9 @@ interface CartItem {
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
+  cartLoading: boolean;
+  addToCart: (item: CartItem) => Promise<void>;
+  removeFromCart: (id: string) => Promise<void>;
   clearCart: () => void;
   reloadCartFromDB: () => void;
 }
@@ -30,6 +31,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartLoading, setCartLoading] = useState(false);
   const { user } = useAuth();
 
   // 🛒 Cargar el carrito desde la base de datos si el usuario está logueado, si no, desde localStorage
@@ -108,24 +110,34 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   // 🚀 Función para agregar productos al carrito
-  const addToCart = (item: CartItem) => {
+  const addToCart = async (item: CartItem) => {
+    setCartLoading(true);
+    let newCart: CartItem[] = [];
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       if (existingItem) {
-        // Si ya existe, no hacer nada (solo uno por producto)
+        newCart = prevCart;
         return prevCart;
       }
-      return [...prevCart, { ...item, quantity: 1 }];
+      newCart = [...prevCart, { ...item, quantity: 1 }];
+      return newCart;
     });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await saveCartToDB(newCart);
+    setCartLoading(false);
   };
 
   // ❌ Función para eliminar un producto del carrito
-  const removeFromCart = (id: string) => {
+  const removeFromCart = async (id: string) => {
+    setCartLoading(true);
+    let updatedCart: CartItem[] = [];
     setCart((prevCart) => {
-      const updatedCart = prevCart.filter((item) => item.id !== id);
-      saveCartToDB(updatedCart);
+      updatedCart = prevCart.filter((item) => item.id !== id);
       return updatedCart;
     });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await saveCartToDB(updatedCart);
+    setCartLoading(false);
   };
 
   // 🧹 Función para vaciar el carrito
@@ -175,34 +187,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     };
   }, [reloadCartFromDB, user]);
 
-  // Webhook/polling: sincroniza el carrito con la base de datos cada 3 segundos si el usuario está logueado
-  useEffect(() => {
-    if (!user || !user._id) return;
-    let interval: NodeJS.Timeout;
-    let lastCartString = JSON.stringify(cart);
-    const pollCart = async () => {
-      try {
-        const res = await fetch(`/api/cart?userId=${user._id}`);
-        const data = await res.json();
-        if (data.cart && Array.isArray(data.cart.items)) {
-          const newCartString = JSON.stringify(data.cart.items);
-          if (newCartString !== lastCartString) {
-            setCart(data.cart.items);
-            lastCartString = newCartString;
-          }
-        }
-      } catch (err) {
-        // Silenciar errores de polling
-      }
-    };
-    interval = setInterval(pollCart, 1000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, clearCart, reloadCartFromDB }}
+      value={{ cart, cartLoading, addToCart, removeFromCart, clearCart, reloadCartFromDB }}
     >
       {children}
     </CartContext.Provider>

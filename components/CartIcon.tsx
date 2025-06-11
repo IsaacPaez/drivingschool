@@ -11,7 +11,7 @@ interface CartIconProps {
 }
 
 const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
-  const { cart, removeFromCart, clearCart } = useCart();
+  const { cart, removeFromCart, clearCart, cartLoading } = useCart();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -142,8 +142,10 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                         ${item.price}
                       </span>
                       <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="ml-2 flex-shrink-0 text-red-500 text-lg hover:text-red-700 transition"
+                        onClick={() => !cartLoading && removeFromCart(item.id)}
+                        className={`ml-2 flex-shrink-0 text-red-500 text-lg hover:text-red-700 transition ${cartLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={cartLoading}
+                        aria-label="Remove from cart"
                       >
                         ❌
                       </button>

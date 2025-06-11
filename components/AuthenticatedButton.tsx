@@ -30,7 +30,7 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
   className = "",
 }) => {
   const router = useRouter();
-  const { addToCart, reloadCartFromDB } = useCart();
+  const { addToCart, reloadCartFromDB, cartLoading } = useCart();
   const [added, setAdded] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -44,14 +44,12 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
           actionData.price !== undefined
         ) {
           setLoading(true);
-          addToCart({
+          await addToCart({
             id: actionData.itemId,
             title: actionData.title,
             price: actionData.price,
             quantity: 1,
           });
-          // Espera a que el carrito se guarde en la base de datos (polling)
-          await new Promise((resolve) => setTimeout(resolve, 400));
           await reloadCartFromDB();
           setAdded(true);
           setLoading(false);
@@ -75,7 +73,7 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
     <button
       onClick={handleClick}
       className={`px-6 py-3 rounded-lg font-semibold transition-all relative overflow-hidden ${className}`}
-      disabled={loading || added}
+      disabled={loading || added || cartLoading}
       style={{ minWidth: 140 }}
     >
       {added ? (
