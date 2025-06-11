@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
+    const orderId = searchParams.get("orderId");
 
     if (!userId) {
       console.warn("❌ No userId in query");
@@ -24,18 +25,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${BASE_URL}/login`);
     }
 
-    const cart = await Cart.findOne({ userId });
-    if (!cart || !cart.items.length) {
-      console.warn("❌ Empty cart for user:", userId);
-      return NextResponse.redirect(`${BASE_URL}/cart?error=empty`);
+    let items, total, payload, orderToUse;
+    if (orderId) {
+      // Reintento: usar la orden pendiente
+      orderToUse = await Order.findById(orderId);
+      if (!orderToUse) {
+        return NextResponse.redirect(`${BASE_URL}/cart?error=order-not-found`);
+      }
+      items = orderToUse.items;
+      total = orderToUse.total;
+    } else {
+      // Primer intento: usar el carrito
+      const cart = await Cart.findOne({ userId });
+      if (!cart || !cart.items.length) {
+        console.warn("❌ Empty cart for user:", userId);
+        return NextResponse.redirect(`${BASE_URL}/cart?error=empty`);
+      }
+      items = cart.items;
+      total = cart.items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
     }
-
-    const total = cart.items.reduce(
-      (sum, item) => sum + item.price * (item.quantity || 1),
-      0
-    );
-
-    const payload = {
+    payload = {
       amount: Number(total.toFixed(2)),
       firstName: user.firstName || "John",
       lastName: user.lastName || "Doe",
@@ -46,7 +55,7 @@ export async function GET(req: NextRequest) {
       state: user.state || "",
       zipCode: user.zipCode || "",
       dni: user.dni || "",
-      items: cart.items
+      items
     };
 
     //console.log("📦 Enviando datos de pago a EC2:", payload);  // Log de los datos enviados al backend
@@ -77,26 +86,26 @@ export async function GET(req: NextRequest) {
 
     // Verificar el token antes de redirigir
     //console.log("✅ Redirigiendo a ConvergePay con el token:", token);
-    const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}`;
+    // URL de cancelación con userId y orderId para reintento
+    const cancelUrl = `${BASE_URL}/payment-retry?userId=${userId}&orderId=${orderId || (orderToUse ? orderToUse._id : undefined)}`;
+    const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}&ssl_result_cancel_url=${encodeURIComponent(cancelUrl)}`;
 
-    // Calcular el siguiente número de orden para el usuario
-    const lastOrder = await Order.findOne({ userId }).sort({ orderNumber: -1 });
-    const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
-
-    // Guardar la orden en la base de datos antes de redirigir
-    const createdOrder = await Order.create({
-      userId,
-      items: cart.items,
-      total: Number(total.toFixed(2)),
-      estado: 'pending',
-      createdAt: new Date(),
-      orderNumber: nextOrderNumber,
-    });
-    //console.log('📝 Orden creada:', createdOrder);
-
-    // Vaciar el carrito del usuario en la base de datos
-    const cartDeleteResult = await Cart.deleteOne({ userId });
-    //console.log('🗑️ Resultado de borrar carrito:', cartDeleteResult);
+    // Solo crear la orden y vaciar el carrito si es el primer intento
+    if (!orderId) {
+      // Calcular el siguiente número de orden para el usuario
+      const lastOrder = await Order.findOne({ userId }).sort({ orderNumber: -1 });
+      const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
+      const createdOrder = await Order.create({
+        userId,
+        items,
+        total: Number(total.toFixed(2)),
+        estado: 'pending',
+        createdAt: new Date(),
+        orderNumber: nextOrderNumber,
+      });
+      // Vaciar el carrito del usuario en la base de datos
+      await Cart.deleteOne({ userId });
+    }
 
     return NextResponse.json({ redirectUrl: hostedUrl });
 
