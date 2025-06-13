@@ -21,6 +21,9 @@ export const useTracking = () => {
   let sessionClosed = false;
   let heartbeatInterval: NodeJS.Timeout | null = null;
 
+  // Buffer de heatmap por página
+  const heatmapBuffer: Record<string, any[]> = {};
+
   // Detectar si la navegación es un reload
   let isReload = false;
   if (typeof window !== 'undefined') {
@@ -89,8 +92,40 @@ export const useTracking = () => {
     }
   };
 
+  const flushHeatmapEvents = (url: string) => {
+    if (!url) return;
+    if (!heatmapBuffer[url] || heatmapBuffer[url].length === 0) return;
+    const eventsToSend = [...heatmapBuffer[url]];
+    heatmapBuffer[url] = [];
+    try {
+      if (navigator.sendBeacon) {
+        const blob = new Blob([
+          JSON.stringify({
+            sessionId: SESSION_ID,
+            page: url,
+            events: eventsToSend,
+          }),
+        ], { type: 'application/json' });
+        navigator.sendBeacon('/api/heatmap-event', blob);
+      } else {
+        fetch('/api/heatmap-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: SESSION_ID,
+            page: url,
+            events: eventsToSend,
+          }),
+          keepalive: true,
+        });
+      }
+    } catch (e) {
+      // Silenciar errores
+    }
+  };
+
   // Tracking de heatmap: clic, movimiento, scroll
-  const trackHeatmapEvent = async (
+  const trackHeatmapEvent = (
     eventType: 'click' | 'move' | 'scroll',
     x: number,
     y: number,
@@ -115,29 +150,23 @@ export const useTracking = () => {
         elementClass = typeof element.className === 'string' ? element.className : '';
       }
 
-      await fetch('/api/heatmap-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: SESSION_ID,
-          page: pathname, // Usar solo el path
-          event: {
-            eventType,
-            x: absX,
-            y: absY,
-            screenWidth,
-            screenHeight,
-            devicePixelRatio,
-            scrollX,
-            scrollY,
-            relX,
-            relY,
-            timestamp,
-            elementId: eventType === 'click' && element ? element.id : '',
-            elementClass,
-            elementTag: eventType === 'click' && element ? element.tagName : '',
-          }
-        }),
+      const pageKey = pathname || '';
+      if (!heatmapBuffer[pageKey]) heatmapBuffer[pageKey] = [];
+      heatmapBuffer[pageKey].push({
+        eventType,
+        x: absX,
+        y: absY,
+        screenWidth,
+        screenHeight,
+        devicePixelRatio,
+        scrollX,
+        scrollY,
+        relX,
+        relY,
+        timestamp,
+        elementId: eventType === 'click' && element ? element.id : '',
+        elementClass,
+        elementTag: eventType === 'click' && element ? element.tagName : '',
       });
     } catch (error) {
       // Silenciar errores en producción
@@ -231,6 +260,7 @@ export const useTracking = () => {
         closeTimeout = setTimeout(() => {
           if (!isReload) {
             trackSession(true, lastPage.current || '');
+            flushHeatmapEvents(lastPage.current || '');
           }
         }, 1500);
       } else if (document.visibilityState === 'visible') {
@@ -246,6 +276,7 @@ export const useTracking = () => {
     const handleBeforeUnload = () => {
       if (!isReload) {
         trackSession(true, lastPage.current || '');
+        flushHeatmapEvents(lastPage.current || '');
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -270,6 +301,7 @@ export const useTracking = () => {
     document.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('scroll', handleScroll);
 
+    let prevPage = lastPage.current || '';
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (closeTimeout) clearTimeout(closeTimeout);
@@ -278,7 +310,12 @@ export const useTracking = () => {
       document.removeEventListener('click', handleClick);
       document.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('scroll', handleScroll);
+      // Al desmontar/cambiar de página, enviar eventos de la página anterior
+      flushHeatmapEvents(prevPage);
     };
     // eslint-disable-next-line
   }, [pathname, lastUserId.current]);
+
+  // Al final del hook, retorna el sessionId
+  return { sessionId: SESSION_ID };
 }; 

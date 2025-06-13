@@ -1,25 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Session from '@/models/Session';
+import sessionCache from '@/lib/sessionCache';
 
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const body = await req.json();
-    const { sessionId, page, event } = body;
-    if (!sessionId || !page || !event) {
+    const { sessionId, page, event, events } = body;
+    if (!sessionId || !page || (!event && !events)) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
-    // Intenta hacer push al heatmap de la página correspondiente
+    // Normalizar a array de eventos
+    const eventsArray = Array.isArray(events)
+      ? events
+      : event
+        ? [event]
+        : [];
+    if (eventsArray.length === 0) {
+      return NextResponse.json({ success: false, error: 'No events to process' }, { status: 400 });
+    }
+    // Primero, intentar actualizar en la caché
+    let session = sessionCache.get(sessionId);
+    if (session) {
+      const pageObj = session.pages.find((p: any) => p.url === page);
+      if (pageObj) {
+        pageObj.heatmap = [...(pageObj.heatmap || []), ...eventsArray];
+        session.lastActive = new Date();
+        sessionCache.set(sessionId, session);
+        return NextResponse.json({ success: true, cached: true });
+      } else {
+        // Si la página no existe, la agregamos
+        session.pages.push({
+          url: page,
+          timestamp: new Date(),
+          duration: 0,
+          heatmap: [...eventsArray],
+        });
+        session.lastActive = new Date();
+        sessionCache.set(sessionId, session);
+        return NextResponse.json({ success: true, createdPage: true, cached: true });
+      }
+    }
+    // Si no está en caché, actualizar en la base de datos (compatibilidad)
     const updateResult = await Session.findOneAndUpdate(
       { sessionId, 'pages.url': page },
-      { $push: { 'pages.$.heatmap': event }, $set: { lastActive: new Date() } },
+      { $push: { 'pages.$.heatmap': { $each: eventsArray } }, $set: { lastActive: new Date() } },
       { new: true }
     );
     if (updateResult) {
       return NextResponse.json({ success: true });
     }
-    // Si la página no existe, la agregamos con el evento
+    // Si la página no existe, la agregamos con los eventos
     const addPageResult = await Session.findOneAndUpdate(
       { sessionId },
       {
@@ -28,7 +60,7 @@ export async function POST(req: NextRequest) {
             url: page,
             timestamp: new Date(),
             duration: 0,
-            heatmap: [event],
+            heatmap: [...eventsArray],
           },
         },
         $set: { lastActive: new Date() },
