@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Session from '@/models/Session';
+import sessionCache from '@/lib/sessionCache';
 
 const IPINFO_TOKEN = process.env.IPINFO_TOKEN;
 
@@ -40,7 +41,8 @@ export async function POST(req: NextRequest) {
     if (!sessionId || !userId || !page) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
-    let session = await Session.findOne({ sessionId });
+    // Buscar la sesión en caché primero
+    let session = sessionCache.get(sessionId);
     const pageObj = {
       url: page,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
@@ -61,19 +63,26 @@ export async function POST(req: NextRequest) {
     //console.log('GEO TO SAVE:', geo);
 
     if (!session) {
-      session = new Session({
-        sessionId,
-        userId,
-        geolocation: geo,
-        ipAddress,
-        userAgent,
-        startTimestamp: timestamp ? new Date(timestamp) : new Date(),
-        sessionActive: true,
-        lastActive: timestamp ? new Date(timestamp) : new Date(),
-        pages: [pageObj],
-      });
-      await session.save();
-      return NextResponse.json({ success: true, created: true });
+      // Buscar en la base de datos por si es la primera vez
+      let dbSession = await Session.findOne({ sessionId });
+      if (!dbSession) {
+        dbSession = new Session({
+          sessionId,
+          userId,
+          geolocation: geo,
+          ipAddress,
+          userAgent,
+          startTimestamp: timestamp ? new Date(timestamp) : new Date(),
+          sessionActive: true,
+          lastActive: timestamp ? new Date(timestamp) : new Date(),
+          pages: [pageObj],
+        });
+        await dbSession.save();
+      }
+      // Guardar en caché
+      session = dbSession.toObject ? dbSession.toObject() : dbSession;
+      sessionCache.set(sessionId, session);
+      return NextResponse.json({ success: true, created: true, db: true, cached: true });
     }
     // If the page is not in the array, add it
     if (!session.pages.some((p: any) => p.url === page)) {
@@ -83,8 +92,8 @@ export async function POST(req: NextRequest) {
     session.sessionActive = true;
     // Actualizamos siempre la geolocalización para reflejar el valor correcto de vpn
     session.geolocation = geo;
-    await session.save();
-    return NextResponse.json({ success: true, created: false });
+    sessionCache.set(sessionId, session);
+    return NextResponse.json({ success: true, created: false, cached: true });
   } catch (error) {
     console.error('Error in session-track:', error);
     return NextResponse.json({ success: false, error: 'Error in session-track' }, { status: 500 });

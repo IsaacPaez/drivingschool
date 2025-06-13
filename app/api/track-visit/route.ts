@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Session from '@/models/Session';
+import sessionCache from '@/lib/sessionCache';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,13 +21,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Buscar la sesión
-    const session = await Session.findOne({ sessionId });
+    // Buscar la sesión en caché primero
+    let session = sessionCache.get(sessionId);
     if (!session) {
-      // No intentar session.save() si no existe
-      return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
+      // Si no está en caché, devolver error (no crear aquí)
+      return NextResponse.json({ success: false, error: 'Session not found in cache' }, { status: 404 });
     }
-
     // Buscar si existe una página con la URL completa (legacy)
     const legacyPageIndex = session.pages.findIndex(p => {
       try {
@@ -39,43 +39,34 @@ export async function POST(req: NextRequest) {
     const normalizedPageIndex = session.pages.findIndex(p => p.url === page);
     const legacyPage = legacyPageIndex !== -1 ? session.pages[legacyPageIndex] : null;
     const normalizedPage = normalizedPageIndex !== -1 ? session.pages[normalizedPageIndex] : null;
-
     if (legacyPage && normalizedPage) {
-      // Fusionar duration y heatmap
       normalizedPage.duration += legacyPage.duration;
       normalizedPage.heatmap = [...(normalizedPage.heatmap || []), ...(legacyPage.heatmap || [])];
-      // Mantener el timestamp más antiguo
       normalizedPage.timestamp = new Date(Math.min(
         new Date(normalizedPage.timestamp).getTime(),
         new Date(legacyPage.timestamp).getTime()
       ));
-      // Mantener el referrer más informativo (elige el que no esté vacío)
       normalizedPage.referrer = normalizedPage.referrer || legacyPage.referrer;
-      // Eliminar el duplicado legacy
       session.pages.splice(legacyPageIndex, 1);
-      // Actualizar con los nuevos datos de la petición
       normalizedPage.referrer = typeof referrer === 'string' ? referrer : normalizedPage.referrer;
       normalizedPage.duration = typeof duration === 'number' ? duration : normalizedPage.duration;
       normalizedPage.timestamp = timestamp ? new Date(timestamp) : normalizedPage.timestamp;
-      await session.save();
-      return NextResponse.json({ success: true, merged: true });
+      sessionCache.set(sessionId, session);
+      return NextResponse.json({ success: true, merged: true, cached: true });
     } else if (legacyPage && !normalizedPage) {
-      // Si existe legacy pero no normalizada, actualiza el campo url y los datos
       legacyPage.url = page;
       legacyPage.referrer = typeof referrer === 'string' ? referrer : '';
       legacyPage.duration = typeof duration === 'number' ? duration : 0;
       legacyPage.timestamp = timestamp ? new Date(timestamp) : new Date();
-      await session.save();
-      return NextResponse.json({ success: true, updated: true, normalized: true });
+      sessionCache.set(sessionId, session);
+      return NextResponse.json({ success: true, updated: true, normalized: true, cached: true });
     } else if (normalizedPage) {
-      // Si ya existe la página normalizada, actualiza
       normalizedPage.referrer = typeof referrer === 'string' ? referrer : '';
       normalizedPage.duration = typeof duration === 'number' ? duration : 0;
       normalizedPage.timestamp = timestamp ? new Date(timestamp) : new Date();
-      await session.save();
-      return NextResponse.json({ success: true, updated: true });
+      sessionCache.set(sessionId, session);
+      return NextResponse.json({ success: true, updated: true, cached: true });
     }
-    // Si la página no existe, la agregamos
     session.pages.push({
       url: page,
       referrer: typeof referrer === 'string' ? referrer : '',
@@ -83,8 +74,8 @@ export async function POST(req: NextRequest) {
       duration: typeof duration === 'number' ? duration : 0,
       heatmap: [],
     });
-    await session.save();
-    return NextResponse.json({ success: true, created: true });
+    sessionCache.set(sessionId, session);
+    return NextResponse.json({ success: true, created: true, cached: true });
   } catch (error) {
     console.error('Error in track-visit:', error);
     // Si el error es VersionError, devolver un mensaje más claro

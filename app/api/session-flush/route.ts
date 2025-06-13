@@ -6,8 +6,7 @@ import sessionCache from '@/lib/sessionCache';
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const body = await req.json();
-    const { sessionId } = body;
+    const { sessionId } = await req.json();
     if (!sessionId) {
       return NextResponse.json({ success: false, error: 'sessionId is required' }, { status: 400 });
     }
@@ -15,15 +14,16 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: 'Session not found in cache' }, { status: 404 });
     }
-    if (session.sessionActive === false) {
-      session.sessionActive = true;
-      session.endTimestamp = null;
-    }
-    session.lastActive = new Date();
-    sessionCache.set(sessionId, session);
-    return NextResponse.json({ success: true, cached: true });
+    // Guardar o actualizar en la base de datos
+    await Session.findOneAndUpdate(
+      { sessionId },
+      session,
+      { upsert: true, new: true }
+    );
+    sessionCache.delete(sessionId);
+    return NextResponse.json({ success: true, flushed: true });
   } catch (error) {
-    console.error('Error in session-ping:', error);
-    return NextResponse.json({ success: false, error: 'Error in session-ping' }, { status: 500 });
+    console.error('Error in session-flush:', error);
+    return NextResponse.json({ success: false, error: 'Error in session-flush' }, { status: 500 });
   }
 } 
