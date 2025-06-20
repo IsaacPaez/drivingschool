@@ -16,7 +16,6 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showAuthWarning, setShowAuthWarning] = useState(false);
-
   const handleCheckout = async () => {
     if (!user) {
       setShowAuthWarning(true);
@@ -36,18 +35,29 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
     }
     setLoading(true);
     try {
+      console.log("🛒 [DEBUG] Starting checkout process for user:", user._id);
+      console.log("🛒 [DEBUG] Cart items:", cart);
+      
       // Llama al backend y espera la respuesta
       const res = await fetch(`/api/payments/redirect?userId=${user._id}`);
+      console.log("🛒 [DEBUG] Response status:", res.status);
+      
       if (!res.ok) {
+        const errorData = await res.text();
+        console.error("🛒 [DEBUG] Error response:", errorData);
         alert("❌ There was an error processing the payment. Please try again.");
         setLoading(false);
         return;
       }
       const data = await res.json();
+      console.log("🛒 [DEBUG] Response data:", data);
+      
       if (data.redirectUrl) {
+        console.log("🛒 [DEBUG] Clearing cart and redirecting to:", data.redirectUrl);
         clearCart();
         window.location.href = data.redirectUrl;
       } else {
+        console.error("🛒 [DEBUG] No redirectUrl in response:", data);
         alert("Error en el pago. Intenta de nuevo.");
       }
     } catch (error) {
