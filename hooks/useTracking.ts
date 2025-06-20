@@ -16,10 +16,8 @@ export const useTracking = () => {
   const lastUserId = useRef<string>(userId);
   const lastEvent = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const THROTTLE_DELAY = 1000; // 1 segundo para mousemove
-  let lastEventTime = 0;
-  let closeTimeout: NodeJS.Timeout | null = null;
+  let lastEventTime = 0;  let closeTimeout: NodeJS.Timeout | null = null;
   let sessionClosed = false;
-  let heartbeatInterval: NodeJS.Timeout | null = null;
 
   // Buffer de heatmap por página
   const heatmapBuffer: Record<string, any[]> = {};
@@ -79,18 +77,6 @@ export const useTracking = () => {
     }
   };
 
-  // Heartbeat: mantener la sesión activa
-  const sendHeartbeat = async () => {
-    try {
-      await fetch('/api/session-ping', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: SESSION_ID }),
-      });
-    } catch (error) {
-      // Silenciar errores en producción
-    }
-  };
 
   const flushHeatmapEvents = (url: string) => {
     if (!url) return;
@@ -246,14 +232,7 @@ export const useTracking = () => {
       startTime.current = Date.now();
       lastReferrer.current = lastPage.current || '';
       lastPage.current = pathname;
-    }
-
-    // Heartbeat: enviar ping cada 10 segundos
-    heartbeatInterval = setInterval(() => {
-      sendHeartbeat();
-    }, 10000);
-
-    // --- SOLO cerrar sesión si realmente se cierra la pestaña ---
+    }    // --- SOLO cerrar sesión si realmente se cierra la pestaña ---
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         // Esperar 1.5 segundos para ver si es un refresco
@@ -301,11 +280,9 @@ export const useTracking = () => {
     document.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('scroll', handleScroll);
 
-    let prevPage = lastPage.current || '';
-    return () => {
+    let prevPage = lastPage.current || '';    return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (closeTimeout) clearTimeout(closeTimeout);
-      if (heartbeatInterval) clearInterval(heartbeatInterval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('click', handleClick);
       document.removeEventListener('mousemove', handleMouseMove);
