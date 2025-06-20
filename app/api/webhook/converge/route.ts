@@ -23,12 +23,20 @@ export async function POST(req: NextRequest) {
       ssl_txn_id,
       ssl_amount
     } = webhookData;
-    
-    // Extraer userId y orderId del customer_code
+      // Extraer userId y orderId del customer_code
     let userId = null;
     let orderId = null;
-    if (ssl_customer_code && ssl_customer_code.includes('|')) {
-      [userId, orderId] = ssl_customer_code.split('|');
+    if (ssl_customer_code && ssl_customer_code.length >= 16) {
+      // El customer_code ahora tiene formato: últimos8digitsUserId + últimos8digitsOrderId
+      const userPart = ssl_customer_code.slice(0, 8);
+      const orderPart = ssl_customer_code.slice(8, 16);
+      
+      console.log('👤 User part:', userPart);
+      console.log('📦 Order part:', orderPart);
+      
+      // Por ahora usar los fragmentos directamente
+      userId = userPart;
+      orderId = orderPart;
     }
     
     console.log("👤 Extracted userId:", userId);
