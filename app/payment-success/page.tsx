@@ -2,23 +2,62 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function PaymentSuccess() {
   const { clearCart } = useCart();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showModal, setShowModal] = useState(true);
-
+  const [orderUpdated, setOrderUpdated] = useState(false);
   useEffect(() => {
+    const updateOrderStatus = async () => {
+      const userId = searchParams ? searchParams.get("userId") : null;
+      const orderId = searchParams ? searchParams.get("orderId") : null;
+      
+      console.log("🔍 Payment success page loaded with params:", { userId, orderId });
+      
+      if (userId && orderId) {
+        try {
+          const response = await fetch(`/api/orders/update-status`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              orderId,
+              status: "completed"
+            }),
+          });
+          
+          if (response.ok) {
+            console.log("✅ Order status updated successfully");
+            setOrderUpdated(true);
+          } else {
+            console.log("❌ Failed to update order status");
+          }
+        } catch (error) {
+          console.error("Error updating order status:", error);
+        }
+      } else {
+        console.log("⚠️ Missing userId or orderId parameters");
+        // Aún así mostrar éxito, pero sin actualizar orden específica
+        setOrderUpdated(true);
+      }
+    };
+
     clearCart();
     localStorage.removeItem("cart");
+    updateOrderStatus();
+    
     // Redirige automáticamente a home después de 6 segundos
     const timer = setTimeout(() => {
       setShowModal(false);
       router.replace("/");
     }, 6000);
+    
     return () => clearTimeout(timer);
-  }, [clearCart, router]);
+  }, [clearCart, router, searchParams]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-100 to-blue-100 p-4">

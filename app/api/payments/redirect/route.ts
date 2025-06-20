@@ -42,11 +42,39 @@ export async function GET(req: NextRequest) {
       if (!cart || !cart.items.length) {
         // console.warn("❌ Empty cart for user:", userId);
         return NextResponse.redirect(`${BASE_URL}/cart?error=empty`);
-      }
-      items = cart.items;
+      }      items = cart.items;
       total = cart.items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
       // console.log("✅ [DEBUG] Using cart with", items.length, "items, total:", total);
     }
+
+    let finalOrderId = orderId;
+    
+    // Solo crear la orden y vaciar el carrito si es el primer intento
+    if (!orderId) {
+      // console.log("📝 [DEBUG] Creating new order...");
+      // Calcular el siguiente número de orden globalmente (para todos los usuarios)
+      const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
+      const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
+      // console.log("🔢 [DEBUG] Next order number (global):", nextOrderNumber);
+      
+      const createdOrder = await Order.create({
+        userId,
+        items,
+        total: Number(total.toFixed(2)),
+        estado: 'pending',
+        createdAt: new Date(),
+        orderNumber: nextOrderNumber,
+      });
+      // console.log("✅ [DEBUG] Order created successfully with ID:", createdOrder._id);
+      finalOrderId = createdOrder._id.toString();
+      
+      // Vaciar el carrito del usuario en la base de datos
+      const deleteResult = await Cart.deleteOne({ userId });
+      // console.log("🗑️ [DEBUG] Cart deletion result:", deleteResult);
+    } else if (orderToUse) {
+      finalOrderId = orderToUse._id.toString();
+    }
+
     payload = {
       amount: Number(total.toFixed(2)),
       firstName: user.firstName || "John",
@@ -58,7 +86,10 @@ export async function GET(req: NextRequest) {
       state: user.state || "",
       zipCode: user.zipCode || "",
       dni: user.dni || "",
-      items    };
+      items,
+      userId: userId,
+      orderId: finalOrderId
+    };
 
     // console.log("📦 [DEBUG] Payload to send to EC2:", JSON.stringify(payload, null, 2));
 
@@ -71,12 +102,13 @@ export async function GET(req: NextRequest) {
     });
 
     // console.log("🌐 [DEBUG] EC2 Response status:", ec2Response.status);
-    
-    if (!ec2Response.ok) {
+      if (!ec2Response.ok) {
       const errorText = await ec2Response.text();
       // console.error("[API][session-token] ❌ Respuesta de error de EC2:", errorText);
       throw new Error(`EC2 error: ${ec2Response.status} - ${errorText}`);
-    }    const responseData = await ec2Response.json();
+    }
+
+    const responseData = await ec2Response.json();
     // console.log("[API][session-token] ✅ Response from EC2:", JSON.stringify(responseData, null, 2));
 
     const token = responseData.token;
@@ -88,30 +120,14 @@ export async function GET(req: NextRequest) {
 
     // console.log("✅ [DEBUG] Valid token received from EC2, length:", token.length);
     
-    // Verificar el token antes de redirigir
-    // URL de cancelación con userId y orderId para reintento
-    const cancelUrl = `${BASE_URL}/payment-retry?userId=${userId}&orderId=${orderId || (orderToUse ? orderToUse._id : undefined)}`;
-    const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}&ssl_result_cancel_url=${encodeURIComponent(cancelUrl)}`;    // Solo crear la orden y vaciar el carrito si es el primer intento
-    if (!orderId) {
-      // console.log("📝 [DEBUG] Creating new order...");
-      // Calcular el siguiente número de orden globalmente (para todos los usuarios)
-      const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
-      const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
-      // console.log("🔢 [DEBUG] Next order number (global):", nextOrderNumber);
-      
-      const createdOrder = await Order.create({
-        userId,
-        items,        total: Number(total.toFixed(2)),
-        estado: 'pending',
-        createdAt: new Date(),
-        orderNumber: nextOrderNumber,
-      });
-      // console.log("✅ [DEBUG] Order created successfully with ID:", createdOrder._id);
-      
-      // Vaciar el carrito del usuario en la base de datos
-      const deleteResult = await Cart.deleteOne({ userId });
-      // console.log("🗑️ [DEBUG] Cart deletion result:", deleteResult);
-    }
+    // Crear las URLs con el orderId correcto
+    const cancelUrl = `${BASE_URL}/payment-retry?userId=${userId}&orderId=${finalOrderId}`;
+    const successUrl = `${BASE_URL}/payment-success?userId=${userId}&orderId=${finalOrderId}`;
+    const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}&ssl_result_cancel_url=${encodeURIComponent(cancelUrl)}&ssl_result_success_url=${encodeURIComponent(successUrl)}`;
+
+    console.log("🔗 [TEMP DEBUG] Cancel URL:", cancelUrl);
+    console.log("🔗 [TEMP DEBUG] Success URL:", successUrl);
+    console.log("🔗 [TEMP DEBUG] Full Hosted URL:", hostedUrl);
 
     // console.log("🔗 [DEBUG] Returning hosted URL for redirect");
     return NextResponse.json({ redirectUrl: hostedUrl });
