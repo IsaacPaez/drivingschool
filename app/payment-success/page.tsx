@@ -1,10 +1,10 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function PaymentSuccess() {
+function PaymentSuccessContent() {
   const { clearCart } = useCart();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -82,7 +82,22 @@ export default function PaymentSuccess() {
           to { opacity: 1; transform: scale(1); }
         }
         .animate-fadeIn { animation: fadeIn 0.5s ease; }
-      `}</style>
-    </div>
+      `}</style>    </div>
   );
-} 
+}
+
+export default function PaymentSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-100 to-blue-100 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full flex flex-col items-center">
+          <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-green-500 mb-6"></div>
+          <h1 className="text-2xl font-bold text-gray-700 mb-2 text-center">Processing Payment...</h1>
+          <p className="text-gray-600 text-center">Please wait while we confirm your payment.</p>
+        </div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
+  );
+}
