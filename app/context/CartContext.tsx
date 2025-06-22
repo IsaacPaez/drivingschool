@@ -34,67 +34,58 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   const [cartLoading, setCartLoading] = useState(false);
   const { user } = useAuth();
 
-  // 🛒 Cargar el carrito desde la base de datos si el usuario está logueado, si no, desde localStorage
+  // Load cart from localStorage on initial load
   useEffect(() => {
-    async function loadCart() {
-      if (user && user._id) {
-        try {
-          const res = await fetch(`/api/cart?userId=${user._id}`);
-          const data = await res.json();
-          if (data.cart && Array.isArray(data.cart.items)) {
-            setCart(data.cart.items);
-            return;
-          }
-        } catch (err) {
-          console.error("[CartContext] Failed to load cart from DB:", err);
-        }
-      } else {
-        // Solo si no hay usuario, usa localStorage
-        const storedCart = localStorage.getItem("cart");
-        if (storedCart) {
-          setCart(JSON.parse(storedCart));
-        }
+    const storedCart = localStorage.getItem("cart");
+    if (storedCart) {
+      try {
+        setCart(JSON.parse(storedCart));
+      } catch (e) {
+        console.error("Error parsing cart from localStorage", e);
+        localStorage.removeItem("cart");
       }
     }
-    loadCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync with SSE when user logs in
+  useEffect(() => {
+    if (!user || !user._id) {
+      // If user logs out, keep cart from localStorage
+      const storedCart = localStorage.getItem("cart");
+      setCart(storedCart ? JSON.parse(storedCart) : []);
+      return;
+    }
+
+    const eventSource = new EventSource(`/api/cart/updates?userId=${user._id}`);
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'update' && data.cart && Array.isArray(data.cart.items)) {
+          setCart(data.cart.items);
+        }
+      } catch (error) {
+        console.error("Failed to parse cart SSE data:", error);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("Cart EventSource failed:", err);
+      eventSource.close();
+    };
+
+    // Cleanup on component unmount or user change
+    return () => {
+      eventSource.close();
+    };
   }, [user]);
 
-  // 💾 Guardar el carrito en localStorage cada vez que cambie
+  // 💾 Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
-  // 🔄 Sincronizar el carrito entre pestañas
-  useEffect(() => {
-    const syncCart = (e: StorageEvent) => {
-      if (e.key === "cart") {
-        setCart(e.newValue ? JSON.parse(e.newValue) : []);
-      }
-    };
-    window.addEventListener("storage", syncCart);
-    return () => window.removeEventListener("storage", syncCart);
-  }, []);
-
-  // Save cart to DB every time it changes and user is logged in
-  useEffect(() => {
-    async function saveCartToDB() {
-      if (user && user._id && cart.length > 0) {
-        try {
-          await fetch("/api/cart", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: user._id, items: cart }),
-          });
-        } catch (err) {
-          console.error("[CartContext] Failed to save cart to DB:", err);
-        }
-      }
-    }
-    saveCartToDB();
-  }, [cart, user]);
-
-  // Función auxiliar para guardar el carrito en la base de datos
+  // DB persistence function
   const saveCartToDB = async (cartItems: CartItem[]) => {
     if (user && user._id) {
       try {
@@ -109,83 +100,38 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // 🚀 Función para agregar productos al carrito
   const addToCart = async (item: CartItem) => {
-    setCartLoading(true);
     let newCart: CartItem[] = [];
     setCart((prevCart) => {
-      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
-      if (existingItem) {
+      if (prevCart.find((cartItem) => cartItem.id === item.id)) {
         newCart = prevCart;
         return prevCart;
       }
       newCart = [...prevCart, { ...item, quantity: 1 }];
       return newCart;
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await saveCartToDB(newCart);
-    setCartLoading(false);
+    // Use a short timeout to allow state to update before saving
+    setTimeout(() => saveCartToDB(newCart), 50);
   };
-
-  // ❌ Función para eliminar un producto del carrito
+  
   const removeFromCart = async (id: string) => {
-    setCartLoading(true);
     let updatedCart: CartItem[] = [];
     setCart((prevCart) => {
       updatedCart = prevCart.filter((item) => item.id !== id);
       return updatedCart;
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await saveCartToDB(updatedCart);
-    setCartLoading(false);
+    setTimeout(() => saveCartToDB(updatedCart), 50);
   };
 
-  // 🧹 Función para vaciar el carrito
   const clearCart = () => {
     setCart([]);
+    setTimeout(() => saveCartToDB([]), 50);
   };
-
-  // Sincronizar la base de datos cuando el carrito se vacía
-  useEffect(() => {
-    if (user && user._id && cart.length === 0) {
-      saveCartToDB([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart, user]);
-
-  // Función para recargar el carrito desde la base de datos
-  const reloadCartFromDB = async () => {
-    if (user && user._id) {
-      try {
-        const res = await fetch(`/api/cart?userId=${user._id}`);
-        const data = await res.json();
-        if (data.cart && Array.isArray(data.cart.items)) {
-          setCart(data.cart.items);
-        }
-      } catch (err) {
-        console.error("[CartContext] Failed to reload cart from DB:", err);
-      }
-    }
+  
+  const reloadCartFromDB = () => {
+    // This function is now effectively handled by the SSE connection.
+    // It can be kept for specific manual refresh scenarios if needed, but is not essential for sync.
   };
-
-  // Sincronizar el carrito al volver, navegar con flechas o recargar
-  useEffect(() => {
-    const handleSync = () => {
-      reloadCartFromDB();
-    };
-    window.addEventListener("popstate", handleSync);
-    window.addEventListener("focus", handleSync);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") {
-        handleSync();
-      }
-    });
-    return () => {
-      window.removeEventListener("popstate", handleSync);
-      window.removeEventListener("focus", handleSync);
-      document.removeEventListener("visibilitychange", handleSync);
-    };
-  }, [reloadCartFromDB, user]);
 
   return (
     <CartContext.Provider
