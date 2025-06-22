@@ -6,26 +6,12 @@ import { useRouter } from "next/navigation";
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useAuth } from "@/components/AuthContext";
 
-// Custom hook para polling tipo webhook
-function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) => void) {
-  useEffect(() => {
-    if (!instructorId) return;
-    const fetchAndUpdate = () => {
-      fetch(`/api/teachers?id=${instructorId}`)
-        .then(res => res.json())
-        .then(onUpdate);
-    };
-    fetchAndUpdate();
-    const interval = setInterval(fetchAndUpdate, 5000);
-    return () => clearInterval(interval);
-  }, [instructorId, onUpdate]);
-}
-
 export default function TeachersPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [rawSchedule, setRawSchedule] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
+  const instructorId = (user as { instructorId?: string })?.instructorId;
 
   useEffect(() => {
     if (user === null) {
@@ -37,26 +23,32 @@ export default function TeachersPage() {
     }
   }, [user, router]);
 
-  // Hook profesional para actualización en vivo
-  const instructorId = (user as { instructorId?: string })?.instructorId;
-  useWebhook(
-    instructorId,
-    (data) => {
-      setRawSchedule((data as { schedule?: unknown[] }).schedule || []);
-      // Solo desactiva loading la primera vez
-      setLoading((prev) => prev ? false : prev);
-    }
-  );
-
-  const fetchSchedule = async () => {
-    if (user === null) return;
-    const instructorId = (user as { instructorId?: string }).instructorId;
+  useEffect(() => {
     if (!instructorId) return;
-    
-    const res = await fetch(`/api/teachers?id=${instructorId}`);
-    const data = await res.json();
-    setRawSchedule((data as { schedule?: unknown[] }).schedule || []);
-  };
+
+    const eventSource = new EventSource(`/api/teachers/schedule-updates?id=${instructorId}`);
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'initial' || data.type === 'update') {
+        setRawSchedule(data.schedule || []);
+        if (loading) setLoading(false);
+      } else if (data.type === 'error') {
+        console.error("SSE Error:", data.message);
+        if (loading) setLoading(false);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("EventSource failed:", err);
+      if (loading) setLoading(false);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [instructorId, loading]);
 
   if (user === null) {
     return null;
@@ -80,7 +72,7 @@ export default function TeachersPage() {
         </h1>
         <div className="w-full max-w-8xl text-black flex flex-row gap-8">
           <div className="flex-1">
-            <InstructorCalendar schedule={rawSchedule} onScheduleUpdate={fetchSchedule} />
+            <InstructorCalendar schedule={rawSchedule} onScheduleUpdate={() => {}} />
           </div>
         </div>
       </div>

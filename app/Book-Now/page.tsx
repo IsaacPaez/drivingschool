@@ -8,6 +8,7 @@ import Modal from "@/components/Modal";
 import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
+import { useScheduleSSE } from "@/hooks/useScheduleSSE";
 
 interface Slot {
   _id: string;
@@ -51,6 +52,9 @@ export default function BookNowPage() {
   const [showLogin, setShowLogin] = useState(false);
   const [showAuthWarning, setShowAuthWarning] = useState(false);
 
+  // Use SSE hook instead of polling
+  const { schedule: sseSchedule, error: sseError, isConnected } = useScheduleSSE(selectedInstructorId);
+
   useEffect(() => {
     async function fetchLocations() {
       try {
@@ -69,43 +73,32 @@ export default function BookNowPage() {
     fetchLocations();
   }, []);
 
+  // Process SSE schedule data
   useEffect(() => {
-    if (!selectedInstructorId) return;
-    let isMounted = true;
-    let polling: NodeJS.Timeout;
-    async function fetchInstructorSchedule() {
-      try {
-        const res = await fetch(`/api/book-now?id=${selectedInstructorId}`);
-        if (!res.ok) throw new Error(`Error fetching schedule: ${res.statusText} (${res.status})`);
-        const data = await res.json();
-        // Agrupa el schedule plano por fecha
-        const groupedSchedule: Schedule[] = Array.isArray(data.schedule)
-          ? Object.values(
-              data.schedule.reduce((acc, curr) => {
-                if (!acc[curr.date]) acc[curr.date] = { date: curr.date, slots: [] };
-                acc[curr.date].slots.push({
-                  start: curr.start,
-                  end: curr.end,
-                  status: curr.status,
-                  studentId: curr.studentId,
-                  _id: curr._id,
-                });
-                return acc;
-              }, {} as Record<string, { date: string; slots: Slot[] }>))
-          : [];
-        // Busca el instructor base por ID
-        const base = instructors.find(i => i._id === selectedInstructorId);
-        if (isMounted && base) {
-          setSelectedInstructor({ ...base, schedule: groupedSchedule });
-        }
-      } catch (error) {
-        // No log
-      }
+    if (!selectedInstructorId || !sseSchedule) return;
+    
+    // Agrupa el schedule plano por fecha
+    const groupedSchedule: Schedule[] = Array.isArray(sseSchedule)
+      ? Object.values(
+          sseSchedule.reduce((acc, curr) => {
+            if (!acc[curr.date]) acc[curr.date] = { date: curr.date, slots: [] };
+            acc[curr.date].slots.push({
+              start: curr.start,
+              end: curr.end,
+              status: curr.status,
+              studentId: curr.studentId,
+              _id: curr._id,
+            });
+            return acc;
+          }, {} as Record<string, { date: string; slots: Slot[] }>))
+      : [];
+    
+    // Busca el instructor base por ID
+    const base = instructors.find(i => i._id === selectedInstructorId);
+    if (base) {
+      setSelectedInstructor({ ...base, schedule: groupedSchedule });
     }
-    fetchInstructorSchedule();
-    polling = setInterval(fetchInstructorSchedule, 5000);
-    return () => { isMounted = false; clearInterval(polling); };
-  }, [selectedInstructorId, instructors]);
+  }, [sseSchedule, selectedInstructorId, instructors]);
 
   useEffect(() => {
     if (
@@ -262,7 +255,31 @@ export default function BookNowPage() {
                     }
                     if (slot.status === 'scheduled' && slot.studentId && userId && slot.studentId.toString() === userId) {
                       return (
-                        <td key={date.toDateString()} className="border border-gray-300 py-1 bg-blue-500 text-white font-bold">
+                        <td key={date.toDateString()} className="border border-gray-300 py-1 bg-blue-500 text-white font-bold cursor-pointer hover:bg-red-500"
+                          onClick={async () => {
+                            if (confirm('Are you sure you want to cancel this booking?')) {
+                              try {
+                                const res = await fetch('/api/booking/cancel', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    studentId: userId,
+                                    instructorId: selectedInstructor._id,
+                                    date: dateString,
+                                    start: block.start,
+                                    end: block.end,
+                                  }),
+                                });
+                                if (!res.ok) {
+                                  alert('Could not cancel the booking. Please try again.');
+                                }
+                              } catch (error) {
+                                alert('Error cancelling booking. Please try again.');
+                              }
+                            }
+                          }}
+                          title="Click to cancel booking"
+                        >
                           Your Booking
                         </td>
                       );

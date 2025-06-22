@@ -1,12 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 export interface AuthUser {
   _id: string;
   name: string;
   email: string;
   photo?: string | null;
+  type?: 'student' | 'instructor';
 }
 
 interface AuthContextType {
@@ -24,6 +26,7 @@ const INACTIVITY_MS = INACTIVITY_MINUTES * 60 * 1000;
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<AuthUser | null>(null);
   const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
   // Restaurar usuario desde localStorage al cargar
   useEffect(() => {
@@ -74,6 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    if (user?.type === 'instructor') {
+      router.push('/');
+    }
     setUserState(null);
     localStorage.removeItem(LOCAL_KEY);
   };

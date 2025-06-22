@@ -28,6 +28,7 @@ interface Course {
   title: string;
   length: number;
   price: number;
+  students?: Student[];
 }
 
 interface ClassResponse {
@@ -53,27 +54,11 @@ interface Note {
   date: string;
 }
 
-// Custom hook para polling tipo webhook
-function useWebhook(instructorId: string | undefined, onUpdate: (data: unknown) => void) {
-  React.useEffect(() => {
-    if (!instructorId) return;
-    const fetchAndUpdate = () => {
-      fetch(`/api/teachers/classes?instructorId=${instructorId}`)
-        .then(res => res.json())
-        .then(onUpdate);
-    };
-    fetchAndUpdate();
-    const interval = setInterval(fetchAndUpdate, 5000);
-    return () => clearInterval(interval);
-  }, [instructorId, onUpdate]);
-}
-
 const StudentsPage = () => {
   const router = useRouter();
   const { user } = useAuth();
-  const instructorId = (user as { instructorId?: string })?.instructorId;
+  const instructorId = (user as any)?.instructorId;
   const [courses, setCourses] = useState<Course[]>([]);
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [classStudents, setClassStudents] = useState<Student[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [search, setSearch] = useState('');
@@ -91,7 +76,6 @@ const StudentsPage = () => {
   const [mailBody, setMailBody] = useState('');
   const [mailSending, setMailSending] = useState(false);
   const [mailSent, setMailSent] = useState(false);
-  const [ticketclasses, setTicketclasses] = useState<any[]>([]);
 
   // Redirección si no hay usuario
   useEffect(() => {
@@ -100,15 +84,37 @@ const StudentsPage = () => {
     }
   }, [user, router]);
 
-  // Hook profesional para actualización en vivo
-  const handleWebhookUpdate = useCallback((data: unknown) => {
-    const typedData = data as { classes?: Course[]; students?: Student[]; ticketclasses?: any[] };
-    setCourses(typedData.classes || []);
-    setAllStudents(typedData.students || []);
-    setTicketclasses(typedData.ticketclasses || []);
-    setLoading(false);
-  }, []);
-  useWebhook(instructorId, handleWebhookUpdate);
+  useEffect(() => {
+    if (!instructorId) {
+      setLoading(false);
+      return;
+    }
+
+    const eventSource = new EventSource(`/api/teachers/classes-updates?instructorId=${instructorId}`);
+
+    eventSource.onopen = () => setLoading(true);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'update' && Array.isArray(data.classes)) {
+          setCourses(data.classes);
+        }
+      } catch (error) {
+        console.error("Failed to parse SSE data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("EventSource failed for classes:", err);
+      setLoading(false);
+      eventSource.close();
+    };
+
+    return () => eventSource.close();
+  }, [instructorId]);
 
   // Limpiar selección SOLO cuando cambia el curso
   useEffect(() => {
@@ -119,34 +125,14 @@ const StudentsPage = () => {
     setSaveMsg('');
   }, [selectedCourse]);
 
-  // Actualizar estudiantes de la clase cuando cambian los datos
+  // Actualizar estudiantes de la clase cuando cambia la clase seleccionada
   useEffect(() => {
-    if (!selectedCourse || ticketclasses.length === 0) {
+    if (selectedCourse && Array.isArray(selectedCourse.students)) {
+      setClassStudents(selectedCourse.students);
+    } else {
       setClassStudents([]);
-      return;
     }
-
-    const tc = ticketclasses.find(tc => tc.classId?.toString() === selectedCourse._id);
-    if (!tc?.students) {
-      setClassStudents([]);
-      return;
-    }
-
-    // LOGS DE DEPURACIÓN
-    //console.log('allStudents:', allStudents);
-    //console.log('tc.students:', tc.students);
-
-    const studentsInClass = allStudents.filter(st =>
-      tc.students.some((s: any) => {
-        const sId = (typeof s === 'object' && (s.studentId || s._id)) ? s.studentId || s._id : s;
-        return st._id?.toString() === sId?.toString();
-      })
-    );
-
-    setClassStudents(prev =>
-      JSON.stringify(prev) !== JSON.stringify(studentsInClass) ? studentsInClass : prev
-    );
-  }, [selectedCourse, ticketclasses, allStudents]);
+  }, [selectedCourse]);
 
   // 3. Cuando seleccionas un estudiante, traer su historial en ese curso
   const handleSelect = async (student: Student) => {
