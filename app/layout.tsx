@@ -8,6 +8,8 @@ import { Providers } from "./providers";
 import BodyWithDynamicBg from "./components/BodyWithDynamicBg";
 import ConditionalTrackingProvider from '@/components/ConditionalTrackingProvider';
 import { AuthProvider } from "@/components/AuthContext";
+import ErrorBoundary from "./components/ErrorBoundary";
+import GlobalErrorHandler from "./components/GlobalErrorHandler";
 
 // ✅ Generamos la metadata sin usar `fetch()`
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,18 +44,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <AuthProvider>
-          <BodyWithDynamicBg>
-            <Providers>
-              <Header />
-              <ConditionalTrackingProvider />
-              <main className="min-h-screen relative">
-                {children}
-              </main>
-              <Footer />
-            </Providers>
-          </BodyWithDynamicBg>
-        </AuthProvider>
+        <ErrorBoundary>
+          <GlobalErrorHandler />
+          <AuthProvider>
+            <BodyWithDynamicBg>
+              <Providers>
+                <Header />
+                <ConditionalTrackingProvider />
+                <main className="min-h-screen relative">
+                  {children}
+                </main>
+                <Footer />
+              </Providers>
+            </BodyWithDynamicBg>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
