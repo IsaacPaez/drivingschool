@@ -1,4 +1,4 @@
-import { sendCartUpdate } from '../updates/route';
+import { sendCartUpdate } from '@/lib/cartUpdates';
 
 export async function POST(request: Request) {
   const body = await request.json();
