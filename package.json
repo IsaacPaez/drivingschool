@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.5.1",
+    "@aws-sdk/client-ec2": "^3.836.0",
     "@clerk/clerk-sdk-node": "^5.1.6",
     "@clerk/nextjs": "^6.11.3",
     "@next-auth/mongodb-adapter": "^1.1.3",

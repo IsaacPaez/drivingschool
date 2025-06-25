@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { startAndWaitEC2 } from "./aws-ec2";
 
 // Definir la interfaz CartItem dentro de este archivo
 interface CartItem {
@@ -17,28 +18,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export async function POST(req: Request) {
   try {
-    // Especificar el tipo de items usando la interfaz CartItem
-    const { items }: { items: CartItem[] } = await req.json();
+    // 1. Enciende la instancia EC2 y espera a que esté lista
+    const ok = await startAndWaitEC2(process.env.EC2_INSTANCE_ID!);
+    if (!ok) {
+      return new Response("No se pudo encender la instancia EC2", { status: 500 });
+    }
 
-    // 🔹 Crear la sesión de pago en Stripe
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: items.map((item) => ({
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: item.title,
-          },
-          unit_amount: item.price * 100, // Convertir a centavos
-        },
-        quantity: 1, // Cambia según la cantidad en el carrito
-      })),
-      mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cancel`,
-    });
+    // 2. Aquí va tu lógica para solicitar el token de Elavon
+    // const token = await getElavonToken();
 
-    return NextResponse.json({ url: session.url });
+    // 3. Continúa con el proceso de checkout
+    return new Response("Instancia encendida y token solicitado", { status: 200 });
   } catch (error) {
     return NextResponse.json(
       { 

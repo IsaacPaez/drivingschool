@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Cart from "@/models/Cart";
 import Order from '@/models/Order';
+import { startAndWaitEC2 } from "@/app/api/checkout/aws-ec2";
 
 const BASE_URL = "https://driving-school-mocha.vercel.app";
 const EC2_URL = "http://3.149.101.8:3000";
@@ -92,6 +93,16 @@ export async function GET(req: NextRequest) {
     };
 
     // console.log("📦 [DEBUG] Payload to send to EC2:", JSON.stringify(payload, null, 2));
+
+    // --- INICIO: Encender y esperar EC2 antes de pedir el token ---
+    const ok = await startAndWaitEC2(process.env.EC2_INSTANCE_ID!);
+    if (!ok) {
+      return NextResponse.json({ 
+        error: "ec2", 
+        message: "No se pudo encender la instancia EC2" 
+      }, { status: 500 });
+    }
+    // --- FIN: Encender y esperar EC2 ---
 
     const ec2Response = await fetch(`${EC2_URL}/api/payments/session-token`, {
       method: "POST",
