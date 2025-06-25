@@ -48,9 +48,56 @@ async function getRedirectUrlFromEC2(payload) {
   throw new Error(`No se pudo obtener redirectUrl del EC2 tras 2 intentos. Último error: ${lastError}`);
 }
 
+// Espera a que el backend EC2 esté listo (responda en /health)
+async function waitForBackendReady(url, maxTries = 20, delayMs = 3000, fetchTimeoutMs = 2000) {
+  for (let i = 0; i < maxTries; i++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), fetchTimeoutMs);
+    try {
+      const res = await fetch(url, { method: "GET", signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        console.log(`[EC2] Backend listo en intento ${i + 1}`);
+        return true;
+      }
+    } catch (e) {
+      // Ignora el error, solo espera y reintenta
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    console.log(`[EC2] Esperando backend... intento ${i + 1}`);
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+  return false;
+}
+
 export async function GET(req: NextRequest) {
-  console.log("[API][redirect] === INICIO ===");
+  console.log("=== INICIO /api/payments/redirect ===");
   try {
+    // 1. Espera a que EC2 esté encendida
+    console.log("Llamando a startAndWaitEC2 con ID:", process.env.EC2_INSTANCE_ID);
+    const ec2Result = await startAndWaitEC2(process.env.EC2_INSTANCE_ID!);
+    console.log("Resultado de startAndWaitEC2:", ec2Result);
+    const ok = ec2Result.success;
+    const publicIp = ec2Result.publicIp;
+    if (!ok) {
+      return NextResponse.json({ 
+        error: "ec2", 
+        message: "No se pudo encender la instancia EC2",
+        details: ec2Result.error || "Unknown error"
+      }, { status: 500 });
+    }
+
+    // 2. Espera a que el backend esté listo
+    const backendReady = await waitForBackendReady(`${EC2_URL}/health`);
+    if (!backendReady) {
+      return NextResponse.json({
+        error: "ec2",
+        message: "La instancia EC2 está encendida pero el backend no responde."
+      }, { status: 500 });
+    }
+
+    // 3. Ahora conecta a la DB y procesa la orden
     await connectDB();
     console.log("[API][redirect] DB conectada");
     const { searchParams } = new URL(req.url);
@@ -133,15 +180,6 @@ export async function GET(req: NextRequest) {
       successUrl: `${BASE_URL}/payment-success?userId=${userId}&orderId=${finalOrderId}`
     };
     console.log("[API][redirect] Payload para EC2:", payload);
-
-    const ok = await startAndWaitEC2(process.env.EC2_INSTANCE_ID!);
-    console.log("[API][redirect] EC2 encendido:", ok);
-    if (!ok) {
-      return NextResponse.json({ 
-        error: "ec2", 
-        message: "No se pudo encender la instancia EC2" 
-      }, { status: 500 });
-    }
 
     // Usar función con reintento automático
     const redirectUrl = await getRedirectUrlFromEC2(payload);

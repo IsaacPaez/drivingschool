@@ -74,25 +74,25 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
         }
 
         eventSource = new EventSource(`/api/cart/updates?userId=${user._id}`);
-        
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'update' && data.cart && Array.isArray(data.cart.items)) {
-              setCart(data.cart.items);
-            }
-          } catch (error) {
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'update' && data.cart && Array.isArray(data.cart.items)) {
+          setCart(data.cart.items);
+        }
+      } catch (error) {
             console.warn("Failed to parse cart SSE data:", error);
-          }
-        };
+      }
+    };
 
-        eventSource.onerror = (err) => {
+    eventSource.onerror = (err) => {
           console.warn("Cart EventSource error:", err);
           isConnecting = false;
           
           if (eventSource) {
             try {
-              eventSource.close();
+      eventSource.close();
             } catch (closeError) {
               // Ignore close errors
             }
@@ -137,7 +137,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       isConnecting = false;
       if (eventSource) {
         try {
-          eventSource.close();
+      eventSource.close();
         } catch (error) {
           // Ignore close errors
         }
