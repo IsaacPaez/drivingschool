@@ -20,29 +20,43 @@ export async function GET(request: Request) {
 
     const stream = new ReadableStream({
       start(controller) {
+        let isClosed = false;
+        let client: any = null;
+        
+        const closeConnection = () => {
+          if (!isClosed) {
+            isClosed = true;
+            try {
+              if (client) {
+                removeClient(client);
+              }
+              controller.close();
+            } catch (error) {
+              // Controller might already be closed, ignore error
+            }
+          }
+        };
+
         try {
           // Guardar el cliente
-          const client = { controller, userId };
+          client = { controller, userId };
           addClient(client);
 
           // Enviar un evento inicial
           controller.enqueue(`data: ${JSON.stringify({ type: "init", cart: [] })}\n\n`);
 
-          // Limpiar al cerrar conexión
-          request.signal.addEventListener("abort", () => {
-            removeClient(client);
-            controller.close();
-          });
+          // Limpiar al cerrar conexión - solo un event listener
+          request.signal.addEventListener("abort", closeConnection);
 
           // Handle connection errors
-          request.signal.addEventListener("abort", () => {
-            removeClient(client);
-            controller.close();
+          request.signal.addEventListener("error", (error) => {
+            console.error("SSE connection error:", error);
+            closeConnection();
           });
 
         } catch (error) {
           console.error("Error in SSE stream setup:", error);
-          controller.error(error);
+          closeConnection();
         }
       }
     });

@@ -60,9 +60,19 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     let reconnectTimeout: NodeJS.Timeout | null = null;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 3;
+    let isConnecting = false;
 
     const connectSSE = () => {
+      if (isConnecting) return; // Prevent multiple simultaneous connections
+      isConnecting = true;
+
       try {
+        // Close existing connection if any
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+
         eventSource = new EventSource(`/api/cart/updates?userId=${user._id}`);
         
         eventSource.onmessage = (event) => {
@@ -72,14 +82,20 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
               setCart(data.cart.items);
             }
           } catch (error) {
-            console.error("Failed to parse cart SSE data:", error);
+            console.warn("Failed to parse cart SSE data:", error);
           }
         };
 
         eventSource.onerror = (err) => {
-          console.error("Cart EventSource failed:", err);
+          console.warn("Cart EventSource error:", err);
+          isConnecting = false;
+          
           if (eventSource) {
-            eventSource.close();
+            try {
+              eventSource.close();
+            } catch (closeError) {
+              // Ignore close errors
+            }
             eventSource = null;
           }
           
@@ -96,10 +112,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
         eventSource.onopen = () => {
           console.log("Cart SSE connection established");
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+          isConnecting = false;
         };
 
       } catch (error) {
-        console.error("Failed to create EventSource:", error);
+        console.warn("Failed to create EventSource:", error);
+        isConnecting = false;
+        
+        // Implement reconnection logic for creation errors
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
+          reconnectTimeout = setTimeout(() => {
+            connectSSE();
+          }, delay);
+        }
       }
     };
 
@@ -107,8 +134,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
 
     // Cleanup on component unmount or user change
     return () => {
+      isConnecting = false;
       if (eventSource) {
-        eventSource.close();
+        try {
+          eventSource.close();
+        } catch (error) {
+          // Ignore close errors
+        }
       }
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
@@ -125,13 +157,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   const saveCartToDB = async (cartItems: CartItem[]) => {
     if (user && user._id) {
       try {
-        await fetch("/api/cart", {
+        const response = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: user._id, items: cartItems }),
         });
+        
+        if (!response.ok) {
+          console.warn("[CartContext] Failed to save cart to DB:", response.status, response.statusText);
+        }
       } catch (err) {
-        console.error("[CartContext] Failed to save cart to DB:", err);
+        console.warn("[CartContext] Failed to save cart to DB:", err);
       }
     }
   };
