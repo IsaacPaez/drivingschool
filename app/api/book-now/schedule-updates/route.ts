@@ -36,33 +36,54 @@ export async function GET(req: NextRequest) {
   // Send initial data
   try {
     const instructor = await Instructor.findById(instructorId);
-    if (instructor) {
-      sendEvent({ type: "initial", schedule: instructor.get('schedule', { lean: true }) || [] });
+    if (!instructor) {
+      sendEvent({ type: "error", message: "Instructor not found" });
+      writer.close();
+      return new Response(stream.readable, { status: 404 });
     }
+    
+    const schedule = instructor.get('schedule', { lean: true }) || [];
+    sendEvent({ type: "initial", schedule });
   } catch (error) {
     console.error("Error fetching initial schedule:", error);
     sendEvent({ type: "error", message: "Failed to fetch initial data" });
   }
 
-  // Setup Change Stream
-  const changeStream = mongoose.connection.collection('instructors').watch([
-    { $match: { 'documentKey._id': new mongoose.Types.ObjectId(instructorId) } }
-  ]);
+  // Setup Change Stream with error handling
+  let changeStream: any = null;
+  try {
+    changeStream = mongoose.connection.collection('instructors').watch([
+      { $match: { 'documentKey._id': new mongoose.Types.ObjectId(instructorId) } }
+    ]);
 
-  changeStream.on('change', async () => {
-    try {
-      const instructor = await Instructor.findById(instructorId);
-      if (instructor) {
-        sendEvent({ type: "update", schedule: instructor.get('schedule', { lean: true }) || [] });
+    changeStream.on('change', async () => {
+      try {
+        const instructor = await Instructor.findById(instructorId);
+        if (instructor) {
+          const schedule = instructor.get('schedule', { lean: true }) || [];
+          sendEvent({ type: "update", schedule });
+        }
+      } catch(err) {
+        console.error("Error fetching updated schedule for broadcast:", err);
+        sendEvent({ type: "error", message: "Failed to fetch updated data" });
       }
-    } catch(err) {
-      console.error("Error fetching updated schedule for broadcast:", err);
-    }
-  });
+    });
+
+    changeStream.on('error', (error: any) => {
+      console.error("Change stream error:", error);
+      sendEvent({ type: "error", message: "Database change stream error" });
+    });
+
+  } catch (error) {
+    console.error("Failed to setup change stream:", error);
+    sendEvent({ type: "error", message: "Failed to setup real-time updates" });
+  }
 
   // Handle client disconnect
   req.signal.addEventListener('abort', () => {
-    changeStream.close();
+    if (changeStream) {
+      changeStream.close();
+    }
     writer.close().catch(() => {});
   });
   
