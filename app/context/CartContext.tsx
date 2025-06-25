@@ -56,27 +56,63 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       return;
     }
 
-    const eventSource = new EventSource(`/api/cart/updates?userId=${user._id}`);
-    
-    eventSource.onmessage = (event) => {
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 3;
+
+    const connectSSE = () => {
       try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'update' && data.cart && Array.isArray(data.cart.items)) {
-          setCart(data.cart.items);
-        }
+        eventSource = new EventSource(`/api/cart/updates?userId=${user._id}`);
+        
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'update' && data.cart && Array.isArray(data.cart.items)) {
+              setCart(data.cart.items);
+            }
+          } catch (error) {
+            console.error("Failed to parse cart SSE data:", error);
+          }
+        };
+
+        eventSource.onerror = (err) => {
+          console.error("Cart EventSource failed:", err);
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          
+          // Implement reconnection logic
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000); // Exponential backoff, max 10s
+            reconnectTimeout = setTimeout(() => {
+              connectSSE();
+            }, delay);
+          }
+        };
+
+        eventSource.onopen = () => {
+          console.log("Cart SSE connection established");
+          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+        };
+
       } catch (error) {
-        console.error("Failed to parse cart SSE data:", error);
+        console.error("Failed to create EventSource:", error);
       }
     };
 
-    eventSource.onerror = (err) => {
-      console.error("Cart EventSource failed:", err);
-      eventSource.close();
-    };
+    connectSSE();
 
     // Cleanup on component unmount or user change
     return () => {
-      eventSource.close();
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
     };
   }, [user]);
 

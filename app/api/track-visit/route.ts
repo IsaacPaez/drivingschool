@@ -7,66 +7,108 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const body = await req.json();
-    // Normalizar el campo page para que siempre sea solo el pathname
+    
+    // Validate required fields
     let { sessionId, page, timestamp, duration, referrer } = body;
+    
+    if (!sessionId || !page) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Missing required fields: sessionId and page are required' 
+      }, { status: 400 });
+    }
+
+    // Normalize page URL safely
     try {
       page = new URL(page, 'http://dummy').pathname;
-    } catch {}
+    } catch (urlError) {
+      console.warn('Invalid page URL format:', page);
+      page = String(page).startsWith('/') ? String(page) : `/${String(page)}`;
+    }
+
+    // Normalize referrer URL safely
     if (referrer) {
       try {
         referrer = new URL(referrer, 'http://dummy').pathname;
-      } catch {}
-    }
-    if (!sessionId || !page) {
-      return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+      } catch (urlError) {
+        console.warn('Invalid referrer URL format:', referrer);
+        referrer = String(referrer).startsWith('/') ? String(referrer) : `/${String(referrer)}`;
+      }
     }
 
-    // Buscar la sesión en caché primero
+    // Get session from cache
     let session = sessionCache.get(sessionId);
     if (!session) {
-      // Si no está en caché, devolver error (no crear aquí)
-      return NextResponse.json({ success: false, error: 'Session not found in cache' }, { status: 404 });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Session not found in cache' 
+      }, { status: 404 });
     }
-    // Buscar si existe una página con la URL completa (legacy)
+
+    // Validate session structure
+    if (!session.pages || !Array.isArray(session.pages)) {
+      session.pages = [];
+    }
+
+    // Find existing pages safely
     const legacyPageIndex = session.pages.findIndex(p => {
+      if (!p || !p.url) return false;
       try {
         return new URL(p.url, 'http://dummy').pathname === page && p.url !== page;
       } catch {
         return false;
       }
     });
-    // Buscar si ya existe la página normalizada
-    const normalizedPageIndex = session.pages.findIndex(p => p.url === page);
+
+    const normalizedPageIndex = session.pages.findIndex(p => p && p.url === page);
+    
     const legacyPage = legacyPageIndex !== -1 ? session.pages[legacyPageIndex] : null;
     const normalizedPage = normalizedPageIndex !== -1 ? session.pages[normalizedPageIndex] : null;
+
+    // Handle page updates
     if (legacyPage && normalizedPage) {
-      normalizedPage.duration += legacyPage.duration;
-      normalizedPage.heatmap = [...(normalizedPage.heatmap || []), ...(legacyPage.heatmap || [])];
+      // Merge legacy and normalized pages
+      normalizedPage.duration += legacyPage.duration || 0;
+      normalizedPage.heatmap = [
+        ...(normalizedPage.heatmap || []), 
+        ...(legacyPage.heatmap || [])
+      ];
       normalizedPage.timestamp = new Date(Math.min(
-        new Date(normalizedPage.timestamp).getTime(),
-        new Date(legacyPage.timestamp).getTime()
+        new Date(normalizedPage.timestamp || Date.now()).getTime(),
+        new Date(legacyPage.timestamp || Date.now()).getTime()
       ));
       normalizedPage.referrer = normalizedPage.referrer || legacyPage.referrer;
       session.pages.splice(legacyPageIndex, 1);
+      
+      // Update with new data
       normalizedPage.referrer = typeof referrer === 'string' ? referrer : normalizedPage.referrer;
       normalizedPage.duration = typeof duration === 'number' ? duration : normalizedPage.duration;
       normalizedPage.timestamp = timestamp ? new Date(timestamp) : normalizedPage.timestamp;
+      
       sessionCache.set(sessionId, session);
       return NextResponse.json({ success: true, merged: true, cached: true });
+      
     } else if (legacyPage && !normalizedPage) {
+      // Convert legacy page to normalized
       legacyPage.url = page;
       legacyPage.referrer = typeof referrer === 'string' ? referrer : '';
       legacyPage.duration = typeof duration === 'number' ? duration : 0;
       legacyPage.timestamp = timestamp ? new Date(timestamp) : new Date();
+      
       sessionCache.set(sessionId, session);
       return NextResponse.json({ success: true, updated: true, normalized: true, cached: true });
+      
     } else if (normalizedPage) {
+      // Update existing normalized page
       normalizedPage.referrer = typeof referrer === 'string' ? referrer : '';
       normalizedPage.duration = typeof duration === 'number' ? duration : 0;
       normalizedPage.timestamp = timestamp ? new Date(timestamp) : new Date();
+      
       sessionCache.set(sessionId, session);
       return NextResponse.json({ success: true, updated: true, cached: true });
     }
+
+    // Create new page entry
     session.pages.push({
       url: page,
       referrer: typeof referrer === 'string' ? referrer : '',
@@ -74,14 +116,31 @@ export async function POST(req: NextRequest) {
       duration: typeof duration === 'number' ? duration : 0,
       heatmap: [],
     });
+    
     sessionCache.set(sessionId, session);
     return NextResponse.json({ success: true, created: true, cached: true });
+    
   } catch (error) {
     console.error('Error in track-visit:', error);
-    // Si el error es VersionError, devolver un mensaje más claro
+    
+    // Handle specific MongoDB errors
     if (error?.name === 'VersionError') {
-      return NextResponse.json({ success: false, error: 'Session document not found or version mismatch.' }, { status: 409 });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Session document not found or version mismatch.' 
+      }, { status: 409 });
     }
-    return NextResponse.json({ success: false, error: 'Error in track-visit' }, { status: 500 });
+    
+    if (error?.name === 'ValidationError') {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Validation error in track-visit data.' 
+      }, { status: 400 });
+    }
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Internal server error in track-visit' 
+    }, { status: 500 });
   }
 } 

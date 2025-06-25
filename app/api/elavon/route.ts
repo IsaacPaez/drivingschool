@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
       : amount;
 
     console.log("🔹 Calculated backend total:", backendTotal);
-
     if (items && parseFloat(backendTotal) !== parseFloat(amount)) {
       console.warn("⚠️ Cart total mismatch:", { received: amount, calculated: backendTotal });
       return NextResponse.json({ error: "Cart total mismatch." }, { status: 400 });

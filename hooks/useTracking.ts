@@ -64,16 +64,28 @@ export const useTracking = () => {
     };
     try {
       if (endSession && navigator.sendBeacon) {
-        navigator.sendBeacon('/api/session-track', JSON.stringify(payload));
+        const success = navigator.sendBeacon('/api/session-track', JSON.stringify(payload));
+        if (!success) {
+          console.warn('Failed to send session data via beacon, falling back to fetch');
+          await fetch('/api/session-track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
       } else {
-        await fetch('/api/session-track', {
+        const response = await fetch('/api/session-track', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
+        
+        if (!response.ok) {
+          console.warn('Session tracking failed:', response.status, response.statusText);
+        }
       }
     } catch (error) {
-      // Silenciar errores en producción
+      console.warn('Session tracking error:', error);
     }
   };
 
@@ -81,8 +93,10 @@ export const useTracking = () => {
   const flushHeatmapEvents = (url: string) => {
     if (!url) return;
     if (!heatmapBuffer[url] || heatmapBuffer[url].length === 0) return;
+    
     const eventsToSend = [...heatmapBuffer[url]];
     heatmapBuffer[url] = [];
+    
     try {
       if (navigator.sendBeacon) {
         const blob = new Blob([
@@ -92,7 +106,23 @@ export const useTracking = () => {
             events: eventsToSend,
           }),
         ], { type: 'application/json' });
-        navigator.sendBeacon('/api/heatmap-event', blob);
+        
+        const success = navigator.sendBeacon('/api/heatmap-event', blob);
+        if (!success) {
+          console.warn('Failed to send heatmap data via beacon, falling back to fetch');
+          fetch('/api/heatmap-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: SESSION_ID,
+              page: url,
+              events: eventsToSend,
+            }),
+            keepalive: true,
+          }).catch(error => {
+            console.warn('Heatmap event tracking error:', error);
+          });
+        }
       } else {
         fetch('/api/heatmap-event', {
           method: 'POST',
@@ -103,10 +133,12 @@ export const useTracking = () => {
             events: eventsToSend,
           }),
           keepalive: true,
+        }).catch(error => {
+          console.warn('Heatmap event tracking error:', error);
         });
       }
-    } catch (e) {
-      // Silenciar errores
+    } catch (error) {
+      console.warn('Heatmap event tracking error:', error);
     }
   };
 
@@ -189,46 +221,48 @@ export const useTracking = () => {
         }),
       });
       // Página inicial: no hay referrer, duración 0
-      fetch('/api/track-visit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: lastUserId.current,
-          sessionId: SESSION_ID,
-          page: pathname,
-          referrer: document.referrer ? new URL(document.referrer).pathname : '',
-          duration: 0,
-          timestamp: new Date().toISOString(),
-        }),
-      });
+      // setTimeout(() => {
+      //   fetch('/api/track-visit', {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({
+      //       userId: lastUserId.current,
+      //       sessionId: SESSION_ID,
+      //       page: pathname,
+      //       referrer: document.referrer ? new URL(document.referrer).pathname : '',
+      //       duration: 0,
+      //       timestamp: new Date().toISOString(),
+      //     }),
+      //   });
+      // }, 1000); // 1000 ms = 1 segundo
       sessionStarted.current = true;
     } else if (lastPage.current !== pathname) {
       // Al cambiar de página, guardar la anterior con su duración y referrer
-      fetch('/api/track-visit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: lastUserId.current,
-          sessionId: SESSION_ID,
-          page: lastPage.current,
-          referrer: lastReferrer.current,
-          duration: Date.now() - startTime.current,
-          timestamp: new Date().toISOString(),
-        }),
-      });
+      // fetch('/api/track-visit', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     userId: lastUserId.current,
+      //     sessionId: SESSION_ID,
+      //     page: lastPage.current,
+      //     referrer: lastReferrer.current,
+      //     duration: Date.now() - startTime.current,
+      //     timestamp: new Date().toISOString(),
+      //   }),
+      // });
       // Nueva página: duración 0, referrer es la anterior
-      fetch('/api/track-visit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: lastUserId.current,
-          sessionId: SESSION_ID,
-          page: pathname,
-          referrer: lastPage.current,
-          duration: 0,
-          timestamp: new Date().toISOString(),
-        }),
-      });
+      // fetch('/api/track-visit', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     userId: lastUserId.current,
+      //     sessionId: SESSION_ID,
+      //     page: pathname,
+      //     referrer: lastPage.current,
+      //     duration: 0,
+      //     timestamp: new Date().toISOString(),
+      //   }),
+      // });
       startTime.current = Date.now();
       lastReferrer.current = lastPage.current || '';
       lastPage.current = pathname;

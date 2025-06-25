@@ -75,23 +75,38 @@ export default function HeatmapTracker() {
         const screen_width = window.innerWidth;
         const screen_height = window.innerHeight;
 
-        if (!heatmapInstance.current) return;
-        if (isNaN(x) || isNaN(y) || x < 0 || y < 0 || x > screen_width || y > screen_height) return;
+        if (!heatmapInstance.current) {
+            console.warn("Heatmap instance not available");
+            return;
+        }
+        
+        if (isNaN(x) || isNaN(y) || x < 0 || y < 0 || x > screen_width || y > screen_height) {
+            console.warn("Invalid coordinates:", { x, y, screen_width, screen_height });
+            return;
+        }
 
-        heatmapInstance.current?.addData({ x: x.toString(), y: y.toString(), value: 1 } as unknown as h337.DataPoint<string>);
+        try {
+            heatmapInstance.current?.addData({ x: x.toString(), y: y.toString(), value: 1 } as unknown as h337.DataPoint<string>);
+        } catch (error) {
+            console.warn("Failed to add heatmap data:", error);
+        }
+
+        const sendData = () => {
+            try {
+                sendDataToAPI({
+                    x, y, pathname, event_type: event_type || "unknown", screen_width, screen_height,
+                    device, device_model: deviceModel, browser,
+                    key_pressed: key_pressed || null,
+                });
+            } catch (error) {
+                console.warn("Failed to send heatmap data to API:", error);
+            }
+        };
 
         if ("requestIdleCallback" in window) {
-            requestIdleCallback(() => sendDataToAPI({
-                x, y, pathname, event_type: event_type || "unknown", screen_width, screen_height,
-                device, device_model: deviceModel, browser,
-                key_pressed: key_pressed || null,
-            }));
+            requestIdleCallback(sendData);
         } else {
-            setTimeout(() => sendDataToAPI({
-                x, y, pathname, event_type: event_type || "unknown", screen_width, screen_height,
-                device, device_model: deviceModel, browser,
-                key_pressed: key_pressed || null,
-            }), 0);
+            setTimeout(sendData, 0);
         }
     }, [getDeviceInfo, pathname, sendDataToAPI]);
 

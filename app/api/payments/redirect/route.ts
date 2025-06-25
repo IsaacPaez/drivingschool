@@ -3,60 +3,102 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Cart from "@/models/Cart";
 import Order from '@/models/Order';
+import { startAndWaitEC2 } from "@/app/api/checkout/aws-ec2";
+import { secureFetch } from "@/app/utils/secure-fetch";
 
 const BASE_URL = "https://driving-school-mocha.vercel.app";
 const EC2_URL = "http://3.149.101.8:3000";
 
+async function getRedirectUrlFromEC2(payload) {
+  let attempt = 1;
+  let lastError: string = "";
+  for (let i = 0; i < 2; i++) { // máximo 2 intentos
+    try {
+      console.log(`[API][redirect] Intento #${attempt} de obtener redirectUrl del EC2`);
+      const ec2Response = await secureFetch(`${EC2_URL}/api/payments/redirect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      console.log(`[API][redirect] Respuesta de EC2 status (intento ${attempt}):`, ec2Response.status);
+      if (ec2Response.ok) {
+        const responseData = await ec2Response.json();
+        console.log(`[API][redirect] Respuesta de EC2 (intento ${attempt}):`, responseData);
+        if (responseData.redirectUrl && typeof responseData.redirectUrl === "string") {
+          return responseData.redirectUrl;
+        } else {
+          throw new Error("Invalid redirect URL received from EC2");
+        }
+      } else if (ec2Response.status === 401 && i === 0) {
+        // Solo reintenta una vez si es 401
+        lastError = await ec2Response.text();
+        console.warn(`[API][redirect] 401 recibido, reintentando. Detalle:`, lastError);
+        attempt++;
+        continue;
+      } else {
+        lastError = await ec2Response.text();
+        throw new Error(`EC2 error: ${ec2Response.status} - ${lastError}`);
+      }
+    } catch (err: any) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.error(`[API][redirect] Error en intento #${attempt}:`, err);
+      attempt++;
+    }
+  }
+  throw new Error(`No se pudo obtener redirectUrl del EC2 tras 2 intentos. Último error: ${lastError}`);
+}
+
 export async function GET(req: NextRequest) {
+  console.log("[API][redirect] === INICIO ===");
   try {
     await connectDB();
+    console.log("[API][redirect] DB conectada");
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
     const orderId = searchParams.get("orderId");
+    console.log("[API][redirect] Params:", { userId, orderId });
 
     if (!userId) {
+      console.log("[API][redirect] Falta userId, redirigiendo a login");
       return NextResponse.redirect(`${BASE_URL}/login`);
     }
     
     const user = await User.findById(userId);
+    console.log("[API][redirect] Usuario:", user);
     if (!user) {
+      console.log("[API][redirect] Usuario no encontrado, redirigiendo a login");
       return NextResponse.redirect(`${BASE_URL}/login`);
     }
 
     let items, total, payload, orderToUse;
     if (orderId) {
-      // console.log("🔍 [DEBUG] Looking for existing order:", orderId);
-      // Reintento: usar la orden pendiente
+      console.log("[API][redirect] Buscando orden existente:", orderId);
       orderToUse = await Order.findById(orderId);
       if (!orderToUse) {
-        // console.warn("❌ Order not found:", orderId);
+        console.log("[API][redirect] Orden no encontrada, redirigiendo a cart");
         return NextResponse.redirect(`${BASE_URL}/cart?error=order-not-found`);
       }
       items = orderToUse.items;
       total = orderToUse.total;
-      // console.log("✅ [DEBUG] Using existing order with", items.length, "items, total:", total);
+      console.log("[API][redirect] Usando orden existente", { items, total });
     } else {
-      // console.log("🔍 [DEBUG] Looking for cart for user:", userId);
-      // Primer intento: usar el carrito
+      console.log("[API][redirect] Buscando carrito para usuario:", userId);
       const cart = await Cart.findOne({ userId });
       if (!cart || !cart.items.length) {
-        // console.warn("❌ Empty cart for user:", userId);
+        console.log("[API][redirect] Carrito vacío, redirigiendo a cart");
         return NextResponse.redirect(`${BASE_URL}/cart?error=empty`);
-      }      items = cart.items;
+      }
+      items = cart.items;
       total = cart.items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
-      // console.log("✅ [DEBUG] Using cart with", items.length, "items, total:", total);
+      console.log("[API][redirect] Carrito encontrado", { items, total });
     }
 
     let finalOrderId = orderId;
-    
-    // Solo crear la orden y vaciar el carrito si es el primer intento
     if (!orderId) {
-      // console.log("📝 [DEBUG] Creating new order...");
-      // Calcular el siguiente número de orden globalmente (para todos los usuarios)
+      console.log("[API][redirect] Creando nueva orden...");
       const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
       const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
-      // console.log("🔢 [DEBUG] Next order number (global):", nextOrderNumber);
-      
+      console.log("[API][redirect] Siguiente número de orden:", nextOrderNumber);
       const createdOrder = await Order.create({
         userId,
         items,
@@ -65,12 +107,10 @@ export async function GET(req: NextRequest) {
         createdAt: new Date(),
         orderNumber: nextOrderNumber,
       });
-      // console.log("✅ [DEBUG] Order created successfully with ID:", createdOrder._id);
+      console.log("[API][redirect] Orden creada:", createdOrder._id);
       finalOrderId = createdOrder._id.toString();
-      
-      // Vaciar el carrito del usuario en la base de datos
       const deleteResult = await Cart.deleteOne({ userId });
-      // console.log("🗑️ [DEBUG] Cart deletion result:", deleteResult);
+      console.log("[API][redirect] Carrito vaciado:", deleteResult);
     } else if (orderToUse) {
       finalOrderId = orderToUse._id.toString();
     }
@@ -88,55 +128,30 @@ export async function GET(req: NextRequest) {
       dni: user.dni || "",
       items,
       userId: userId,
-      orderId: finalOrderId
+      orderId: finalOrderId,
+      cancelUrl: `${BASE_URL}/payment-retry?userId=${userId}&orderId=${finalOrderId}`,
+      successUrl: `${BASE_URL}/payment-success?userId=${userId}&orderId=${finalOrderId}`
     };
+    console.log("[API][redirect] Payload para EC2:", payload);
 
-    // console.log("📦 [DEBUG] Payload to send to EC2:", JSON.stringify(payload, null, 2));
-
-    const ec2Response = await fetch(`${EC2_URL}/api/payments/session-token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    // console.log("🌐 [DEBUG] EC2 Response status:", ec2Response.status);
-      if (!ec2Response.ok) {
-      const errorText = await ec2Response.text();
-      // console.error("[API][session-token] ❌ Respuesta de error de EC2:", errorText);
-      throw new Error(`EC2 error: ${ec2Response.status} - ${errorText}`);
+    const ok = await startAndWaitEC2(process.env.EC2_INSTANCE_ID!);
+    console.log("[API][redirect] EC2 encendido:", ok);
+    if (!ok) {
+      return NextResponse.json({ 
+        error: "ec2", 
+        message: "No se pudo encender la instancia EC2" 
+      }, { status: 500 });
     }
 
-    const responseData = await ec2Response.json();
-    // console.log("[API][session-token] ✅ Response from EC2:", JSON.stringify(responseData, null, 2));
-
-    const token = responseData.token;
-
-    if (!token || typeof token !== "string") {
-      // console.error("❌ Token inválido o ausente de EC2:", responseData);
-      throw new Error("Invalid token received from EC2");
-    }
-
-    // console.log("✅ [DEBUG] Valid token received from EC2, length:", token.length);
-    
-    // Crear las URLs con el orderId correcto
-    const cancelUrl = `${BASE_URL}/payment-retry?userId=${userId}&orderId=${finalOrderId}`;
-    const successUrl = `${BASE_URL}/payment-success?userId=${userId}&orderId=${finalOrderId}`;
-    const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}&ssl_result_cancel_url=${encodeURIComponent(cancelUrl)}&ssl_result_success_url=${encodeURIComponent(successUrl)}`;
-
-    console.log("🔗 [TEMP DEBUG] Cancel URL:", cancelUrl);
-    console.log("🔗 [TEMP DEBUG] Success URL:", successUrl);
-    console.log("🔗 [TEMP DEBUG] Full Hosted URL:", hostedUrl);
-
-    // console.log("🔗 [DEBUG] Returning hosted URL for redirect");
-    return NextResponse.json({ redirectUrl: hostedUrl });
+    // Usar función con reintento automático
+    const redirectUrl = await getRedirectUrlFromEC2(payload);
+    console.log("[API][redirect] URL de redirección válida:", redirectUrl);
+    return NextResponse.json({ redirectUrl });
 
   } catch (error) {
-    // console.error("[API][session-token] ❌ Error no manejado:", error);
-    // Agregar más detalles del error
-    if (error instanceof Error) {      // console.error("[API][session-token] ❌ Error message:", error.message);
-      // console.error("[API][session-token] ❌ Error stack:", error.stack);
+     console.error("[API][redirect] ❌ Error no manejado:", error);
+    if (error instanceof Error) {
+       console.error("[API][redirect] ❌ Error stack:", error.stack);
     }
     return NextResponse.json({ 
       error: "payment", 

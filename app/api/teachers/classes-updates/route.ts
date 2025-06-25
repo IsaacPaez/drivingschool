@@ -28,54 +28,61 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
   } catch (error) {
+    console.error("Database connection failed for teacher classes SSE:", error);
     sendEvent({ type: "error", message: "Database connection failed" });
     writer.close();
     return new Response(stream.readable, { status: 500 });
   }
 
-  // Function to fetch and send data, replicating the logic from the original endpoint
-  const sendClassesData = async () => {
-    try {
-      const instructorObjId = new mongoose.Types.ObjectId(instructorId);
-      const ticketclasses = await TicketClass.find({ instructorId: instructorObjId }).lean();
-      
-      const studentIds = [...new Set(ticketclasses.flatMap(tc => (tc.students || []).map(s => s.studentId?.toString() || s.toString())))];
-      const validStudentIds = studentIds.filter(id => id && mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
-      const students = await User.find({ _id: { $in: validStudentIds } }).lean();
-      
-      const classIds = [...new Set(ticketclasses.map(tc => tc.classId.toString()))].filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
-      const classes = await Classes.find({ _id: { $in: classIds } }).lean();
-
-      // We need to embed the student data into the classes for the frontend
-      const populatedClasses = classes.map(c => {
-        const ticket = ticketclasses.find(tc => tc.classId.toString() === (c as any)._id.toString());
-        const classStudents = ticket ? ticket.students.map(s => {
-            const studentId = s.studentId?.toString() || s.toString();
-            return students.find(dbStudent => (dbStudent as any)._id.toString() === studentId);
-        }).filter(Boolean) : [];
-        return { ...c, students: classStudents };
-      });
-      
-      sendEvent({ type: "update", classes: populatedClasses });
-
-    } catch(err) {
-      console.error("Error fetching teacher classes data:", err);
-      sendEvent({ type: "error", message: "Failed to fetch classes data" });
-    }
-  };
-
   // Send initial data
-  sendClassesData();
+  try {
+    const instructor = await User.findById(instructorId);
+    if (!instructor) {
+      sendEvent({ type: "error", message: "Instructor not found" });
+      writer.close();
+      return new Response(stream.readable, { status: 404 });
+    }
 
-  // Setup Change Stream on the 'ticketclasses' collection
-  const changeStream = mongoose.connection.collection('ticketclasses').watch([
-    { $match: { 'fullDocument.instructorId': new mongoose.Types.ObjectId(instructorId) } }
-  ]);
+    // Get instructor's classes
+    const classes = await Classes.find({ instructorId });
+    sendEvent({ type: "initial", classes });
+  } catch (error) {
+    console.error("Error fetching initial teacher classes:", error);
+    sendEvent({ type: "error", message: "Failed to fetch initial data" });
+  }
 
-  changeStream.on('change', sendClassesData);
+  // Setup Change Stream with error handling
+  let changeStream: any = null;
+  try {
+    changeStream = mongoose.connection.collection('classes').watch([
+      { $match: { 'instructorId': instructorId } }
+    ]);
 
+    changeStream.on('change', async () => {
+      try {
+        const classes = await Classes.find({ instructorId });
+        sendEvent({ type: "update", classes });
+      } catch(err) {
+        console.error("Error fetching updated classes for broadcast:", err);
+        sendEvent({ type: "error", message: "Failed to fetch updated data" });
+      }
+    });
+
+    changeStream.on('error', (error: any) => {
+      console.error("Change stream error:", error);
+      sendEvent({ type: "error", message: "Database change stream error" });
+    });
+
+  } catch (error) {
+    console.error("Failed to setup change stream:", error);
+    sendEvent({ type: "error", message: "Failed to setup real-time updates" });
+  }
+
+  // Handle client disconnect
   req.signal.addEventListener('abort', () => {
-    changeStream.close();
+    if (changeStream) {
+      changeStream.close();
+    }
     writer.close().catch(() => {});
   });
   
