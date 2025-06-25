@@ -189,18 +189,20 @@ export const useTracking = () => {
         }),
       });
       // Página inicial: no hay referrer, duración 0
-      fetch('/api/track-visit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: lastUserId.current,
-          sessionId: SESSION_ID,
-          page: pathname,
-          referrer: document.referrer ? new URL(document.referrer).pathname : '',
-          duration: 0,
-          timestamp: new Date().toISOString(),
-        }),
-      });
+      setTimeout(() => {
+        fetch('/api/track-visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: lastUserId.current,
+            sessionId: SESSION_ID,
+            page: pathname,
+            referrer: document.referrer ? new URL(document.referrer).pathname : '',
+            duration: 0,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      }, 1000); // 1000 ms = 1 segundo
       sessionStarted.current = true;
     } else if (lastPage.current !== pathname) {
       // Al cambiar de página, guardar la anterior con su duración y referrer

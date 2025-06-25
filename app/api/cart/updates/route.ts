@@ -3,62 +3,47 @@ import { connectDB } from "@/lib/mongodb";
 import Cart from "@/models/Cart";
 import mongoose from "mongoose";
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+let clients: any[] = [];
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
   const userId = searchParams.get("userId");
 
-  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-    return new Response(JSON.stringify({ error: "Invalid user ID" }), { status: 400 });
+  if (!userId) {
+    return new Response("Missing userId", { status: 400 });
   }
 
-  const stream = new TransformStream();
-  const writer = stream.writable.getWriter();
-  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      // Guardar el cliente
+      const client = { controller, userId };
+      clients.push(client);
 
-  const sendEvent = (data: object) => {
-    try {
-      writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-    } catch (e) {
-      console.warn("SSE stream for cart closed prematurely.");
+      // Enviar un evento inicial
+      controller.enqueue(`data: ${JSON.stringify({ type: "init", cart: [] })}\n\n`);
+
+      // Limpiar al cerrar conexión
+      request.signal.addEventListener("abort", () => {
+        clients = clients.filter(c => c !== client);
+        controller.close();
+      });
     }
-  };
-  
-  try {
-    await connectDB();
-  } catch (error) {
-    sendEvent({ type: "error", message: "Database connection failed" });
-    writer.close();
-    return new Response(stream.readable, { status: 500 });
-  }
-
-  const sendCartData = async () => {
-    try {
-      const cart = await Cart.findOne({ userId: new mongoose.Types.ObjectId(userId) }).lean();
-      sendEvent({ type: "update", cart: cart || { userId, items: [] } });
-    } catch(err) {
-      console.error("Error fetching cart data:", err);
-      sendEvent({ type: "error", message: "Failed to fetch cart data" });
-    }
-  };
-
-  sendCartData();
-
-  const changeStream = mongoose.connection.collection('carts').watch([
-    { $match: { 'fullDocument.userId': new mongoose.Types.ObjectId(userId) } }
-  ]);
-
-  changeStream.on('change', sendCartData);
-
-  req.signal.addEventListener('abort', () => {
-    changeStream.close();
-    writer.close().catch(() => {});
   });
-  
-  return new Response(stream.readable, {
+
+  return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    },
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive"
+    }
   });
+}
+
+// Función para enviar actualización a los clientes conectados
+export function sendCartUpdate(userId: string, cart: any) {
+  for (const client of clients) {
+    if (client.userId === userId) {
+      client.controller.enqueue(`data: ${JSON.stringify({ type: "update", cart })}\n\n`);
+    }
+  }
 } 
