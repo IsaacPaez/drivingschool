@@ -47,7 +47,7 @@ const Header = () => {
     { name: "Lessons", href: "/Lessons" },
     { name: "Classes", href: "/Classes" },
     { name: "Online Courses", href: "/OnlineCourses" },
-    { name: "Packages", href: "/Packages" },
+    { name: "Driving Test", href: "/driving_test" },
     { name: "FAQ", href: "/FAQ" },
     { name: "Location", href: "/Location" },
   ];

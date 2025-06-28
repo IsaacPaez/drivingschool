@@ -3,6 +3,8 @@ import User from '@/models/User';
 import { connectDB } from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import nodemailer from 'nodemailer';
+import AuthCode from '@/models/AuthCode';
 
 // Handler para crear usuario (POST)
 export async function POST(req: Request) {
@@ -21,56 +23,66 @@ export async function POST(req: Request) {
     }
   }
 
-  // Hashear la contraseña
-  const hashedPassword = await bcrypt.hash(data.password, 10);
-
-  // Formatear birthDate a 'YYYY-MM-DD' como string
-  let birthDate: string | undefined = undefined;
-  if (data.birthDate) {
-    const d = new Date(data.birthDate);
-    birthDate = d.toISOString().split('T')[0]; // 'YYYY-MM-DD'
-    // Validar que la fecha sea válida
-    if (isNaN(Date.parse(data.birthDate))) {
-      return NextResponse.json({ error: 'Invalid birth date format' }, { status: 400 });
-    }
+  // Verifica si el email ya está registrado
+  const exists = await User.findOne({ email: data.email });
+  if (exists) {
+    return NextResponse.json({ error: 'Email already registered.' }, { status: 400 });
   }
 
-  // Orden y campos igual a 'Santiago'
-  const userData = {
-    firstName: data.firstName,
-    middleName: data.middleName,
-    lastName: data.lastName,
-    email: data.email,
-    dni: data.dni,
-    ssnLast4: data.ssnLast4,
-    hasLicense: data.hasLicense === true || data.hasLicense === 'true',
-    licenseNumber: data.licenseNumber,
-    birthDate: birthDate, // string 'YYYY-MM-DD'
-    streetAddress: data.streetAddress,
-    apartmentNumber: data.apartmentNumber,
-    city: data.city,
-    state: data.state,
-    zipCode: data.zipCode,
-    phoneNumber: data.phoneNumber,
-    sex: data.sex === 'M' || data.sex === 'F' ? data.sex : (data.sex === 'Male' ? 'M' : 'F'),
-    howDidYouHear: 'Online Ad',
-    role: 'user',
-    password: hashedPassword,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    privateNotes: "",
-  };
+  // Genera y almacena el código
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  await AuthCode.deleteMany({ email: data.email.trim().toLowerCase(), used: false });
+  await AuthCode.create({
+    email: data.email.trim().toLowerCase(),
+    code,
+    expires: new Date(Date.now() + 10 * 60 * 1000),
+    used: false,
+  });
 
-  try {
-    const user = await User.create(userData);
-    return NextResponse.json(user);
-  } catch (error: unknown) {
-    console.error("Error al guardar usuario:", error);
-    return NextResponse.json({ 
-      error: 'Error saving user', 
-      details: error instanceof Error ? error.message : JSON.stringify(error)
-    }, { status: 400 });
-  }
+  // Enviar correo (usa la plantilla del login)
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+  const logoUrl = "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1739549973/sxsfccyjjnvmxtzlkjpi.png";
+  const html = `
+    <div style="background: #f6f8fa; padding: 0; min-height: 100vh;">
+      <div style="max-width: 600px; margin: 40px auto; background: #fff; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.07); overflow: hidden;">
+        <div style="background: #2346a0; padding: 32px 0 24px 0; text-align: center;">
+          <img src="${logoUrl}" alt="Logo" width="80" style="margin-bottom: 12px;" />
+          <h1 style="color: #fff; font-size: 2rem; margin: 0; font-family: Arial, sans-serif; letter-spacing: 1px;">
+            Driving School Notification
+          </h1>
+        </div>
+        <div style="padding: 36px 32px 24px 32px; font-family: Arial, sans-serif; color: #222;">
+          <h2 style="color: #0056b3; margin-top: 0;">Hello, <b>${data.firstName?.toUpperCase() || 'User'}</b>!</h2>
+          <div style="font-size: 1.1rem; margin-bottom: 32px; line-height: 1.7; text-align: center;">
+            <div style="font-size: 1.2rem; margin-bottom: 12px;">Your verification code is:</div>
+            <div style="font-size: 2.5rem; font-weight: bold; color: #2346a0; background: #f0f6ff; border-radius: 12px; padding: 18px 0; letter-spacing: 8px; margin: 0 auto; max-width: 220px;">${code}</div>
+            <div style="margin-top: 18px; color: #888; font-size: 1rem;">This code will expire in 10 minutes.</div>
+          </div>
+        </div>
+        <div style="background: linear-gradient(135deg, #0056b3, #000); color: white; padding: 32px 24px; border-radius: 0 0 36px 36px; text-align: center;">
+          <img src='${logoUrl}' alt='Logo' width='60' style='margin-bottom: 12px;' />
+          <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">Affordable Driving<br/>Traffic School</div>
+          <div style="margin-bottom: 8px; font-size: 1rem;">
+            West Palm Beach, FL | <a href="mailto:info@drivingschoolpalmbeach.com" style="color: #fff; text-decoration: underline;">info@drivingschoolpalmbeach.com</a> | 561 330 7007
+          </div>
+          <div style="font-size: 12px; color: #ccc;">&copy; ${new Date().getFullYear()} Powered By Botopia Technology S.A.S</div>
+        </div>
+      </div>
+    </div>
+  `;
+  await transporter.sendMail({
+    from: 'info@drivingschoolpalmbeach.com',
+    to: data.email,
+    subject: 'Your Verification Code',
+    html,
+  });
+  return NextResponse.json({ success: true, message: 'Verification code sent to email.' });
 }
 
 // Handler para obtener usuario por ID usando query param (?id=123)

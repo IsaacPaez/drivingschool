@@ -159,7 +159,7 @@ const LocationPage: React.FC = () => {
                       </p>
                     ))}
                   </div>
-                  <button className="mt-8 w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition">
+                  <button className="mt-8 w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition" onClick={() => window.location.href = '/Book-Now'}>
                     Book Now
                   </button>
                 </div>
@@ -197,23 +197,25 @@ const LocationPage: React.FC = () => {
                   isOpen={selectedZone !== null}
                   onClose={() => setSelectedZone(null)}
                 >
-                  <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl sm:max-w-6xl h-[90vh] overflow-y-auto relative">
+                  <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl sm:max-w-6xl max-h-[90vh] relative flex flex-col">
 
 
 
                     {selectedZone?.locationImage && (
-                      <div className="w-full h-80 relative rounded-t-lg shadow-md">
-                        <Image
-                          src={selectedZone.locationImage}
-                          alt={selectedZone.title}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
+                      <div className="w-full flex items-center justify-center pt-8 pb-2 bg-white sticky top-0 z-10">
+                        <div className="w-48 h-48 relative">
+                          <Image
+                            src={selectedZone.locationImage}
+                            alt={selectedZone.title}
+                            fill
+                            className="object-contain"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                          />
+                        </div>
                       </div>
                     )}
 
-                    <div className="p-6">
+                    <div className="p-6 overflow-y-auto flex-1" style={{maxHeight: 'calc(90vh - 220px)'}}>
                       <h2 className="text-3xl font-bold text-gray-900 text-center mt-4 mb-6">
                         {selectedZone?.title}
                       </h2>

@@ -19,7 +19,7 @@ const Learn = () => {
       image: "/L8jpg.jpg",
       title: "Affordable Prices",
       description:
-        "We offer competitive rates for our driving lessons, and our multi-lesson packages offer discounts. Save up to $330!",
+        "We offer competitive rates for our driving lessons, and our multi-lesson driving test offer discounts. Save up to $330!",
     },
     {
       image: "/L3.jpg",

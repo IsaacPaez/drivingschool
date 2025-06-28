@@ -15,7 +15,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
       onClick={onClose}
     >
       <div 
-        className="relative bg-white text-black w-full max-w-md rounded-2xl shadow-2xl border border-[#e0e0e0] max-h-[90vh] overflow-y-auto p-8 animate-fade-in"
+        className="relative bg-white text-black w-full max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl rounded-2xl shadow-2xl border border-[#e0e0e0] max-h-[90vh] flex flex-col"
+        style={{overflow: 'visible'}}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Botón de cierre mejorado */}

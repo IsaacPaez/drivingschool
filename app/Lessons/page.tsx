@@ -133,7 +133,7 @@ const LessonsPage = () => {
       </div>
 
       {/* Sección de Driving Test */}
-      <DrivingTestSection />
+      {/* <DrivingTestSection /> */}
 
       {/* Sección de Corporate Programs */}
       <CorporatePrograms />
