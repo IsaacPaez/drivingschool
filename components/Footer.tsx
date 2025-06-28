@@ -7,20 +7,23 @@ import { FaFacebook, FaInstagram, } from "react-icons/fa";
 
 const Footer = () => {
   return (
-    <footer className="relative bg-gradient-to-br from-[#0056b3] to-black text-white py-12">
+    <footer className="relative bg-gradient-to-br from-[#2563eb] via-[#0056b3] to-[#0a2540] text-white py-12">
       {/* 🔹 Fondo con efecto Glassmorphism (Margen inferior añadido) */}
       <div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-3xl mx-6 mt-6 mb-6 shadow-lg border border-white/20"></div>
 
       <div className="relative max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10 items-center z-10">
         {/* 🔹 Sección Izquierda - Logo y Booking */}
         <div className="flex flex-col items-center text-center">
-          <Image
-            src="/DV-removebg-preview.png"
-            alt="Logo"
-            width={120}
-            height={120}
-            className="mb-4 brightness-110 drop-shadow-lg"
-          />
+          <div className="relative flex items-center justify-center mb-4" style={{height: '130px'}}>
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[130px] h-[130px] rounded-full bg-white/80 shadow-lg z-0" style={{filter: 'blur(2px)'}}></div>
+            <Image
+              src="/DV-removebg-preview.png"
+              alt="Logo"
+              width={120}
+              height={120}
+              className="relative z-10 drop-shadow-xl"
+            />
+          </div>
           <h2 className="text-2xl font-extrabold tracking-widest text-white">
             Affordable Driving <br /> Traffic School
           </h2>
@@ -34,7 +37,7 @@ const Footer = () => {
 
         {/* 🔹 Sección Central - Navegación con efecto Glow */}
         <div className="text-center">
-          <h3 className="text-xl font-bold mb-4 uppercase tracking-widest text-[#27ae60]">
+          <h3 className="text-2xl font-extrabold mb-6 mt-2 uppercase tracking-widest text-[#27ae60] border-b border-[#27ae60]/60 inline-block pb-1" style={{textShadow: '0 0 12px #27ae60aa, 0 2px 8px #0006'}}>
             Navigation
           </h3>
           <ul className="space-y-3 text-lg">
@@ -63,7 +66,7 @@ const Footer = () => {
 
         {/* 🔹 Sección Derecha - Contacto y Redes Sociales con Neon Effect */}
         <div className="text-center">
-          <h3 className="text-xl font-bold mb-4 uppercase tracking-widest text-[#27ae60]">
+          <h3 className="text-2xl font-extrabold mb-6 mt-2 uppercase tracking-widest text-[#27ae60] border-b border-[#27ae60]/60 inline-block pb-1" style={{textShadow: '0 0 12px #27ae60aa, 0 2px 8px #0006'}}>
             Contact Us
           </h3>
           <ul className="space-y-3 text-lg">

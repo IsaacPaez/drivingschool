@@ -33,11 +33,11 @@ const Termspage = () => {
           the first lesson, so even if student does not take the lesson, it must
           be paid for. Instructor will wait at the designated pick up location
           for a period of fifteen (15) minutes, if student cannot be reached,
-          lesson is considered forfeited. If student is ill, a doctor’s note is
+          lesson is considered forfeited. If student is ill, a doctor's note is
           required to waive the fee, no exceptions. NO REFUNDS It is agreed that
           an owner, instructor, agent or employee of this school shall not give
           the impression that upon completion of the instruction that this
-          school will guarantee the obtaining of a driver’s license to operate a
+          school will guarantee the obtaining of a driver's license to operate a
           motor vehicle. This School will not refund any tuition or part of
           tuition since the school is ready, willing and able to fulfill its
           part of this contract. There will not be any refunds for any unused
@@ -48,13 +48,13 @@ const Termspage = () => {
           recklessly on purpose endangering our safety and the safety of others.
           All questions must be directed to the office. Driving Instructors will
           refer you back to the office unless the question is about the
-          student’s lesson performance.
+          student's lesson performance.
         </p>
         <p className="mb-4">
           If Instructor is late picking up the student, the student will get the
           full length of the lesson (110 minutes) starting at arrival time;
           reason why Instructor might be late depends on traffic/weather
-          conditions and/or distance of previous student’s lesson. In case the
+          conditions and/or distance of previous student's lesson. In case the
           full length of lesson is not taught by the instructor, inform the
           office immediately, complaints will not be accepted if not reported on
           the same day.
@@ -63,18 +63,18 @@ const Termspage = () => {
         </p>
         <p className="mb-4">
           We teach students defensive driving. Their ability to learn within one
-          of our packages may vary depending on the student’s abilities. It is
+          of our driving test may vary depending on the student's abilities. It is
           understood that upon the signing of this contract, the lessons for our
-          packages must be completed within 60 days. <br /> Safety is essential!
-          Therefore, freeway driving is not mandatory and is at the instructor’s
+          driving test must be completed within 60 days. <br /> Safety is essential!
+          Therefore, freeway driving is not mandatory and is at the instructor's
           discretion.
           <br /> There will not be any mobile phone usage or texting while
           student is in control of the car, including stopped at traffic lights.
           <br />
-          If student does not have a learner’s permit at the time of pickup, the
-          lesson’s full price must be paid. It is illegal to drive without a
-          learner’s permit or license, therefore the school will not to teach
-          any student without a learner’s permit. <br />
+          If student does not have a learner's permit at the time of pickup, the
+          lesson's full price must be paid. It is illegal to drive without a
+          learner's permit or license, therefore the school will not to teach
+          any student without a learner's permit. <br />
           If a check is returned for insufficient funds, closed account or if
           student owes any fees to the school, there will be a fee of $50 fee
           plus any legal fees required to collect payment, if attempts to
@@ -82,7 +82,7 @@ const Termspage = () => {
           <br /> We are a Third Party Agency Authorized by the Florida
           Department of Motor Vehicles to give the Road Test. The Test is given
           at our facility. The fee for this service is $100. (If the test cannot
-          be taken for a reason other than the school’s fault, the full fee must
+          be taken for a reason other than the school's fault, the full fee must
           be paid). No refunds will be given if the student fails the driving
           tests.
         </p>
@@ -100,16 +100,16 @@ const Termspage = () => {
           from ANY and ALL claims or action resulting or arising from any damage
           or injuries including death suffered by the Student during this course
           or any extension thereof, to the extent that such claims shall be
-          covered by the School’s insurance coverage. The
+          covered by the School's insurance coverage. The
           student/parent/guardian hereby further agrees to indemnify and hold
           the School harmless from any claims made against it for any damage or
           injury suffered by any person, company, corporation or other entity,
-          growing out of the Student’s operation of a School vehicle, or as a
-          result of the Student’s course of instruction, to the extent that such
-          a claim is not covered by the School’s Insurance coverage. This
-          agreement shall be effective and binding upon the student’s heirs,
+          growing out of the Student's operation of a School vehicle, or as a
+          result of the Student's course of instruction, to the extent that such
+          a claim is not covered by the School's Insurance coverage. This
+          agreement shall be effective and binding upon the student's heirs,
           next of kin, executors, administrators, assigns and representatives,
-          in the event of the student’s death or incapacity. Affordable Driving
+          in the event of the student's death or incapacity. Affordable Driving
           Traffic School is licensed by the State of Florida Department Highway
           Safety and Motor Vehicles. This contract constitutes the entire
           agreement between the School and the Student and no verbal assurances

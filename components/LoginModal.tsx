@@ -47,12 +47,7 @@ export default function LoginModal({ open, onClose, onLoginSuccess }: LoginModal
         setLoading(false);
         return;
       }
-      if (data.needsVerification) {
-        setStep("verify");
-        setLoading(false);
-        return;
-      }
-      // Login exitoso (instructor)
+      // Login exitoso (sin 2FA)
       setLoading(false);
       if (onLoginSuccess) onLoginSuccess(data.user);
       onClose();
@@ -211,77 +206,43 @@ export default function LoginModal({ open, onClose, onLoginSuccess }: LoginModal
         <h2 className="text-3xl font-extrabold text-blue-700 text-center mb-6 drop-shadow-lg">
           {step === "login" || step === "verify" ? "Sign In" : step === "reset-email" ? "Reset Password" : step === "reset-code" ? "Enter Code" : step === "reset-password" ? "Set New Password" : "Password Reset"}
         </h2>
-        {step === "login" && (
-          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+        <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+            autoFocus
+            required
+          />
+          <div className="relative">
             <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-              autoFocus
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 w-full focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               required
             />
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 w-full focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800"
-                onClick={() => setShowPassword(v => !v)}
-                tabIndex={-1}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-            {error && <div className="text-red-600 text-center">{error}</div>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-md mt-2"
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-        )}
-        {step === "verify" && (
-          <form onSubmit={handleVerify} className="flex flex-col gap-5">
-            <div className="text-center text-gray-700 mb-2">A verification code was sent to <b>{email}</b>. Please enter it below.</div>
-            <input
-              type="text"
-              placeholder="Verification code"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-center tracking-widest text-xl font-mono"
-              maxLength={6}
-              required
-              autoFocus
-            />
-            {error && <div className="text-red-600 text-center">{error}</div>}
-            <button
-              type="submit"
-              disabled={verifying}
-              className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-md mt-2"
-            >
-              {verifying ? "Verifying..." : "Verify"}
-            </button>
             <button
               type="button"
-              className="text-blue-600 hover:underline text-sm mt-2"
-              onClick={handleResend}
-              disabled={loading}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800"
+              onClick={() => setShowPassword(v => !v)}
+              tabIndex={-1}
             >
-              Resend code
+              {showPassword ? "Hide" : "Show"}
             </button>
-            {resent && <div className="text-green-600 text-center text-sm">A new code was sent to your email.</div>}
-          </form>
-        )}
+          </div>
+          {error && <div className="text-red-600 text-center">{error}</div>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-md mt-2"
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
         {step === "reset-email" && (
           <form onSubmit={handleResetEmail} className="flex flex-col gap-5">
             <input

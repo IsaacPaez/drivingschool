@@ -48,7 +48,7 @@ body {
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background: #f3f4f6 !important;
 }
 /* Estilos para react-calendar */
 .react-calendar {
