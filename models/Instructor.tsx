@@ -7,7 +7,8 @@ export interface ScheduleSlot {
   end: string; // '10:30'
   booked: boolean;
   studentId: mongoose.Schema.Types.ObjectId | null;
-  status: 'free' | 'scheduled' | 'cancelled';
+  status: 'free' | 'scheduled' | 'cancelled' | 'available';
+  classType?: string; // 'driving_test', 'lesson', etc.
 }
 
 export interface IInstructor extends Document {
@@ -26,7 +27,8 @@ const ScheduleSlotSchema = new Schema<ScheduleSlot>({
   end: { type: String, required: true },
   booked: { type: Boolean, default: false },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  status: { type: String, enum: ['free', 'scheduled', 'cancelled'], default: 'free' },
+  status: { type: String, enum: ['free', 'scheduled', 'cancelled', 'available'], default: 'free' },
+  classType: { type: String, default: 'lesson' }, // Nuevo campo para el tipo de clase
 });
 
 const InstructorSchema = new Schema<IInstructor>(

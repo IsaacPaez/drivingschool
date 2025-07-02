@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import LocationMap from "./LocationMap";
 import Modal from "@/components/Modal";
+import { useRouter } from 'next/navigation';
 
 interface Instructor {
   _id: string;
@@ -27,6 +28,13 @@ const LocationPage: React.FC = () => {
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [showZones, setShowZones] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const handleBookNow = (instructorName: string) => {
+    console.log('Navegando a Book-Now para instructor:', instructorName);
+    setSelectedZone(null); // Cerrar el modal
+    router.push('/Book-Now');
+  };
 
   useEffect(() => {
     const fetchLocation = async () => {
@@ -311,7 +319,14 @@ const LocationPage: React.FC = () => {
                                 <p className="text-gray-900 mt-2 font-semibold text-center min-h-[3rem] flex items-center justify-center">
                                   {instructor.name || "Instructor Name Missing"}
                                 </p>
-                                <button className="mt-auto w-full max-w-[160px] h-[50px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center">
+                                <button 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleBookNow(instructor.name || "Unknown Instructor");
+                                  }}
+                                  className="mt-auto w-full max-w-[160px] h-[50px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center cursor-pointer"
+                                >
                                   <span>Book</span>
                                   <span>{instructor.name ? instructor.name.split(" ")[0] : "No Name"}</span>
                                 </button>

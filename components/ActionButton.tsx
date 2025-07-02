@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 
 interface ActionButtonProps {
   type: "book" | "cart";
@@ -8,11 +9,13 @@ interface ActionButtonProps {
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({ type, label }) => {
+  const router = useRouter();
+  
   const handleClick = () => {
     if (type === "cart") {
       // console.log(`🛒 Adding item with ID: ${id} to cart`);
     } else {
-      window.location.href = "/Book-Now";
+      router.push("/Book-Now");
     }
   };
 
