@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const ClassesPage: React.FC = () => {
+  const router = useRouter();
   const [classList, setClassList] = useState<Class[]>([]);
   interface Class {
     _id: string;
@@ -86,10 +88,16 @@ const ClassesPage: React.FC = () => {
         >
           {selectedClass ? (
             <>
-              {/* 📌 Botón para Scrollear */}
-              <div className="flex justify-between items-center mb-6">
-                <button onClick={handleScrollToUpcoming} className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition text-lg sm:text-xl">
+              {/* 📌 Botones */}
+              <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
+                <button onClick={handleScrollToUpcoming} className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition text-lg sm:text-xl w-full sm:w-auto">
                   {selectedClass.buttonLabel}
+                </button>
+                <button 
+                  onClick={() => router.push('/register-online')}
+                  className="bg-green-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-green-700 transition text-lg sm:text-xl w-full sm:w-auto"
+                >
+                  Register Online
                 </button>
               </div>
               

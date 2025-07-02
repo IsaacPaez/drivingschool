@@ -32,15 +32,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized to cancel this booking' }, { status: 403 });
     }
 
-    // Marcar como cancelado
-    slot.status = 'cancelled';
+    // Liberar el slot y volverlo disponible
+    slot.status = 'available';
     slot.booked = false;
-    slot.studentId = undefined;
+    slot.studentId = null;
     
     instructor.markModified('schedule');
     await instructor.save();
 
-    return NextResponse.json({ success: true });
+    // Emit socket event for real-time updates (if socket.io is available)
+    try {
+      if (typeof globalThis !== 'undefined' && (globalThis as any).io) {
+        (globalThis as any).io.emit('scheduleUpdate', {
+          instructorId,
+          date,
+          start,
+          end,
+          status: 'available',
+          studentId: null
+        });
+      }
+    } catch (socketError) {
+      console.log('Socket emission failed:', socketError);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Booking cancelled successfully. Slot is now available.',
+      slot: {
+        date,
+        start,
+        end,
+        status: 'available'
+      }
+    });
   } catch (error) {
     return NextResponse.json({ 
       error: 'Failed to cancel booking', 

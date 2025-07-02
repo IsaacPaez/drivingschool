@@ -4,6 +4,7 @@ export interface ITicketClass extends Document {
   locationId: mongoose.Schema.Types.ObjectId;
   date: Date;
   hour: string;
+  endhour: string;
   classId: mongoose.Schema.Types.ObjectId;
   type: string;
   duration: string;
@@ -15,6 +16,7 @@ export interface ITicketClass extends Document {
     citation_ticket?: string;
     course_country?: string;
   }[];
+  cupos: number;
 }
 
 const TicketClassSchema = new Schema<ITicketClass>(
@@ -22,7 +24,8 @@ const TicketClassSchema = new Schema<ITicketClass>(
     locationId: { type: mongoose.Schema.Types.ObjectId, ref: "Location", required: true },
     date: { type: Date, required: true },
     hour: { type: String, required: true },
-    classId: { type: mongoose.Schema.Types.ObjectId, ref: "DrivingClass", required: true },
+    endhour: { type: String, required: true },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: "Classes", required: true },
     type: { type: String, required: true },
     duration: { type: String, required: true },
     instructorId: { type: mongoose.Schema.Types.ObjectId, ref: "Instructor", required: true },
@@ -35,8 +38,9 @@ const TicketClassSchema = new Schema<ITicketClass>(
         course_country: { type: String },
       }
     ],
+    cupos: { type: Number, required: true },
   },
-  { timestamps: true }
+  { collection: "ticketclasses", timestamps: true }
 );
 
 const TicketClass = mongoose.models.TicketClass || mongoose.model<ITicketClass>("TicketClass", TicketClassSchema);
