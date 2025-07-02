@@ -9,7 +9,6 @@ import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
 import { useRouter } from "next/navigation";
-import { useRegisterOnlineSSE } from "@/hooks/useRegisterOnlineSSE";
 
 interface Instructor {
   _id: string;
@@ -21,14 +20,12 @@ interface TicketClass {
   _id: string;
   type: string;
   hour: string;
-  endHour: string;
+  endhour: string;
   duration: string;
   date: string;
   cupos: number;
   status: string;
   availableSpots: number;
-  enrolledStudents: number;
-  totalSpots: number;
   students: {
     studentId: string;
     reason?: string;
@@ -36,11 +33,6 @@ interface TicketClass {
     citation_ticket?: string;
     course_country?: string;
   }[];
-  classInfo?: {
-    _id: string;
-    title: string;
-    overview: string;
-  };
   instructorInfo?: {
     _id: string;
     name: string;
@@ -52,6 +44,7 @@ interface TicketClass {
 export default function RegisterOnlinePage() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [ticketClasses, setTicketClasses] = useState<TicketClass[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
@@ -63,16 +56,12 @@ export default function RegisterOnlinePage() {
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedTicketClass, setSelectedTicketClass] = useState<TicketClass | null>(null);
-  const [showUnbookConfirm, setShowUnbookConfirm] = useState(false);
-  const [classToUnbook, setClassToUnbook] = useState<TicketClass | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const { user } = useAuth();
   const userId = user?._id || "";
 
   const classTypes = ["ALL", "A.D.I", "B.D.I", "D.A.T.E"];
-
-  // Use SSE hook for real-time updates
-  const { ticketClasses, isLoading, error: sseError, isConnected } = useRegisterOnlineSSE(selectedInstructorId, selectedClassType);
 
   // Helper functions
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -80,85 +69,6 @@ export default function RegisterOnlinePage() {
   const handleDateChange = (value: Date | Date[] | null) => {
     if (!value || Array.isArray(value)) return;
     setSelectedDate(value);
-  };
-
-  const handleEnrollClass = async () => {
-    if (!selectedTicketClass || !userId) {
-      if (!userId) {
-        setShowAuthWarning(true);
-      }
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/register-online/enroll', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ticketClassId: selectedTicketClass._id,
-          userId: userId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setConfirmationMessage(`Successfully enrolled in ${selectedTicketClass.classInfo?.title || 'the class'}!`);
-        setShowConfirmation(true);
-        setIsBookingModalOpen(false);
-        setSelectedTicketClass(null);
-        // The SSE will automatically update the UI with new enrollment data
-      } else {
-        setConfirmationMessage(data.error || 'Failed to enroll in class');
-        setShowConfirmation(true);
-        setIsBookingModalOpen(false);
-      }
-    } catch (error) {
-      console.error('Error enrolling in class:', error);
-      setConfirmationMessage('An error occurred while enrolling');
-      setShowConfirmation(true);
-      setIsBookingModalOpen(false);
-    }
-  };
-
-  const handleUnbookClass = async () => {
-    if (!classToUnbook || !userId) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/register-online/unbook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ticketClassId: classToUnbook._id,
-          userId: userId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setConfirmationMessage(`Successfully unenrolled from ${classToUnbook.classInfo?.title || 'the class'}!`);
-        setShowConfirmation(true);
-        setShowUnbookConfirm(false);
-        setClassToUnbook(null);
-        // The SSE will automatically update the UI with new enrollment data
-      } else {
-        setConfirmationMessage(data.error || 'Failed to unenroll from class');
-        setShowConfirmation(true);
-        setShowUnbookConfirm(false);
-      }
-    } catch (error) {
-      console.error('Error unenrolling from class:', error);
-      setConfirmationMessage('An error occurred while unenrolling');
-      setShowConfirmation(true);
-      setShowUnbookConfirm(false);
-    }
   };
 
   const getWeekDates = (date: Date) => {
@@ -191,10 +101,12 @@ export default function RegisterOnlinePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        //console.log('🚀 Fetching instructors...');
         const instructorsRes = await fetch('/api/instructors');
         if (instructorsRes.ok) {
           const instructorsData = await instructorsRes.json();
           setInstructors(instructorsData);
+          //console.log('✅ Instructors loaded:', instructorsData.length);
         }
       } catch (error) {
         console.error('❌ Error fetching instructors:', error);
@@ -204,9 +116,47 @@ export default function RegisterOnlinePage() {
     fetchData();
   }, []);
 
-  // Update selected instructor when instructor ID changes
+  // Fetch ticket classes when instructor is selected
   useEffect(() => {
-    if (selectedInstructorId && instructors.length > 0) {
+    const fetchTicketClasses = async () => {
+      if (!selectedInstructorId) {
+        setTicketClasses([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        console.log(`🎫 Fetching classes for instructor: ${selectedInstructorId}, type: ${selectedClassType}`);
+        
+        let url = `/api/ticketclasses?instructorId=${selectedInstructorId}`;
+        if (selectedClassType !== 'ALL') {
+          url += `&type=${selectedClassType}`;
+        }
+        
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          console.log(`✅ Classes loaded:`, data.length);
+          setTicketClasses(data);
+        } else {
+          console.error('❌ Error fetching classes:', res.statusText);
+          setTicketClasses([]);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching ticket classes:', error);
+        setTicketClasses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTicketClasses();
+  }, [selectedInstructorId, selectedClassType]);
+
+  // Update selected instructor when instructor is selected
+  useEffect(() => {
+    if (selectedInstructorId) {
       const instructor = instructors.find(inst => inst._id === selectedInstructorId);
       setSelectedInstructor(instructor || null);
     } else {
@@ -291,8 +241,8 @@ export default function RegisterOnlinePage() {
                   
                   // Find class that overlaps with this time block
                   const overlappingClass = classesForDate.find(tc => 
-                    tc.hour && tc.endHour && 
-                    doesBlockOverlapWithClass(timeBlock.start, timeBlock.end, tc.hour, tc.endHour)
+                    tc.hour && tc.endhour && 
+                    doesBlockOverlapWithClass(timeBlock.start, timeBlock.end, tc.hour, tc.endhour)
                   );
                   
                   if (overlappingClass) {
@@ -300,96 +250,39 @@ export default function RegisterOnlinePage() {
                     if (isFirstBlockOfClass(timeBlock.start, overlappingClass.hour)) {
                       // Calculate how many 30-minute blocks this class spans
                       const classStartMin = timeToMinutes(overlappingClass.hour);
-                      const classEndMin = timeToMinutes(overlappingClass.endHour);
+                      const classEndMin = timeToMinutes(overlappingClass.endhour);
                       const classDurationMin = classEndMin - classStartMin;
                       const rowSpan = Math.ceil(classDurationMin / 30);
                       
                       const isAvailable = overlappingClass.status === 'available' && overlappingClass.availableSpots > 0;
                       
-                      // Check if current user is enrolled in this class
-                      const isUserEnrolled = overlappingClass.students.some(
-                        (student: any) => student.studentId === userId
-                      );
-                      
-                      // User is enrolled - show blue slot with unbook option
-                      if (isUserEnrolled) {
-                        return (
-                          <td
-                            key={date.toDateString()}
-                            className="border border-gray-300 p-1 cursor-pointer min-w-[80px] w-[80px] bg-blue-500 text-white hover:bg-red-500"
-                            rowSpan={rowSpan}
-                            onClick={() => {
-                              setClassToUnbook(overlappingClass);
-                              setShowUnbookConfirm(true);
-                            }}
-                            title="Click to unenroll from this class"
-                          >
-                            <div className="text-xs">
-                              Enrolled
-                            </div>
-                            <div className="text-xs font-bold">
-                              {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
-                            </div>
-                            <div className="text-xs">
-                              {overlappingClass.hour}-{overlappingClass.endHour}
-                            </div>
-                            <div className="text-xs">
-                              {overlappingClass.enrolledStudents}/{overlappingClass.totalSpots}
-                            </div>
-                          </td>
-                        );
-                      }
-                      
-                      // Class is available for enrollment
-                      if (isAvailable) {
-                        return (
-                          <td
-                            key={date.toDateString()}
-                            className="border border-gray-300 p-1 cursor-pointer min-w-[80px] w-[80px] bg-green-100 hover:bg-green-200"
-                            rowSpan={rowSpan}
-                            onClick={() => {
-                              if (!userId) {
-                                setShowAuthWarning(true);
-                                return;
-                              }
-                              setSelectedTicketClass(overlappingClass);
-                              setIsBookingModalOpen(true);
-                            }}
-                          >
-                            <div className="text-xs text-black">
-                              Available
-                            </div>
-                            <div className="text-xs font-bold text-black">
-                              {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
-                            </div>
-                            <div className="text-xs text-black">
-                              {overlappingClass.hour}-{overlappingClass.endHour}
-                            </div>
-                            <div className="text-xs text-black">
-                              {overlappingClass.enrolledStudents}/{overlappingClass.totalSpots}
-                            </div>
-                          </td>
-                        );
-                      }
-                      
-                      // Class is full
                       return (
                         <td
                           key={date.toDateString()}
-                          className="border border-gray-300 p-1 min-w-[80px] w-[80px] bg-gray-100"
+                          className={`border border-gray-300 p-1 cursor-pointer min-w-[80px] w-[80px] ${
+                            isAvailable 
+                              ? 'bg-green-100 hover:bg-green-200' 
+                              : 'bg-gray-100'
+                          }`}
                           rowSpan={rowSpan}
+                          onClick={() => {
+                            if (isAvailable) {
+                              setSelectedTicketClass(overlappingClass);
+                              setIsBookingModalOpen(true);
+                            }
+                          }}
                         >
-                          <div className="text-xs text-black">
-                            Full
+                          <div className="text-xs">
+                            {isAvailable ? 'Available' : 'Full'}
                           </div>
-                          <div className="text-xs font-bold text-black">
-                            {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
+                          <div className="text-xs font-bold">
+                            {getClassTypeDisplay(overlappingClass.type)}
                           </div>
-                          <div className="text-xs text-black">
-                            {overlappingClass.hour}-{overlappingClass.endHour}
+                          <div className="text-xs">
+                            {overlappingClass.hour}-{overlappingClass.endhour}
                           </div>
-                          <div className="text-xs text-black">
-                            {overlappingClass.enrolledStudents}/{overlappingClass.totalSpots}
+                          <div className="text-xs text-gray-600">
+                            {overlappingClass.availableSpots}/{overlappingClass.cupos}
                           </div>
                         </td>
                       );
@@ -485,14 +378,14 @@ export default function RegisterOnlinePage() {
 
         {/* Right Side - Schedule Table */}
         <div className="w-full lg:w-2/3 mt-6 lg:mt-0">
-          {selectedInstructorId && isLoading && (
+          {selectedInstructorId && !selectedInstructor && (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               <p className="mt-2 text-gray-600">Loading {selectedClassType} classes schedule...</p>
             </div>
           )}
           
-          {selectedInstructor && !isLoading && (
+          {selectedInstructor && (
             <>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 mt-12">
                 <span className="text-blue-700">{selectedInstructor.name}&apos;s </span>
@@ -502,7 +395,7 @@ export default function RegisterOnlinePage() {
                 Showing only {selectedClassType} appointments. Green slots are available for booking.
               </p>
               
-              {(!ticketClasses || ticketClasses.length === 0) && (
+              {(!ticketClasses || ticketClasses.length === 0) && !loading && (
                 <div className="text-center py-8">
                   <p className="text-gray-500 text-lg">No {selectedClassType} classes available for this instructor.</p>
                   <p className="text-gray-400 text-sm mt-2">Please select another instructor or check back later.</p>
@@ -552,9 +445,9 @@ export default function RegisterOnlinePage() {
                   month: 'long',
                   day: 'numeric'
                 })}</p>
-                <p className="mb-2"><strong>Time:</strong> {formatTime(selectedTicketClass.hour)} - {formatTime(selectedTicketClass.endHour)}</p>
+                <p className="mb-2"><strong>Time:</strong> {formatTime(selectedTicketClass.hour)} - {formatTime(selectedTicketClass.endhour)}</p>
                 <p className="mb-2"><strong>Duration:</strong> {selectedTicketClass.duration}</p>
-                <p className="mb-2"><strong>Enrolled Students:</strong> {selectedTicketClass.enrolledStudents}/{selectedTicketClass.totalSpots}</p>
+                <p className="mb-2"><strong>Available Spots:</strong> {selectedTicketClass.availableSpots}/{selectedTicketClass.cupos}</p>
                 <p className="mb-2"><strong>Instructor:</strong> {selectedInstructor?.name}</p>
               </div>
             </div>
@@ -568,9 +461,51 @@ export default function RegisterOnlinePage() {
             </button>
             <button
               className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
-              onClick={handleEnrollClass}
+              onClick={async () => {
+                if (!user) {
+                  setShowAuthWarning(true);
+                  setIsBookingModalOpen(false);
+                  return;
+                }
+
+                if (!selectedTicketClass || !selectedInstructor) return;
+
+                setLoading(true);
+                try {
+                  const res = await fetch('/api/enroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      studentId: userId,
+                      ticketClassId: selectedTicketClass._id,
+                      instructorId: selectedInstructor._id,
+                    }),
+                  });
+
+                  setIsBookingModalOpen(false);
+                  if (res.ok) {
+                    setConfirmationMessage(`Successfully enrolled in ${getClassTypeDisplay(selectedTicketClass.type)} class on ${new Date(selectedTicketClass.date).toLocaleDateString()}`);
+                    setShowConfirmation(true);
+                    // Refresh the classes
+                    const updatedRes = await fetch(`/api/ticketclasses?instructorId=${selectedInstructorId}&type=${selectedClassType}`);
+                    if (updatedRes.ok) {
+                      const updatedData = await updatedRes.json();
+                      setTicketClasses(updatedData);
+                    }
+                  } else {
+                    const errorData = await res.json();
+                    setConfirmationMessage(`Failed to enroll: ${errorData.error || 'Unknown error'}`);
+                    setShowConfirmation(true);
+                  }
+                } catch (error) {
+                  setConfirmationMessage('Error enrolling in class. Please try again.');
+                  setShowConfirmation(true);
+                } finally {
+                  setLoading(false);
+                }
+              }}
             >
-              {isLoading ? 'Enrolling...' : 'Confirm Enrollment'}
+              {loading ? 'Enrolling...' : 'Confirm Enrollment'}
             </button>
           </div>
         </div>
@@ -607,40 +542,6 @@ export default function RegisterOnlinePage() {
           >
             Close
           </button>
-        </div>
-      </Modal>
-
-      {/* Unbook Confirmation Modal */}
-      <Modal isOpen={showUnbookConfirm} onClose={() => setShowUnbookConfirm(false)}>
-        <div className="p-6 text-center">
-          <h2 className="text-xl font-bold mb-4 text-red-600">Unenroll from Class</h2>
-          {classToUnbook && (
-            <div className="bg-red-50 p-4 rounded-lg mb-4">
-              <p className="mb-2"><strong>Class:</strong> {classToUnbook.classInfo?.title || getClassTypeDisplay(classToUnbook.type)}</p>
-              <p className="mb-2"><strong>Date:</strong> {new Date(classToUnbook.date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}</p>
-              <p className="mb-2"><strong>Time:</strong> {formatTime(classToUnbook.hour)} - {formatTime(classToUnbook.endHour)}</p>
-            </div>
-          )}
-          <p className="mb-4 text-gray-700">Are you sure you want to unenroll from this class?</p>
-          <div className="flex justify-center gap-3">
-            <button
-              className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600"
-              onClick={() => setShowUnbookConfirm(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600"
-              onClick={handleUnbookClass}
-            >
-              Unenroll
-            </button>
-          </div>
         </div>
       </Modal>
       

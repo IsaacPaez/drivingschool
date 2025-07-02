@@ -4,7 +4,7 @@ export interface ITicketClass extends Document {
   locationId: mongoose.Schema.Types.ObjectId;
   date: Date;
   hour: string;
-  endhour: string;
+  endhour?: string;
   classId: mongoose.Schema.Types.ObjectId;
   type: string;
   duration: string;
@@ -24,7 +24,7 @@ const TicketClassSchema = new Schema<ITicketClass>(
     locationId: { type: mongoose.Schema.Types.ObjectId, ref: "Location", required: true },
     date: { type: Date, required: true },
     hour: { type: String, required: true },
-    endhour: { type: String, required: true },
+    endhour: { type: String, required: false },
     classId: { type: mongoose.Schema.Types.ObjectId, ref: "Classes", required: true },
     type: { type: String, required: true },
     duration: { type: String, required: true },
