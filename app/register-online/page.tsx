@@ -9,7 +9,7 @@ import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
 import { useRouter } from "next/navigation";
-import { useRegisterOnlineSSE } from "@/hooks/useRegisterOnlineSSE";
+import useRegisterOnlineSSE from "@/hooks/useRegisterOnlineSSE";
 
 interface Instructor {
   _id: string;
