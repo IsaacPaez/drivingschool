@@ -42,8 +42,8 @@ export async function POST(request: Request) {
 
     // Emit socket event for real-time updates (if socket.io is available)
     try {
-      if (typeof global !== 'undefined' && global.io) {
-        global.io.emit('scheduleUpdate', {
+      if (typeof globalThis !== 'undefined' && (globalThis as any).io) {
+        (globalThis as any).io.emit('scheduleUpdate', {
           instructorId,
           date,
           start,
