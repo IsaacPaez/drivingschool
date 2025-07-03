@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import InstructorCalendar from '../../components/TeachersCalendar/InstructorCalendar';
 import AuthRedirector from "../components/AuthRedirector";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ export default function TeachersPage() {
   const { user } = useAuth();
   const [rawSchedule, setRawSchedule] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
-  const instructorId = (user as { instructorId?: string })?.instructorId;
+  const instructorId = user && user.type === 'instructor' ? user._id : undefined;
 
   useEffect(() => {
     if (user === null) {
@@ -24,31 +24,50 @@ export default function TeachersPage() {
   }, [user, router]);
 
   useEffect(() => {
-    if (!instructorId) return;
-
+    if (!instructorId) {
+      console.log('No instructorId, no se abre SSE');
+      return;
+    }
+    console.log('Abriendo SSE para instructorId:', instructorId);
     const eventSource = new EventSource(`/api/teachers/schedule-updates?id=${instructorId}`);
-
+    eventSource.onopen = () => {
+      console.log('SSE conexión abierta');
+    };
     eventSource.onmessage = (event) => {
+      console.log('SSE mensaje recibido:', event.data);
       const data = JSON.parse(event.data);
       if (data.type === 'initial' || data.type === 'update') {
         setRawSchedule(data.schedule || []);
+        console.log('SSE schedule recibido:', data.schedule);
         if (loading) setLoading(false);
       } else if (data.type === 'error') {
-        console.error("SSE Error:", data.message);
+        console.error('SSE Error:', data.message);
         if (loading) setLoading(false);
       }
     };
-
     eventSource.onerror = (err) => {
-      console.error("EventSource failed:", err);
+      console.error('EventSource failed:', err);
       if (loading) setLoading(false);
       eventSource.close();
     };
-
     return () => {
+      console.log('Cerrando SSE');
       eventSource.close();
     };
   }, [instructorId, loading]);
+
+  // Forzar color de fondo en los <td> de la tabla de clases de instructor
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .instructor-calendar-table td[data-block-bg] {
+        background-color: var(--block-bg) !important;
+        border: 2px solid var(--block-border) !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, []);
 
   if (user === null) {
     return null;

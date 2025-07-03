@@ -40,7 +40,8 @@ export default function CalendarGrid({ blocks, onBlockClick, selectedDate }: Cal
   const blocksByDayHour: Record<string, Record<string, TimeBlock>> = {};
   blocks.forEach(b => {
     if (!b.date) return;
-    const dayKey = `${b.date.getFullYear()}-${(b.date.getMonth()+1).toString().padStart(2, '0')}-${b.date.getDate().toString().padStart(2, '0')}`;
+    const d = typeof b.date === 'string' ? new Date(b.date) : b.date;
+    const dayKey = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
     if (!blocksByDayHour[dayKey]) blocksByDayHour[dayKey] = {};
     blocksByDayHour[dayKey][b.time] = b;
   });

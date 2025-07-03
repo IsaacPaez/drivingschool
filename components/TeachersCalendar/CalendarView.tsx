@@ -1,40 +1,29 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CalendarGrid from './CalendarGrid';
 import CalendarToolbar from './CalendarToolbar';
 import Modal from '../Modal';
 import dynamic from 'next/dynamic';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi';
-import { Class as CalendarClass } from './types';
+import type { Class as CalendarClass, TimeSlot, MongoDBObjectId } from './types';
 import LoadingSpinner from '../common/LoadingSpinner';
 import useIsMobile from '../hooks/useIsMobile';
 
 const MiniCalendar = dynamic(() => import('./MiniCalendar'), { ssr: false });
 
-interface MongoDBObjectId {
-  $oid: string;
-}
-
-interface TimeSlot {
-  start: string;
-  end: string;
-  status?: 'scheduled' | 'cancelled' | 'free' | 'canceled';
-  _id?: string | MongoDBObjectId;
-  studentId?: string | MongoDBObjectId;
-}
-
-export interface Class {
+interface Class {
   id: string;
   date: Date;
   hour: number;
-  status: 'scheduled' | 'cancelled' | 'free';
+  status: 'scheduled' | 'cancelled' | 'available';
   studentId?: string | MongoDBObjectId;
   instructorId?: string | MongoDBObjectId;
   slots?: TimeSlot[];
   start?: string;
   end?: string;
   day?: number;
+  classType?: string;
 }
 
 interface CalendarViewProps {
@@ -51,11 +40,79 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState<CalendarClass | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [classFilter, setClassFilter] = useState<'scheduled' | 'cancelled' | 'free'>('scheduled');
+  const [classFilter, setClassFilter] = useState<'scheduled' | 'cancelled' | 'available'>('scheduled');
   const [studentInfo, setStudentInfo] = useState<{ firstName?: string; lastName?: string; email?: string } | null>(null);
+  const [ticketClassInfo, setTicketClassInfo] = useState<any>(null);
+  const [drivingClassInfo, setDrivingClassInfo] = useState<any>(null);
+  const [locationInfo, setLocationInfo] = useState<any>(null);
+  const [studentsInfo, setStudentsInfo] = useState<any[]>([]);
+  const [loadingExtra, setLoadingExtra] = useState(false);
 
   // Derived state
   const classes = initialClasses;
+
+  // Paleta de colores para tipos de clase
+  const classTypeColors: Record<string, string> = {
+    'D.A.T.E.': 'bg-[#eafaf1] text-[#27ae60] border-[#27ae60]',
+    'A.D.I.': 'bg-[#e3f6fc] text-[#0056b3] border-[#0056b3]',
+    'B.D.I.': 'bg-[#ede7f6] text-[#7c3aed] border-[#7c3aed]',
+  };
+
+  // Añadir color para Driving Test
+  classTypeColors['driving test'] = 'text-[#f39c12] border-[#f39c12]';
+
+  // Badge de color para cada tipo de clase
+  const classTypeBadgeColors: Record<string, string> = {
+    'D.A.T.E.': 'bg-[#27ae60]',
+    'A.D.I.': 'bg-[#0056b3]',
+    'B.D.I.': 'bg-[#7c3aed]',
+    'driving test': 'bg-[#f39c12]',
+  };
+
+  // Colores de status para el punto
+  const statusDotColors: Record<string, string> = {
+    'scheduled': 'bg-[#0056b3]',
+    'available': 'bg-gray-400',
+    'cancelled': 'bg-[#f44336]',
+  };
+
+  // Colores de fondo y borde para el bloque según classType
+  const classTypeBlockColors: Record<string, string> = {
+    'D.A.T.E.': 'bg-[#eafaf1] border-[#27ae60]',
+    'A.D.I.': 'bg-[#e3f6fc] border-[#0056b3]',
+    'B.D.I.': 'bg-[#ede7f6] border-[#7c3aed]',
+    'driving test': 'bg-[#fff7e6] border-[#f39c12]',
+  };
+
+  // Colores hex para fondo y borde por classType
+  const blockBgColors: Record<string, string> = {
+    'D.A.T.E.': '#eafaf1',
+    'A.D.I.': '#e3f6fc',
+    'B.D.I.': '#ede7f6',
+    'driving test': '#fff7e6',
+  };
+
+  const blockBorderColors: Record<string, string> = {
+    'D.A.T.E.': '#27ae60',
+    'A.D.I.': '#0056b3',
+    'B.D.I.': '#7c3aed',
+    'driving test': '#f39c12',
+  };
+
+  // Leyenda de colores para tipos de clase
+  function renderClassTypeLegend() {
+    return (
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="font-bold text-[#0056b3] text-md mb-1">Class Types</div>
+        <div className="flex flex-row gap-6 items-center">
+          <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#27ae60]"></span><span className="text-[#27ae60] font-bold">D.A.T.E.</span></span>
+          <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#0056b3]"></span><span className="text-[#0056b3] font-bold">A.D.I.</span></span>
+          <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#7c3aed]"></span><span className="text-[#7c3aed] font-bold">B.D.I.</span></span>
+          <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#f39c12]"></span><span className="text-[#f39c12] font-bold">Driving Test</span></span>
+        </div>
+      </div>
+    );
+  }
 
   // Navegación entre semanas/meses
   const handlePrev = () => {
@@ -77,18 +134,47 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
     }
   };
 
-  // Permitir click solo para mostrar info
+  // Permitir click para mostrar info en cualquier status para D.A.T.E., A.D.I., B.D.I.
   const handleTimeBlockClick = async (block: CalendarClass) => {
+    // Solo Driving Test: solo scheduled
+    if (block.classType === 'driving test') {
+      if (block.status === 'scheduled') {
+        setSelectedBlock(block);
+        setModalOpen(true);
+        if (block.studentId) {
+          setStudentInfo(null); // Muestra "Loading..." mientras busca
+          try {
+            const res = await fetch(`/api/users?id=${block.studentId}`);
+            const data = await res.json();
+            setStudentInfo(data); // La API devuelve el usuario directamente
+          } catch {
+            setStudentInfo({ firstName: 'Not found', lastName: '' });
+          }
+        } else {
+          setStudentInfo(null);
+        }
+      }
+      onClassClick(block);
+      return;
+    }
+    // Para D.A.T.E., A.D.I., B.D.I. permite abrir el modal en cualquier status
+    if (block.classType === 'D.A.T.E.' || block.classType === 'A.D.I.' || block.classType === 'B.D.I.') {
+      setSelectedBlock(block);
+      setModalOpen(true);
+      setStudentInfo(null); // No mostrar info de un solo estudiante
+      onClassClick(block);
+      return;
+    }
+    // Por defecto, solo scheduled
     if (block.status === 'scheduled') {
       setSelectedBlock(block);
       setModalOpen(true);
-
       if (block.studentId) {
-        setStudentInfo(null); // Muestra "Loading..." mientras busca
+        setStudentInfo(null);
         try {
           const res = await fetch(`/api/users?id=${block.studentId}`);
           const data = await res.json();
-          setStudentInfo(data); // La API devuelve el usuario directamente
+          setStudentInfo(data);
         } catch {
           setStudentInfo({ firstName: 'Not found', lastName: '' });
         }
@@ -192,7 +278,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
         status: classBlock
           ? classBlock.status === 'scheduled'
             ? 'booked'
-            : classBlock.status === 'free'
+            : classBlock.status === 'available'
             ? 'available'
             : classBlock.status === 'cancelled'
             ? 'cancelled'
@@ -297,12 +383,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                                   className={`rounded-xl px-2 py-1 text-xs font-bold shadow transition-all mb-1 flex items-center gap-1
                                     ${g.status === 'scheduled' ? 'bg-[#0056b3] text-white hover:bg-[#27ae60] cursor-pointer border-2 border-[#27ae60]' : ''}
                                     ${g.status === 'cancelled' ? 'bg-[#f44336] text-white border-2 border-[#f44336]/60' : ''}
-                                    ${g.status === 'free' ? 'bg-[#eafaf1] text-[#0056b3] border-2 border-[#b2f2d7]' : ''}
+                                    ${g.status === 'available' ? 'bg-[#eafaf1] text-[#0056b3] border-2 border-[#b2f2d7]' : ''}
                                   `}
                                   title={`${g.status.charAt(0).toUpperCase() + g.status.slice(1)} ${g.start} - ${g.end}`}
                                   {...(g.status === 'scheduled' ? { onClick: () => handleTimeBlockClick({ ...dayClasses.find(c => c.status === 'scheduled' && c.start === g.start && c.end === g.end)! }) } : {})}
                                 >
-                                  <span className="capitalize">{g.status}</span>
+                                  <span className="capitalize">{dayClasses.find(c => c.status === g.status && c.start === g.start && c.end === g.end)?.classType ? `${dayClasses.find(c => c.status === g.status && c.start === g.start && c.end === g.end)?.classType} - ` : ''}{g.status}</span>
                                   <span className="ml-1 font-normal">{g.start} - {g.end}</span>
                                 </div>
                               ));
@@ -338,14 +424,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       return weekDates.includes(new Date(d).setHours(0,0,0,0));
     });
   }
-  const summaryByStatus = { scheduled: [], cancelled: [], free: [] } as Record<'scheduled'|'cancelled'|'free', { day: string, time: string }[]>;
+  const summaryByStatus = { scheduled: [], cancelled: [], available: [] } as Record<'scheduled'|'cancelled'|'available', { day: string, time: string }[]>;
   summaryClasses.forEach(c => {
     const dateObj = new Date(c.date);
     const dayStr = dateObj.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
     const timeStr = `${c.start || (c.hour?.toString().padStart(2, '0') + ':00')} - ${c.end || ((c.hour + 1)?.toString().padStart(2, '0') + ':00')}`;
     if (c.status === 'scheduled') summaryByStatus.scheduled.push({ day: dayStr, time: timeStr });
     if (c.status === 'cancelled') summaryByStatus.cancelled.push({ day: dayStr, time: timeStr });
-    if (c.status === 'free') summaryByStatus.free.push({ day: dayStr, time: timeStr });
+    if (c.status === 'available') summaryByStatus.available.push({ day: dayStr, time: timeStr });
   });
 
   const isMobile = useIsMobile();
@@ -370,12 +456,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                 className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
                   ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
                   ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-                  ${b.status === 'free' ? 'bg-gray-200 text-gray-700' : ''}
+                  ${b.status === 'available' ? 'bg-gray-200 text-gray-700' : ''}
                 `}
                 onClick={() => handleTimeBlockClick(b)}
               >
                 <span className="font-mono">{b.start}-{b.end}</span>
-                <span className="ml-2 capitalize">{b.status}</span>
+                <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
               </div>
             ))}
           </div>
@@ -466,12 +552,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                   className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
                     ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
                     ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-                    ${b.status === 'free' ? 'bg-gray-200 text-gray-700' : ''}
+                    ${b.status === 'available' ? 'bg-gray-200 text-gray-700' : ''}
                   `}
                   onClick={() => handleTimeBlockClick(b)}
                 >
                   <span className="font-mono">{b.start}-{b.end}</span>
-                  <span className="ml-2 capitalize">{b.status}</span>
+                  <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
                 </div>
               ))}
             </div>
@@ -497,17 +583,182 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
             className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
               ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
               ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-              ${b.status === 'free' ? 'bg-gray-200 text-gray-700' : ''}
+              ${b.status === 'available' ? 'bg-gray-200 text-gray-700' : ''}
             `}
             onClick={() => handleTimeBlockClick(b)}
           >
             <span className="font-mono">{b.start}-{b.end}</span>
-            <span className="ml-2 capitalize">{b.status}</span>
+            <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
           </div>
         ))}
       </div>
     );
   }
+
+  // Vista semanal con columna de horarios y bloques alineados
+  function renderWeekViewWithTime() {
+    const monthLabel = selectedDate.toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+    const startHour = 6;
+    const endHour = 20;
+    const timeLabels: string[] = [];
+    for (let h = startHour; h < endHour; h++) {
+      timeLabels.push(`${h.toString().padStart(2, '0')}:00`);
+      timeLabels.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+    const startOfWeek = new Date(selectedDate);
+    startOfWeek.setDate(selectedDate.getDate() - ((startOfWeek.getDay() + 6) % 7));
+    const weekDays: Date[] = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
+    // Agrupar clases por día
+    const classesByDay: Record<string, CalendarClass[]> = {};
+    weekDays.forEach((d) => {
+      const key = d.toISOString().slice(0, 10);
+      classesByDay[key] = [];
+    });
+    classes.forEach(c => {
+      const d = typeof c.date === 'string' ? c.date : c.date.toISOString().slice(0, 10);
+      if (classesByDay[d]) classesByDay[d].push(c);
+    });
+    return (
+      <>
+        <div className="text-3xl font-extrabold text-center mb-4 text-[#27ae60] tracking-wide select-none">{monthLabel}</div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse shadow-2xl rounded-2xl bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] instructor-calendar-table">
+            <thead>
+              <tr>
+                <th className="p-2 bg-white text-center font-bold w-20 md:w-32 sticky left-0 z-10" style={{ color: '#27ae60', border: '1px solid #e0e0e0', fontSize: '1rem', background: '#f8fafd', minWidth: 60, maxWidth: 60 }}>Time</th>
+                {weekDays.map((d, i) => (
+                  <th key={i} className="p-2 text-center font-bold w-20 md:w-32" style={{ color: '#0056b3', border: '1px solid #e0e0e0', fontSize: '1rem', minWidth: 60, maxWidth: 60, background: '#f8fafd' }}>
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="uppercase tracking-wide" style={{ fontSize: '0.95rem' }}>{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                      <span className="font-extrabold text-lg" style={{ letterSpacing: 1 }}>{d.getDate()}</span>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {timeLabels.map((label, rowIdx) => (
+                <tr key={label}>
+                  <td className="p-2 border text-center font-bold w-20 md:w-32 sticky left-0 z-10" style={{ color: '#27ae60', border: '1px solid #e0e0e0', background: '#fff', minWidth: 60, maxWidth: 60 }}>{label}</td>
+                  {weekDays.map((d, colIdx) => {
+                    const key = d.toISOString().slice(0, 10);
+                    const dayClasses = (classesByDay[key] || []).slice().filter(c => c.start && c.end);
+                    // Buscar si hay una clase que inicia en este slot
+                    const classBlock = dayClasses.find(c => c.start === label);
+                    if (classBlock) {
+                      // Calcular cuántos slots abarca la clase
+                      const [startHour, startMin] = classBlock.start!.split(':').map(Number);
+                      const [endHour, endMin] = classBlock.end!.split(':').map(Number);
+                      let slots = (endHour - startHour) * 2 + (endMin - startMin) / 30;
+                      if (slots < 1) slots = 1;
+                      // Normalizar el tipo de clase para buscar el color
+                      const normalizedType = (classBlock.classType || '').toUpperCase().replace(/\s+/g, ' ').trim();
+                      const blockBg = blockBgColors[normalizedType] || '#fff';
+                      const blockBorder = blockBorderColors[normalizedType] || '#e0e0e0';
+                      const typeText = classTypeColors[normalizedType] || '';
+                      const badgeColor = statusDotColors[classBlock.status] || 'bg-gray-400';
+                      return (
+                        <td
+                          key={colIdx}
+                          rowSpan={slots}
+                          className={`align-middle w-20 md:w-32`}
+                          data-block-bg
+                          style={{ position: 'relative', padding: 0, cursor: (classBlock.classType === 'D.A.T.E.' || classBlock.classType === 'A.D.I.' || classBlock.classType === 'B.D.I.' || classBlock.status === 'scheduled') ? 'pointer' : 'default', height: `${22 * slots}px`, minHeight: `${22 * slots}px`, minWidth: 60, maxWidth: 60, 
+                            '--block-bg': blockBg, '--block-border': blockBorder } as React.CSSProperties}
+                          onClick={() => ((classBlock.classType === 'D.A.T.E.' || classBlock.classType === 'A.D.I.' || classBlock.classType === 'B.D.I.') ? handleTimeBlockClick(classBlock) : (classBlock.status === 'scheduled' && handleTimeBlockClick(classBlock)))}
+                        >
+                          <div className={`flex flex-col items-center justify-center w-full font-bold gap-1`} 
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, fontSize: '0.95rem', borderRadius: 12, boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }}>
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-block w-3 h-3 rounded-full ${badgeColor}`}></span>
+                              <span className={`capitalize font-bold ${typeText}`}>{classBlock.classType}</span>
+                            </div>
+                            <span className="font-semibold text-gray-700">{classBlock.status.charAt(0).toUpperCase() + classBlock.status.slice(1)}</span>
+                            <span className="font-normal text-gray-700">{classBlock.start} - {classBlock.end}</span>
+                          </div>
+                        </td>
+                      );
+                    }
+                    // Si ya hay una clase que abarca este slot, dejar la celda vacía
+                    const isCovered = dayClasses.some(c => {
+                      const [startHour, startMin] = c.start!.split(':').map(Number);
+                      const [endHour, endMin] = c.end!.split(':').map(Number);
+                      const [labelHour, labelMin] = label.split(':').map(Number);
+                      const labelMinutes = labelHour * 60 + (labelMin || 0);
+                      const startMinutes = startHour * 60 + startMin;
+                      const endMinutes = endHour * 60 + endMin;
+                      return labelMinutes > startMinutes && labelMinutes < endMinutes;
+                    });
+                    if (isCovered) {
+                      return null;
+                    }
+                    // Celda vacía
+                    return (
+                      <td key={colIdx} className="p-0 border text-center align-middle bg-white w-20 md:w-32" style={{ border: '1px solid #e0e0e0', height: '22px', minHeight: '22px', minWidth: 60, maxWidth: 60 }}>
+                        <div className="flex items-center justify-center w-full" style={{ height: '22px' }}></div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    );
+  }
+
+  // Fetch extra info SOLO para D.A.T.E., A.D.I., B.D.I.
+  useEffect(() => {
+    if (!selectedBlock || !selectedBlock.classType || selectedBlock.classType === 'driving test' || !selectedBlock.ticketClassId) {
+      setTicketClassInfo(null);
+      setDrivingClassInfo(null);
+      setLocationInfo(null);
+      setStudentsInfo([]);
+      setLoadingExtra(false);
+      return;
+    }
+    setLoadingExtra(true);
+    setTicketClassInfo(null);
+    setDrivingClassInfo(null);
+    setLocationInfo(null);
+    setStudentsInfo([]);
+    // 1. TicketClass
+    fetch(`/api/ticketclasses/${selectedBlock.ticketClassId}`)
+      .then(res => res.json())
+      .then(async (ticketClass) => {
+        setTicketClassInfo(ticketClass);
+        // 2. DrivingClass
+        if(ticketClass.classId) {
+          fetch(`/api/drivingclasses/${ticketClass.classId}`)
+            .then(res => res.json())
+            .then(setDrivingClassInfo);
+        }
+        // 3. Location
+        if(ticketClass.locationId) {
+          fetch(`/api/locations/${ticketClass.locationId}`)
+            .then(res => res.json())
+            .then(setLocationInfo);
+        }
+        // 4. Students
+        if(ticketClass.students && Array.isArray(ticketClass.students)) {
+          const students = await Promise.all(ticketClass.students.map(async (s: any) => {
+            if (!s.studentId) return null;
+            const res = await fetch(`/api/users?id=${s.studentId}`);
+            const user = await res.json();
+            return user && !user.error ? user : null;
+          }));
+          setStudentsInfo(students.filter(Boolean));
+        }
+        setLoadingExtra(false);
+      })
+      .catch(() => setLoadingExtra(false));
+  }, [selectedBlock]);
 
   // El return principal del componente debe estar fuera de cualquier función
   return (
@@ -534,7 +785,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
             <ul className="space-y-2 text-black">
               <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#0056b3]"></span> Scheduled</li>
               <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#f44336]"></span> Cancelled</li>
-              <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gray-400"></span> Free</li>
+              <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gray-400"></span> Available</li>
             </ul>
           </div>
           <div>
@@ -549,6 +800,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                 }} />
             </div>
           </div>
+          {renderClassTypeLegend()}
         </aside>
       )}
       {/* Calendario central */}
@@ -569,14 +821,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                 {renderMonthView()}
               </>
             ) : (
-              <CalendarGrid
-                blocks={classes.map(slot => ({
-                  ...slot,
-                  time: `${slot.start}-${slot.end}`
-                }))}
-                onBlockClick={handleBlockClick}
-                selectedDate={selectedDate}
-              />
+              <>
+                {renderWeekViewWithTime()}
+              </>
             )
           )}
       </main>
@@ -587,7 +834,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
           <div className="flex gap-2 mb-4">
             <button onClick={() => setClassFilter('scheduled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='scheduled' ? 'bg-[#0056b3] text-white' : 'bg-white text-[#0056b3] border-[#0056b3]'}`}>Scheduled</button>
             <button onClick={() => setClassFilter('cancelled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='cancelled' ? 'bg-[#f44336] text-white' : 'bg-white text-[#f44336] border-[#f44336]'}`}>Cancelled</button>
-            <button onClick={() => setClassFilter('free')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='free' ? 'bg-gray-400 text-white' : 'bg-white text-gray-400 border-gray-400'}`}>Free</button>
+            <button onClick={() => setClassFilter('available')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='available' ? 'bg-gray-400 text-white' : 'bg-white text-gray-400 border-gray-400'}`}>Available</button>
           </div>
           <div className="font-bold mb-1" style={{ color: classFilter === 'scheduled' ? '#0056b3' : classFilter === 'cancelled' ? '#f44336' : '#888' }}>
             {classFilter.charAt(0).toUpperCase() + classFilter.slice(1)}
@@ -647,7 +894,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                             <span key={idx} className={`inline-block rounded px-2 py-1 shadow-md font-semibold transition-all duration-300 w-fit
                               ${classFilter === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
                               ${classFilter === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-                              ${classFilter === 'free' ? 'bg-white text-[#27ae60] border border-[#27ae60]' : ''}
+                              ${classFilter === 'available' ? 'bg-white text-[#27ae60] border border-[#27ae60]' : ''}
                             `}>
                               {r.start}-{r.end}
                             </span>
@@ -663,14 +910,63 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       )}
       </div>
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <div className="p-4 sm:p-8 w-full max-w-xs sm:max-w-md bg-white rounded-2xl shadow-2xl border border-[#e0e0e0]">
+        <div className="py-6 px-2 w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-[#e0e0e0] mx-auto flex flex-col items-center justify-center" style={{ minWidth: '0', width: '100%' }}>
           <h2 className="text-2xl font-extrabold mb-6 text-[#0056b3] text-center tracking-wide">Class Details</h2>
           {selectedBlock && (
-            <div className="space-y-3">
+            <div className="space-y-3 w-full">
               <div><span className="font-semibold text-[#27ae60]">Date:</span> <span className="text-gray-800">{selectedBlock.date ? (selectedBlock.date instanceof Date ? selectedBlock.date.toLocaleDateString() : new Date(selectedBlock.date).toLocaleDateString()) : ''}</span></div>
               <div><span className="font-semibold text-[#27ae60]">Start Hour:</span> <span className="text-gray-800">{selectedBlock.start ? selectedBlock.start : (selectedBlock.hour !== undefined ? `${selectedBlock.hour.toString().padStart(2, '0')}:00` : '')}</span></div>
               <div><span className="font-semibold text-[#27ae60]">End Hour:</span> <span className="text-gray-800">{selectedBlock.end ? selectedBlock.end : (selectedBlock.hour !== undefined ? `${(selectedBlock.hour + 1).toString().padStart(2, '0')}:00` : '')}</span></div>
               <div><span className="font-semibold text-[#0056b3]">Status:</span> <span className="capitalize text-gray-800">{selectedBlock.status}</span></div>
+              {selectedBlock.classType && (
+                <div><span className="font-semibold text-[#0056b3]">Class Type:</span> <span className="capitalize text-gray-800">{selectedBlock.classType}</span></div>
+              )}
+              {/* DRIVING TEST: igual que antes */}
+              {selectedBlock.classType === 'driving test' && (
+                <div className="rounded-xl border border-[#f39c12] bg-[#fff7e6] p-3 mt-2 space-y-2">
+                  <div className="font-bold text-[#f39c12] text-lg">Driving Test Details</div>
+                  <div><span className="font-semibold text-[#0056b3]">Pickup Location:</span> <span className="text-gray-800">{selectedBlock.pickupLocation || <span className="italic text-gray-400">Not specified</span>}</span></div>
+                  <div><span className="font-semibold text-[#0056b3]">Dropoff Location:</span> <span className="text-gray-800">{selectedBlock.dropoffLocation || <span className="italic text-gray-400">Not specified</span>}</span></div>
+                  <div><span className="font-semibold text-[#0056b3]">Amount:</span> <span className="text-gray-800">{selectedBlock.amount !== undefined ? `$${selectedBlock.amount}` : <span className="italic text-gray-400">Not specified</span>}</span></div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-[#0056b3]">Paid:</span>
+                    {selectedBlock.paid ? (
+                      <span className="inline-flex items-center gap-1 text-green-600 font-bold"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Paid</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-red-500 font-bold"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Not Paid</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              {/* D.A.T.E., A.D.I., B.D.I. - Info avanzada */}
+              {(selectedBlock.classType === 'D.A.T.E.' || selectedBlock.classType === 'A.D.I.' || selectedBlock.classType === 'B.D.I.') && (
+                <div className="rounded-xl border border-[#0056b3] bg-[#e3f6fc] p-3 mt-2 space-y-2 animate-fade-in">
+                  {loadingExtra ? (
+                    <div className="flex items-center gap-2 text-[#0056b3] font-bold"><LoadingSpinner /> Loading class details...</div>
+                  ) : (
+                    <>
+                      <div className="font-bold text-[#0056b3] text-lg mb-2">Class Group Details</div>
+                      <div><span className="font-semibold">Class Name:</span> <span className="text-gray-800">{drivingClassInfo?.title || <span className="italic text-gray-400">Not found</span>}</span></div>
+                      <div><span className="font-semibold">Location:</span> <span className="text-gray-800">{locationInfo?.title || <span className="italic text-gray-400">Not found</span>}</span></div>
+                      <div><span className="font-semibold">Total Spots:</span> <span className="text-gray-800">{ticketClassInfo?.cupos ?? <span className="italic text-gray-400">?</span>}</span></div>
+                      <div><span className="font-semibold">Occupied:</span> <span className="text-gray-800">{studentsInfo.length}</span></div>
+                      <div className="font-semibold mt-2 mb-1">Students:</div>
+                      {studentsInfo.length === 0 ? (
+                        <div className="italic text-gray-400">No students enrolled yet.</div>
+                      ) : (
+                        <ul className="divide-y divide-[#b2f2d7]">
+                          {studentsInfo.map((s, idx) => (
+                            <li key={s._id || idx} className="py-1 flex flex-col sm:flex-row sm:items-center gap-1">
+                              <span className="font-bold text-[#0056b3]">{s.firstName} {s.lastName}</span>
+                              <span className="text-gray-600 text-sm">{s.email}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
               {selectedBlock.studentId ? (
                 <div className="pt-2 border-t border-gray-200">
                   <span className="font-semibold text-[#0056b3]">Student:</span>

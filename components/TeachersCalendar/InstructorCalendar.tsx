@@ -1,22 +1,30 @@
 import React from 'react';
 import CalendarView from './CalendarView';
-import type { Class } from './CalendarView';
+import type { Class } from './types';
 
-// Adaptador: convierte el schedule de la base de datos al formato de clases para CalendarView
+//Adaptador: convierte el schedule de la base de datos al formato de clases para CalendarView
 function adaptScheduleToClasses(schedule: Record<string, unknown>[]): Class[] {
   if (!Array.isArray(schedule)) return [];
-  // Nueva estructura: cada objeto es un slot
+  //Nueva estructura: cada objeto es un slot
   const result = schedule.map((slot: Record<string, unknown>, idx: number) => ({
     id: slot._id ? String(slot._id) : `${slot.date}_${slot.start}_${slot.end}_${idx}`,
-    date: new Date(String(slot.date) + 'T00:00:00'),
+    date: String(slot.date),
+    dateObj: new Date(String(slot.date)),
     hour: typeof slot.start === 'string' ? parseInt(slot.start.split(':')[0], 10) : 0,
-    status: (slot.status === 'canceled' ? 'cancelled' : slot.status || 'free') as Class['status'],
+    status: (slot.status === 'canceled' ? 'cancelled' : slot.status || 'available') as Class['status'],
     studentId: slot.studentId as string | undefined,
     instructorId: slot.instructorId as string | undefined,
-    start: slot.start as string,
-    end: slot.end as string,
+    start: typeof slot.start === 'string' ? slot.start.padStart(5, '0') : '',
+    end: typeof slot.end === 'string' ? slot.end.padStart(5, '0') : '',
+    classType: slot.classType as string,
+    amount: typeof slot.amount === 'number' ? slot.amount : Number(slot.amount),
+    paid: Boolean(slot.paid),
+    pickupLocation: slot.pickupLocation as string,
+    dropoffLocation: slot.dropoffLocation as string,
+    ticketClassId: slot.ticketClassId as string,
     slots: undefined,
   }));
+  //console.log('Clases adaptadas para el calendario:', result);
   return result;
 }
 
@@ -26,7 +34,7 @@ const InstructorCalendar: React.FC<{
   studentMode?: boolean 
 }> = ({ schedule = [], onScheduleUpdate, studentMode }) => {
   const classes = adaptScheduleToClasses(schedule as Record<string, unknown>[]);
-  // Si es modo estudiante, solo muestra el calendario central y el mensaje
+  //Si es modo estudiante, solo muestra el calendario central y el mensaje
   if (studentMode) {
     return (
       <div className="rounded-3xl shadow-2xl p-4 overflow-x-auto min-h-[520px] bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1] border border-[#e0e0e0] w-full max-w-5xl mx-auto">
