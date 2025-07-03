@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth, AuthUser } from "@/components/AuthContext";
 
 export default function SignInPage() {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -18,8 +20,19 @@ export default function SignInPage() {
     // Simulación de éxito
     setTimeout(() => {
       setLoading(false);
-      // Redirige o muestra mensaje de éxito
-      router.replace("/");
+      // Simula usuario recibido del backend
+      const fakeUser: AuthUser = {
+        _id: "1234567890",
+        name: "Dayro Moreno",
+        email: email,
+        type: 'instructor'
+      };
+      setUser(fakeUser);
+      if (fakeUser.type === 'instructor') {
+        router.replace("/myschedule");
+      } else {
+        router.replace("/");
+      }
     }, 1200);
   };
 

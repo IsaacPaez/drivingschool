@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import TicketClass from "@/models/TicketClass";
 import Classes from "@/models/Classes";
-import User from "@/models/User";
 import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
@@ -21,60 +20,57 @@ export async function GET(req: NextRequest) {
     try {
       writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
     } catch (e) {
-      console.warn("SSE stream for teacher classes closed prematurely.");
+      // Stream closed
     }
   };
-  
+
   try {
     await connectDB();
   } catch (error) {
-    console.error("Database connection failed for teacher classes SSE:", error);
     sendEvent({ type: "error", message: "Database connection failed" });
     writer.close();
     return new Response(stream.readable, { status: 500 });
   }
 
+  // Helper to fetch and send all ticketclasses for this instructor
+  const sendAllTicketClasses = async () => {
+    const ticketClasses = await TicketClass.find({ instructorId }).lean();
+    const ticketClassesWithInfo = await Promise.all(
+      ticketClasses.map(async (tc: any) => {
+        const classInfo = await Classes.findById(tc.classId).lean();
+        return {
+          ...tc,
+          classInfo: classInfo ? {
+            _id: classInfo._id,
+            title: classInfo.title,
+            overview: classInfo.overview,
+            length: classInfo.length,
+            price: classInfo.price
+          } : null
+        };
+      })
+    );
+    sendEvent({ type: "update", classes: ticketClassesWithInfo });
+  };
+
   // Send initial data
-  try {
-    const instructor = await User.findById(instructorId);
-    if (!instructor) {
-      sendEvent({ type: "error", message: "Instructor not found" });
-      writer.close();
-      return new Response(stream.readable, { status: 404 });
-    }
+  await sendAllTicketClasses();
 
-    // Get instructor's classes
-    const classes = await Classes.find({ instructorId });
-    sendEvent({ type: "initial", classes });
-  } catch (error) {
-    console.error("Error fetching initial teacher classes:", error);
-    sendEvent({ type: "error", message: "Failed to fetch initial data" });
-  }
-
-  // Setup Change Stream with error handling
+  // Setup Change Stream for real-time updates
   let changeStream: any = null;
   try {
-    changeStream = mongoose.connection.collection('classes').watch([
-      { $match: { 'instructorId': instructorId } }
+    changeStream = mongoose.connection.collection('ticketclasses').watch([
+      { $match: { 'fullDocument.instructorId': new mongoose.Types.ObjectId(instructorId) } }
     ]);
 
     changeStream.on('change', async () => {
-      try {
-        const classes = await Classes.find({ instructorId });
-        sendEvent({ type: "update", classes });
-      } catch(err) {
-        console.error("Error fetching updated classes for broadcast:", err);
-        sendEvent({ type: "error", message: "Failed to fetch updated data" });
-      }
+      await sendAllTicketClasses();
     });
 
     changeStream.on('error', (error: any) => {
-      console.error("Change stream error:", error);
       sendEvent({ type: "error", message: "Database change stream error" });
     });
-
   } catch (error) {
-    console.error("Failed to setup change stream:", error);
     sendEvent({ type: "error", message: "Failed to setup real-time updates" });
   }
 
@@ -85,7 +81,7 @@ export async function GET(req: NextRequest) {
     }
     writer.close().catch(() => {});
   });
-  
+
   return new Response(stream.readable, {
     headers: {
       'Content-Type': 'text/event-stream',
