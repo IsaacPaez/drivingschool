@@ -465,6 +465,8 @@ export default function BookNowPage() {
     dropoffLocation?: string
   } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'instructor'>('online');
+  // Nuevo: Estado para loading de pago online
+  const [isOnlinePaymentLoading, setIsOnlinePaymentLoading] = useState(false);
 
   // Modal de reserva con confirmación
   const renderBookingModal = () => (
@@ -541,6 +543,7 @@ export default function BookNowPage() {
           </button>
           <button
             className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+            disabled={isOnlinePaymentLoading}
             onClick={async () => {
               if (!userId) {
                 setShowAuthWarning(true);
@@ -549,7 +552,7 @@ export default function BookNowPage() {
               }
               if (!selectedInstructor?._id || !selectedSlot) return;
               if (paymentMethod === 'online') {
-                // PAGO ONLINE: Redirigir a la pasarela, NO agendar aún
+                setIsOnlinePaymentLoading(true);
                 try {
                   const res = await fetch('/api/payments/driving-test-redirect', {
                     method: 'POST',
@@ -570,16 +573,19 @@ export default function BookNowPage() {
                     const data = await res.json();
                     setIsBookingModalOpen(false);
                     setSelectedSlot(null);
+                    setIsOnlinePaymentLoading(false);
                     if (data.redirectUrl) {
                       window.location.href = data.redirectUrl;
                     } else {
                       alert('No se pudo obtener la URL de pago. Intenta de nuevo.');
                     }
                   } else {
+                    setIsOnlinePaymentLoading(false);
                     const errorData = await res.json();
                     alert(`No se pudo iniciar el pago: ${errorData.error || 'Intenta de nuevo.'}`);
                   }
                 } catch (error) {
+                  setIsOnlinePaymentLoading(false);
                   alert('Error iniciando el pago. Intenta de nuevo.');
                 }
                 return;
@@ -616,7 +622,11 @@ export default function BookNowPage() {
               }
             }}
           >
-            Confirm Booking
+            {isOnlinePaymentLoading ? (
+              <span className="flex items-center gap-2"><span className="animate-spin h-4 w-4 border-2 border-white border-t-blue-500 rounded-full"></span> Preparando pago...</span>
+            ) : (
+              'Confirm Booking'
+            )}
           </button>
         </div>
       </div>
@@ -874,6 +884,14 @@ export default function BookNowPage() {
         onClose={() => setShowLogin(false)}
         onLoginSuccess={() => setShowLogin(false)}
       />
+      {/* Modal de espera de pago online */}
+      <Modal isOpen={isOnlinePaymentLoading} onClose={() => {}}>
+        <div className="p-8 flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+          <h2 className="text-lg font-bold mb-2 text-blue-600 text-center">Please wait...</h2>
+          <p className="text-gray-700 text-center">You are being redirected to the payment gateway.</p>
+        </div>
+      </Modal>
     </section>
   );
 }
