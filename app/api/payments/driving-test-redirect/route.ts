@@ -40,6 +40,27 @@ async function getRedirectUrlFromEC2(payload: any) {
   throw new Error(`No se pudo obtener redirectUrl del EC2 tras 2 intentos. Último error: ${lastError}`);
 }
 
+// Espera a que el backend EC2 esté listo (responda en /health)
+async function waitForBackendReady(url, maxTries = 20, delayMs = 3000, fetchTimeoutMs = 2000) {
+  for (let i = 0; i < maxTries; i++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), fetchTimeoutMs);
+    try {
+      const res = await fetch(url, { method: "GET", signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        return true;
+      }
+    } catch (e) {
+      // Ignora el error, solo espera y reintenta
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+  return false;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Espera a que EC2 esté encendida
@@ -54,7 +75,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Espera a que el backend esté listo
-    // (opcional, puedes agregar healthcheck si lo deseas)
+    const backendReady = await waitForBackendReady(`${EC2_URL}/health`);
+    if (!backendReady) {
+      return NextResponse.json({
+        error: "ec2",
+        message: "La instancia EC2 está encendida pero el backend no responde."
+      }, { status: 500 });
+    }
 
     // 3. Procesa los datos de la reserva
     await connectDB();
