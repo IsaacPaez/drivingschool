@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, ChangeEvent } from 'react';
 import StudentList from '@/components/Students/StudentList';
 import StudentDetails from '@/components/Students/StudentDetails';
 import MailModal from '@/components/Students/MailModal';
@@ -29,6 +29,17 @@ interface Course {
   length: number;
   price: number;
   students?: Student[];
+  classInfo?: {
+    title: string;
+    length: number;
+    price: number;
+  };
+  type?: string;
+  duration?: string;
+  date?: string;
+  hour?: string;
+  cupos?: number;
+  enrolledStudents?: number;
 }
 
 interface ClassResponse {
@@ -54,10 +65,16 @@ interface Note {
   date: string;
 }
 
+// Utility: get date at midnight local
+function toLocalDateOnly(dateStr: string) {
+  const d = new Date(dateStr);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
 const StudentsPage = () => {
   const router = useRouter();
   const { user } = useAuth();
-  const instructorId = (user as any)?.instructorId;
+  const instructorId = user?._id;
   const [courses, setCourses] = useState<Course[]>([]);
   const [classStudents, setClassStudents] = useState<Student[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -76,6 +93,9 @@ const StudentsPage = () => {
   const [mailBody, setMailBody] = useState('');
   const [mailSending, setMailSending] = useState(false);
   const [mailSent, setMailSent] = useState(false);
+  const [filterDate, setFilterDate] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
 
   // Redirección si no hay usuario
   useEffect(() => {
@@ -253,18 +273,96 @@ const StudentsPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1] py-8 px-4 flex flex-col items-center">
         <div className="max-w-2xl w-full mt-32">
           <h1 className="text-3xl font-bold mb-10 text-[#0056b3] text-center">My Classes</h1>
-          <div className="flex flex-col gap-6 items-center">
-            {courses.map(course => (
-              <div
-                key={course._id}
-                className="w-full max-w-xl cursor-pointer p-6 rounded-2xl shadow-2xl border border-[#e0e0e0] bg-white hover:bg-blue-50 transition-all duration-200 text-center"
-                onClick={() => setSelectedCourse(course)}
+          {/* Date filter */}
+          <div className="flex justify-center mb-6 gap-4">
+            <div className="flex flex-col items-start">
+              <label htmlFor="date-from" className="text-sm text-gray-600 mb-1">From</label>
+              <input
+                id="date-from"
+                type="date"
+                className="border border-gray-300 rounded-lg px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                value={filterDateFrom}
+                onChange={e => setFilterDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col items-start">
+              <label htmlFor="date-to" className="text-sm text-gray-600 mb-1">To</label>
+              <input
+                id="date-to"
+                type="date"
+                className="border border-gray-300 rounded-lg px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                value={filterDateTo}
+                onChange={e => setFilterDateTo(e.target.value)}
+              />
+            </div>
+            {(filterDateFrom || filterDateTo) && (
+              <button
+                className="self-end ml-2 px-3 py-2 rounded bg-gray-200 text-gray-600 hover:bg-gray-300"
+                onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); }}
               >
-                <div className="font-bold text-xl text-[#0056b3] mb-2">{course.title}</div>
-                <div className="text-md text-gray-500">{course.length}h - ${course.price}</div>
-              </div>
-            ))}
-            {courses.length === 0 && <div className="text-gray-400">No courses found</div>}
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-8 items-center">
+            {(() => {
+              const filteredCourses = courses.filter(course => {
+                if (!course.date) return false;
+                const courseDateObj = toLocalDateOnly(course.date);
+                let fromOk = true;
+                let toOk = true;
+                if (filterDateFrom) {
+                  const fromDateObj = toLocalDateOnly(filterDateFrom);
+                  fromOk = courseDateObj.getTime() >= fromDateObj.getTime();
+                }
+                if (filterDateTo) {
+                  const toDateObj = toLocalDateOnly(filterDateTo);
+                  toOk = courseDateObj.getTime() <= toDateObj.getTime();
+                }
+                return fromOk && toOk;
+              });
+              return filteredCourses.length > 0 ? (
+                filteredCourses.map(course => (
+                  <div
+                    key={course._id}
+                    className="w-full max-w-xl cursor-pointer p-8 rounded-3xl shadow-2xl border border-[#e0e0e0] bg-white hover:bg-blue-50 transition-all duration-200 text-center"
+                    onClick={() => setSelectedCourse(course)}
+                    style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.10)' }}
+                  >
+                    <div className="font-extrabold text-xl text-[#0056b3] mb-2">
+                      {course.classInfo?.title || course.title || 'No title'}
+                    </div>
+                    <div className="flex justify-center gap-4 mb-2">
+                      <span className="px-3 py-1 rounded-full bg-[#eafaf1] text-[#27ae60] font-bold text-sm">
+                        {course.type ? course.type.toUpperCase() : ''}
+                      </span>
+                      <span className="px-3 py-1 rounded-full bg-[#e3f6fc] text-[#0056b3] font-bold text-sm">
+                        {course.classInfo?.length ? `${course.classInfo.length}h` : course.duration ? course.duration : ''}
+                      </span>
+                      <span className="px-3 py-1 rounded-full bg-[#ede7f6] text-[#7c3aed] font-bold text-sm">
+                        {course.classInfo?.price !== undefined ? `$${course.classInfo.price}` : course.price !== undefined ? `$${course.price}` : ''}
+                      </span>
+                    </div>
+                    <div className="flex justify-center gap-4 mb-2">
+                      {course.date && (
+                        <span className="text-sm text-gray-500">Date: <b>{new Date(course.date).toLocaleDateString()}</b></span>
+                      )}
+                      {course.hour && (
+                        <span className="text-sm text-gray-500">Time: <b>{course.hour}</b></span>
+                      )}
+                      {course.cupos !== undefined && (
+                        <span className="text-sm text-gray-500">Spots: <b>{course.cupos}</b></span>
+                      )}
+                    </div>
+                    <div className="flex justify-center gap-4 mb-2">
+                      <span className="text-sm text-[#0056b3] font-semibold">Students: {Array.isArray(course.students) ? course.students.length : (course.enrolledStudents ?? 0)}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-gray-400">No courses found</div>
+              );
+            })()}
           </div>
         </div>
       </div>

@@ -38,7 +38,7 @@ export default function TeachersPage() {
       const data = JSON.parse(event.data);
       if (data.type === 'initial' || data.type === 'update') {
         setRawSchedule(data.schedule || []);
-        console.log('SSE schedule recibido:', data.schedule);
+        //console.log('SSE schedule recibido:', data.schedule);
         if (loading) setLoading(false);
       } else if (data.type === 'error') {
         console.error('SSE Error:', data.message);
