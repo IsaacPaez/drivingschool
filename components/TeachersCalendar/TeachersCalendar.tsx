@@ -1,6 +1,6 @@
 import React from 'react';
 import CalendarView from './CalendarView';
-import type { Class } from './CalendarView';
+import type { Class } from './types';
 
 const TeachersCalendar: React.FC<{ schedule?: Class[] }> = ({ schedule = [] }) => {
   // Placeholder for real-time sync and double booking logic
