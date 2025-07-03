@@ -38,14 +38,15 @@ export async function GET(req: NextRequest) {
     const ticketClassesWithInfo = await Promise.all(
       ticketClasses.map(async (tc: any) => {
         const classInfo = await Classes.findById(tc.classId).lean();
+        const classInfoObj = Array.isArray(classInfo) ? null : classInfo;
         return {
           ...tc,
-          classInfo: classInfo ? {
-            _id: classInfo._id,
-            title: classInfo.title,
-            overview: classInfo.overview,
-            length: classInfo.length,
-            price: classInfo.price
+          classInfo: classInfoObj ? {
+            _id: classInfoObj._id,
+            title: classInfoObj.title,
+            overview: classInfoObj.overview,
+            length: classInfoObj.length,
+            price: classInfoObj.price
           } : null
         };
       })
