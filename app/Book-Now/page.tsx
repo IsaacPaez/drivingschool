@@ -260,22 +260,24 @@ export default function BookNowPage() {
     
     return (
       <div className="overflow-x-auto w-full mt-6">
-        <table className="w-full border-collapse border border-gray-300 text-sm">            <thead>
-              <tr className="bg-gray-100 text-center">
-                <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">Time</th>
-                {weekDates.map((date) => (
-                  <th
-                    key={date.toDateString()}
-                    className="border border-gray-300 p-1 text-black min-w-[80px] w-[80px]"
-                  >                    <span className="block font-bold text-black text-xs">
-                      {date.toLocaleDateString("en-US", { weekday: "short" })}
-                    </span>
-                    <span className="block text-black text-xs">
-                      {date.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
+        <table className="w-full border-collapse border border-gray-300 text-sm">
+          <thead>
+            <tr className="bg-gray-100 text-center">
+              <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">Time</th>
+              {weekDates.map((date) => (
+                <th
+                  key={date.toDateString()}
+                  className="border border-gray-300 p-1 text-black min-w-[80px] w-[80px]"
+                >
+                  <span className="block font-bold text-black text-xs">
+                    {date.toLocaleDateString("en-US", { weekday: "short" })}
+                  </span>
+                  <span className="block text-black text-xs">
+                    {date.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -546,7 +548,43 @@ export default function BookNowPage() {
                 return;
               }
               if (!selectedInstructor?._id || !selectedSlot) return;
-              
+              if (paymentMethod === 'online') {
+                // PAGO ONLINE: Redirigir a la pasarela, NO agendar aún
+                try {
+                  const res = await fetch('/api/payments/driving-test-redirect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId,
+                      instructorId: selectedInstructor._id,
+                      date: selectedSlot.date,
+                      start: selectedSlot.start,
+                      end: selectedSlot.end,
+                      classType: 'driving test',
+                      amount: selectedSlot.amount || 100,
+                      pickupLocation: selectedSlot.pickupLocation || "",
+                      dropoffLocation: selectedSlot.dropoffLocation || ""
+                    }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    setIsBookingModalOpen(false);
+                    setSelectedSlot(null);
+                    if (data.redirectUrl) {
+                      window.location.href = data.redirectUrl;
+                    } else {
+                      alert('No se pudo obtener la URL de pago. Intenta de nuevo.');
+                    }
+                  } else {
+                    const errorData = await res.json();
+                    alert(`No se pudo iniciar el pago: ${errorData.error || 'Intenta de nuevo.'}`);
+                  }
+                } catch (error) {
+                  alert('Error iniciando el pago. Intenta de nuevo.');
+                }
+                return;
+              }
+              // PAGO DIRECTO AL INSTRUCTOR: Agendar de inmediato
               try {
                 const res = await fetch('/api/booking', {
                   method: 'POST',
@@ -564,15 +602,10 @@ export default function BookNowPage() {
                     dropoffLocation: selectedSlot.dropoffLocation || ""
                   }),
                 });
-                
                 if (res.ok) {
                   setIsBookingModalOpen(false);
                   setSelectedSlot(null);
-                  if (paymentMethod === 'online') {
-                    setConfirmationMessage('Driving test appointment booked successfully! Redirecting to payment...');
-                  } else {
-                    setConfirmationMessage('Driving test appointment booked successfully! Please pay the instructor directly.');
-                  }
+                  setConfirmationMessage('Driving test appointment booked successfully! Please pay the instructor directly.');
                   setShowConfirmation(true);
                 } else {
                   const errorData = await res.json();

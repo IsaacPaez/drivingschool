@@ -32,7 +32,7 @@ interface SSEData {
   message?: string;
 }
 
-export const useRegisterOnlineSSE = (instructorId: string | null, classType: string = 'ALL') => {
+export default function useRegisterOnlineSSE(instructorId: string | null, classType: string = 'ALL') {
   const [ticketClasses, setTicketClasses] = useState<TicketClass[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +120,3 @@ export const useRegisterOnlineSSE = (instructorId: string | null, classType: str
     disconnect
   };
 }
-
-// Add this for backward compatibility with default import
-export default useRegisterOnlineSSE;
