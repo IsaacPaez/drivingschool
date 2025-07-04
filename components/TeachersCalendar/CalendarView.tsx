@@ -102,14 +102,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
   // Leyenda de colores para tipos de clase
   function renderClassTypeLegend() {
     return (
-      <div className="flex flex-col gap-2 mb-4">
-        <div className="font-bold text-[#0056b3] text-md mb-1">Class Types</div>
-        <div className="flex flex-row gap-6 items-center">
-          <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#27ae60]"></span><span className="text-[#27ae60] font-bold">D.A.T.E.</span></span>
-          <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#0056b3]"></span><span className="text-[#0056b3] font-bold">A.D.I.</span></span>
-          <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#7c3aed]"></span><span className="text-[#7c3aed] font-bold">B.D.I.</span></span>
-          <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#f39c12]"></span><span className="text-[#f39c12] font-bold">Driving Test</span></span>
-        </div>
+      <div className="w-full flex flex-col items-start justify-center gap-y-2 mt-2 mb-0 text-base font-bold tracking-wide">
+        <span className="flex flex-row items-center gap-x-2">
+          <span className="w-3 h-3 rounded-full bg-[#27ae60]"></span>
+          <span className="text-[#27ae60]">D.A.T.E.</span>
+        </span>
+        <span className="flex flex-row items-center gap-x-2">
+          <span className="w-3 h-3 rounded-full bg-[#0056b3]"></span>
+          <span className="text-[#0056b3]">A.D.I.</span>
+        </span>
+        <span className="flex flex-row items-center gap-x-2">
+          <span className="w-3 h-3 rounded-full bg-[#7c3aed]"></span>
+          <span className="text-[#7c3aed]">B.D.I.</span>
+        </span>
+        <span className="flex flex-row items-center gap-x-2">
+          <span className="w-3 h-3 rounded-full bg-[#f39c12]"></span>
+          <span className="text-[#f39c12]">Driving Test</span>
+        </span>
       </div>
     );
   }
@@ -158,7 +167,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
       return;
     }
     // Para D.A.T.E., A.D.I., B.D.I. permite abrir el modal en cualquier status
-    if (block.classType === 'D.A.T.E.' || block.classType === 'A.D.I.' || block.classType === 'B.D.I.') {
+    const normalizedType = normalizeType(block.classType ?? '');
+    if (['D.A.T.E.', 'A.D.I.', 'B.D.I.'].includes(normalizedType)) {
       setSelectedBlock(block);
       setModalOpen(true);
       setStudentInfo(null); // No mostrar info de un solo estudiante
@@ -377,21 +387,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                                 }
                               }
                               grouped.push({ ...curr });
-                              return grouped.map((g, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`rounded-xl px-2 py-1 text-xs font-bold shadow transition-all mb-1 flex items-center gap-1
-                                    ${g.status === 'scheduled' ? 'bg-[#0056b3] text-white hover:bg-[#27ae60] cursor-pointer border-2 border-[#27ae60]' : ''}
-                                    ${g.status === 'cancelled' ? 'bg-[#f44336] text-white border-2 border-[#f44336]/60' : ''}
-                                    ${g.status === 'available' ? 'bg-[#eafaf1] text-[#0056b3] border-2 border-[#b2f2d7]' : ''}
-                                  `}
-                                  title={`${g.status.charAt(0).toUpperCase() + g.status.slice(1)} ${g.start} - ${g.end}`}
-                                  {...(g.status === 'scheduled' ? { onClick: () => handleTimeBlockClick({ ...dayClasses.find(c => c.status === 'scheduled' && c.start === g.start && c.end === g.end)! }) } : {})}
-                                >
-                                  <span className="capitalize">{dayClasses.find(c => c.status === g.status && c.start === g.start && c.end === g.end)?.classType ? `${dayClasses.find(c => c.status === g.status && c.start === g.start && c.end === g.end)?.classType} - ` : ''}{g.status}</span>
-                                  <span className="ml-1 font-normal">{g.start} - {g.end}</span>
-                                </div>
-                              ));
+                              return grouped.map((g, idx) => {
+                                const block = dayClasses.find(c => c.status === g.status && c.start === g.start && c.end === g.end);
+                                const type = block?.classType;
+                                const normalizedType = normalizeType(type ?? '');
+                                const blockBg = blockBgColors[normalizedType] || '#fff';
+                                const blockBorder = blockBorderColors[normalizedType] || '#e0e0e0';
+                                const badgeColor = statusDotColors[(block?.status ?? '') as string] || 'bg-gray-400';
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="rounded-xl px-2 py-1 text-xs font-bold shadow transition-all mb-1 flex items-center gap-1"
+                                    style={{ background: blockBg, border: `2px solid ${blockBorder}` }}
+                                    title={`${block?.status?.charAt(0).toUpperCase() + block?.status?.slice(1)} ${g.start} - ${g.end}`}
+                                    onClick={block && block.status === 'scheduled' ? () => handleTimeBlockClick(block) : undefined}
+                                  >
+                                    <span className={`inline-block w-3 h-3 rounded-full ${badgeColor}`}></span>
+                                    <span className="capitalize">{block?.classType ?? ''} - {block?.status ?? ''}</span>
+                                    <span className="ml-1 font-normal">{g.start} - {g.end}</span>
+                                  </div>
+                                );
+                              });
                             })()}
                           </div>
                         </div>
@@ -450,20 +466,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
         {Object.entries(grouped).map(([date, dayBlocks]) => (
           <div key={date} className="bg-white rounded-xl shadow p-3">
             <div className="font-bold text-[#0056b3] text-lg mb-2">{date}</div>
-            {dayBlocks.sort((a, b) => (a.start || '').localeCompare(b.start || '')).map((b) => (
-              <div
-                key={b.id}
-                className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
-                  ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
-                  ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-                  ${b.status === 'available' ? 'bg-gray-200 text-gray-700' : ''}
-                `}
-                onClick={() => handleTimeBlockClick(b)}
-              >
-                <span className="font-mono">{b.start}-{b.end}</span>
-                <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
-              </div>
-            ))}
+            {dayBlocks.sort((a, b) => (a.start || '').localeCompare(b.start || '')).map((b) => {
+              const normalizedType = normalizeType(b.classType ?? '');
+              const blockBg = blockBgColors[normalizedType] || '#fff';
+              const blockBorder = blockBorderColors[normalizedType] || '#e0e0e0';
+              const badgeColor = statusDotColors[(b.status ?? '') as string] || 'bg-gray-400';
+              return (
+                <div
+                  key={b.id}
+                  className="p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all"
+                  style={{ background: blockBg, border: `2px solid ${blockBorder}` }}
+                  onClick={() => handleTimeBlockClick(b)}
+                >
+                  <span className={`inline-block w-3 h-3 rounded-full ${badgeColor}`}></span>
+                  <span className="font-mono">{b.start}-{b.end}</span>
+                  <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -546,20 +566,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
             <div key={day.toISOString()} className={`bg-white rounded-xl shadow p-3 ${day.toDateString() === new Date().toDateString() ? 'border-2 border-[#27ae60]' : ''}`}>
               <div className={`font-bold text-[#0056b3] text-md mb-2 text-center ${day.toDateString() === new Date().toDateString() ? 'text-[#27ae60]' : ''}`}>{day.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
               {dayClasses.length === 0 && <div className="text-gray-400 text-center">No classes</div>}
-              {dayClasses.map((b) => (
-                <div
-                  key={b.id}
-                  className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
-                    ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
-                    ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-                    ${b.status === 'available' ? 'bg-gray-200 text-gray-700' : ''}
-                  `}
-                  onClick={() => handleTimeBlockClick(b)}
-                >
-                  <span className="font-mono">{b.start}-{b.end}</span>
-                  <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
-                </div>
-              ))}
+              {dayClasses.map((b) => {
+                const normalizedType = normalizeType(b.classType ?? '');
+                const blockBg = blockBgColors[normalizedType] || '#fff';
+                const blockBorder = blockBorderColors[normalizedType] || '#e0e0e0';
+                const badgeColor = statusDotColors[(b.status ?? '') as string] || 'bg-gray-400';
+                return (
+                  <div
+                    key={b.id}
+                    className="p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all"
+                    style={{ background: blockBg, border: `2px solid ${blockBorder}` }}
+                    onClick={() => handleTimeBlockClick(b)}
+                  >
+                    <span className={`inline-block w-3 h-3 rounded-full ${badgeColor}`}></span>
+                    <span className="font-mono">{b.start}-{b.end}</span>
+                    <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
@@ -577,20 +601,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
     return (
       <div className="bg-white rounded-xl shadow p-3 mb-4">
         {dayClasses.length === 0 && <div className="text-gray-400 text-center">No classes</div>}
-        {dayClasses.map((b) => (
-          <div
-            key={b.id}
-            className={`p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all
-              ${b.status === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
-              ${b.status === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-              ${b.status === 'available' ? 'bg-gray-200 text-gray-700' : ''}
-            `}
-            onClick={() => handleTimeBlockClick(b)}
-          >
-            <span className="font-mono">{b.start}-{b.end}</span>
-            <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
-          </div>
-        ))}
+        {dayClasses.map((b) => {
+          const normalizedType = normalizeType(b.classType ?? '');
+          const blockBg = blockBgColors[normalizedType] || '#fff';
+          const blockBorder = blockBorderColors[normalizedType] || '#e0e0e0';
+          const badgeColor = statusDotColors[(b.status ?? '') as string] || 'bg-gray-400';
+          return (
+            <div
+              key={b.id}
+              className="p-2 mb-1 rounded flex items-center gap-2 text-sm font-semibold cursor-pointer transition-all"
+              style={{ background: blockBg, border: `2px solid ${blockBorder}` }}
+              onClick={() => handleTimeBlockClick(b)}
+            >
+              <span className={`inline-block w-3 h-3 rounded-full ${badgeColor}`}></span>
+              <span className="font-mono">{b.start}-{b.end}</span>
+              <span className="ml-2 capitalize">{b.classType ? `${b.classType} - ` : ''}{b.status}</span>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -657,20 +685,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                       let slots = (endHour - startHour) * 2 + (endMin - startMin) / 30;
                       if (slots < 1) slots = 1;
                       // Normalizar el tipo de clase para buscar el color
-                      const normalizedType = (classBlock.classType || '').toUpperCase().replace(/\s+/g, ' ').trim();
+                      const normalizedType = normalizeType(classBlock.classType ?? '');
                       const blockBg = blockBgColors[normalizedType] || '#fff';
                       const blockBorder = blockBorderColors[normalizedType] || '#e0e0e0';
                       const typeText = classTypeColors[normalizedType] || '';
-                      const badgeColor = statusDotColors[classBlock.status] || 'bg-gray-400';
+                      const badgeColor = statusDotColors[(classBlock.status ?? '') as string] || 'bg-gray-400';
                       return (
                         <td
                           key={colIdx}
                           rowSpan={slots}
                           className={`align-middle w-20 md:w-32`}
-                          data-block-bg
-                          style={{ position: 'relative', padding: 0, cursor: (classBlock.classType === 'D.A.T.E.' || classBlock.classType === 'A.D.I.' || classBlock.classType === 'B.D.I.' || classBlock.status === 'scheduled') ? 'pointer' : 'default', height: `${22 * slots}px`, minHeight: `${22 * slots}px`, minWidth: 60, maxWidth: 60, 
-                            '--block-bg': blockBg, '--block-border': blockBorder } as React.CSSProperties}
-                          onClick={() => ((classBlock.classType === 'D.A.T.E.' || classBlock.classType === 'A.D.I.' || classBlock.classType === 'B.D.I.') ? handleTimeBlockClick(classBlock) : (classBlock.status === 'scheduled' && handleTimeBlockClick(classBlock)))}
+                          style={{
+                            position: 'relative',
+                            padding: 0,
+                            cursor: (['D.A.T.E.', 'A.D.I.', 'B.D.I.'].includes(normalizedType) || classBlock.status === 'scheduled') ? 'pointer' : 'default',
+                            height: `${22 * slots}px`,
+                            minHeight: `${22 * slots}px`,
+                            minWidth: 60,
+                            maxWidth: 60,
+                            background: blockBg,
+                            border: `2px solid ${blockBorder}`
+                          }}
+                          onClick={() => (['D.A.T.E.', 'A.D.I.', 'B.D.I.'].includes(normalizedType) || classBlock.status === 'scheduled') ? handleTimeBlockClick(classBlock) : undefined}
                         >
                           <div className={`flex flex-col items-center justify-center w-full font-bold gap-1`} 
                             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, fontSize: '0.95rem', borderRadius: 12, boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }}>
@@ -748,8 +784,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
         // 4. Students
         if(ticketClass.students && Array.isArray(ticketClass.students)) {
           const students = await Promise.all(ticketClass.students.map(async (s: any) => {
-            if (!s.studentId) return null;
-            const res = await fetch(`/api/users?id=${s.studentId}`);
+            let id = '';
+            if (typeof s === 'string') id = s;
+            else if (typeof s === 'object' && s.studentId) id = s.studentId;
+            else return null;
+            const res = await fetch(`/api/users?id=${id}`);
             const user = await res.json();
             return user && !user.error ? user : null;
           }));
@@ -832,9 +871,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
           <aside className="hidden lg:flex flex-col w-full lg:w-80 bg-gradient-to-br from-[#e3f6fc] via-[#eafaf1] to-[#d4f1f4] border-r-4 border-[#0056b3] rounded-2xl shadow-2xl p-6 h-[95%] min-h-[600px] relative overflow-hidden" style={{ height: '95vh' }}>
           <h2 className="text-lg font-bold text-[#0056b3] mb-4">Class Summary</h2>
           <div className="flex gap-2 mb-4">
-            <button onClick={() => setClassFilter('scheduled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='scheduled' ? 'bg-[#0056b3] text-white' : 'bg-white text-[#0056b3] border-[#0056b3]'}`}>Scheduled</button>
-            <button onClick={() => setClassFilter('cancelled')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='cancelled' ? 'bg-[#f44336] text-white' : 'bg-white text-[#f44336] border-[#f44336]'}`}>Cancelled</button>
-            <button onClick={() => setClassFilter('available')} className={`px-3 py-1 rounded font-semibold border ${classFilter==='available' ? 'bg-gray-400 text-white' : 'bg-white text-gray-400 border-gray-400'}`}>Available</button>
+            <button onClick={() => setClassFilter('scheduled')} className={`px-3 py-1 rounded font-semibold border text-sm ${classFilter==='scheduled' ? 'bg-[#0056b3] text-white' : 'bg-white text-[#0056b3] border-[#0056b3]'}`}>Scheduled</button>
+            <button onClick={() => setClassFilter('cancelled')} className={`px-3 py-1 rounded font-semibold border text-sm ${classFilter==='cancelled' ? 'bg-[#f44336] text-white' : 'bg-white text-[#f44336] border-[#f44336]'}`}>Cancelled</button>
+            <button onClick={() => setClassFilter('available')} className={`px-3 py-1 rounded font-semibold border text-sm ${classFilter==='available' ? 'bg-gray-400 text-white' : 'bg-white text-gray-400 border-gray-400'}`}>Available</button>
           </div>
           <div className="font-bold mb-1" style={{ color: classFilter === 'scheduled' ? '#0056b3' : classFilter === 'cancelled' ? '#f44336' : '#888' }}>
             {classFilter.charAt(0).toUpperCase() + classFilter.slice(1)}
@@ -888,14 +927,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                     ranges.push({ start: rangeStart, end: rangeEnd });
                     return (
                       <li key={date} className="mb-2 animate-fade-in">
-                        <span className="font-bold text-[#0056b3] bg-gradient-to-r from-[#e3f6fc] to-[#d4f1f4] px-2 py-1 rounded shadow-sm mr-2 transition-all duration-300 block mb-1">{date}</span>
+                        <span className="font-bold text-[#27ae60] bg-[#eafaf1] px-2 py-1 rounded shadow-sm mr-2 block mb-1" style={{fontWeight: 700}}>{date}</span>
                         <div className="flex flex-col gap-1 ml-2">
                           {ranges.map((r, idx) => (
-                            <span key={idx} className={`inline-block rounded px-2 py-1 shadow-md font-semibold transition-all duration-300 w-fit
+                            <span key={idx} className={`inline-block rounded px-3 py-1 mb-1 shadow font-semibold w-full transition-all duration-300
+                              ${classFilter === 'available' ? 'bg-[#eafaf1] text-[#27ae60] border border-[#27ae60]' : ''}
                               ${classFilter === 'scheduled' ? 'bg-[#0056b3] text-white' : ''}
                               ${classFilter === 'cancelled' ? 'bg-[#f44336] text-white' : ''}
-                              ${classFilter === 'available' ? 'bg-white text-[#27ae60] border border-[#27ae60]' : ''}
-                            `}>
+                            `} style={{marginBottom: 4}}>
                               {r.start}-{r.end}
                             </span>
                           ))}
@@ -939,7 +978,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                 </div>
               )}
               {/* D.A.T.E., A.D.I., B.D.I. - Info avanzada */}
-              {(selectedBlock.classType === 'D.A.T.E.' || selectedBlock.classType === 'A.D.I.' || selectedBlock.classType === 'B.D.I.') && (
+              {['D.A.T.E.', 'A.D.I.', 'B.D.I.'].includes(normalizeType(selectedBlock.classType ?? '')) && (
                 <div className="rounded-xl border border-[#0056b3] bg-[#e3f6fc] p-3 mt-2 space-y-2 animate-fade-in">
                   {loadingExtra ? (
                     <div className="flex items-center gap-2 text-[#0056b3] font-bold"><LoadingSpinner /> Loading class details...</div>
@@ -967,23 +1006,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                   )}
                 </div>
               )}
-              {selectedBlock.studentId ? (
-                <div className="pt-2 border-t border-gray-200">
-                  <span className="font-semibold text-[#0056b3]">Student:</span>
-                  {studentInfo ? (
-                    <span className="ml-2 text-gray-900 font-bold">{studentInfo.firstName} {studentInfo.lastName}</span>
-                  ) : (
-                    <LoadingSpinner />
-                  )}
-                  {studentInfo && (
-                    <div className="flex items-center gap-2 mt-1 ml-2 text-gray-600 text-sm">
-                      <svg className="w-4 h-4 text-[#27ae60]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 12H8m8 0a4 4 0 11-8 0 4 4 0 018 0zm0 0v1a4 4 0 01-8 0v-1" /></svg>
-                      <span>{studentInfo.email}</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="pt-2 border-t border-gray-200 text-gray-400"><span className="font-semibold">Student:</span> Not assigned</div>
+              {!['D.A.T.E.', 'A.D.I.', 'B.D.I.'].includes(normalizeType(selectedBlock.classType ?? '')) && (
+                selectedBlock.studentId ? (
+                  <div className="pt-2 border-t border-gray-200">
+                    <span className="font-semibold text-[#0056b3]">Student:</span>
+                    {studentInfo ? (
+                      <span className="ml-2 text-gray-900 font-bold">{studentInfo.firstName} {studentInfo.lastName}</span>
+                    ) : (
+                      <LoadingSpinner />
+                    )}
+                    {studentInfo && (
+                      <div className="flex items-center gap-2 mt-1 ml-2 text-gray-600 text-sm">
+                        <svg className="w-4 h-4 text-[#27ae60]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 12H8m8 0a4 4 0 11-8 0 4 4 0 018 0zm0 0v1a4 4 0 01-8 0v-1" /></svg>
+                        <span>{studentInfo.email}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="pt-2 border-t border-gray-200 text-gray-400"><span className="font-semibold">Student:</span> Not assigned</div>
+                )
               )}
             </div>
           )}
@@ -1013,5 +1054,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
     </div>
   );
 };
+
+function normalizeType(type: string) {
+  if (!type) return '';
+  const t = type.toUpperCase().replace(/\s+/g, '').replace(/\./g, '');
+  if (t.includes('DATE')) return 'D.A.T.E.';
+  if (t.includes('ADI')) return 'A.D.I.';
+  if (t.includes('BDI')) return 'B.D.I.';
+  if (t.includes('DRIVINGTEST')) return 'driving test';
+  return type;
+}
 
 export default CalendarView; 
