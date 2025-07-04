@@ -28,10 +28,10 @@ export default function TeachersPage() {
       console.log('No instructorId, no se abre SSE');
       return;
     }
-    console.log('Abriendo SSE para instructorId:', instructorId);
+    //console.log('Abriendo SSE para instructorId:', instructorId);
     const eventSource = new EventSource(`/api/teachers/schedule-updates?id=${instructorId}`);
     eventSource.onopen = () => {
-      console.log('SSE conexión abierta');
+      //console.log('SSE conexión abierta');
     };
     eventSource.onmessage = (event) => {
       //console.log('SSE mensaje recibido:', event.data);
@@ -51,7 +51,7 @@ export default function TeachersPage() {
       eventSource.close();
     };
     return () => {
-      console.log('Cerrando SSE');
+      //console.log('Cerrando SSE');
       eventSource.close();
     };
   }, [instructorId, loading]);

@@ -399,7 +399,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes: initialClasses, on
                                     key={idx}
                                     className="rounded-xl px-2 py-1 text-xs font-bold shadow transition-all mb-1 flex items-center gap-1"
                                     style={{ background: blockBg, border: `2px solid ${blockBorder}` }}
-                                    title={`${block?.status?.charAt(0).toUpperCase() + block?.status?.slice(1)} ${g.start} - ${g.end}`}
+                                    title={`${block?.status ? block.status.charAt(0).toUpperCase() + block.status.slice(1) : ''} ${g.start} - ${g.end}`}
                                     onClick={block && block.status === 'scheduled' ? () => handleTimeBlockClick(block) : undefined}
                                   >
                                     <span className={`inline-block w-3 h-3 rounded-full ${badgeColor}`}></span>
