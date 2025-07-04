@@ -34,13 +34,13 @@ export default function TeachersPage() {
       console.log('SSE conexión abierta');
     };
     eventSource.onmessage = (event) => {
-      console.log('SSE mensaje recibido:', event.data);
+      //console.log('SSE mensaje recibido:', event.data);
       const data = JSON.parse(event.data);
       if (data.type === 'initial' || data.type === 'update') {
         setRawSchedule(data.schedule || []);
         //console.log('SSE schedule recibido:', data.schedule);
         if (loading) setLoading(false);
-      } else if (data.type === 'error') {
+      } else if (data.type === 'error') { 
         console.error('SSE Error:', data.message);
         if (loading) setLoading(false);
       }
@@ -57,6 +57,7 @@ export default function TeachersPage() {
   }, [instructorId, loading]);
 
   // Forzar color de fondo en los <td> de la tabla de clases de instructor
+  /*
   useEffect(() => {
     const style = document.createElement('style');
     style.innerHTML = `
@@ -68,6 +69,7 @@ export default function TeachersPage() {
     document.head.appendChild(style);
     return () => { document.head.removeChild(style); };
   }, []);
+  */
 
   if (user === null) {
     return null;

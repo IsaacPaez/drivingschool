@@ -54,13 +54,13 @@ export async function GET(req: NextRequest) {
     const fullSchedule = instructor.get('schedule', { lean: true }) || [];
     const drivingTestSchedule = fullSchedule.filter((slot: any) => slot.classType === "driving test");
     
-    console.log(`📊 Instructor ${instructorId}: ${fullSchedule.length} total slots, ${drivingTestSchedule.length} driving test slots`);
+    //console.log(`📊 Instructor ${instructorId}: ${fullSchedule.length} total slots, ${drivingTestSchedule.length} driving test slots`);
     
     if (drivingTestSchedule.length > 0) {
-      console.log(`✅ Found ${drivingTestSchedule.length} driving test slots for instructor ${instructorId}`);
-      console.log("📅 Sample slots:", drivingTestSchedule.slice(0, 3).map(s => ({ date: s.date, start: s.start, end: s.end, status: s.status })));
+      //console.log(`✅ Found ${drivingTestSchedule.length} driving test slots for instructor ${instructorId}`);
+      //console.log("📅 Sample slots:", drivingTestSchedule.slice(0, 3).map(s => ({ date: s.date, start: s.start, end: s.end, status: s.status })));
     } else {
-      console.log(`⚠️ No driving test slots found for instructor ${instructorId}`);
+      //console.log(`⚠️ No driving test slots found for instructor ${instructorId}`);
     }
     sendEvent({ type: "initial", schedule: drivingTestSchedule });
   } catch (error) {

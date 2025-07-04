@@ -31,11 +31,8 @@ const TicketClassSchema = new Schema<ITicketClass>(
     instructorId: { type: mongoose.Schema.Types.ObjectId, ref: "Instructor", required: true },
     students: [
       {
-        studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-        reason: { type: String },
-        citation_number: { type: String },
-        citation_ticket: { type: String },
-        course_country: { type: String },
+        type: mongoose.Schema.Types.Mixed,
+        required: false
       }
     ],
     cupos: { type: Number, required: true },

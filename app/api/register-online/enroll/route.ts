@@ -26,9 +26,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Ticket class not found' }, { status: 404 });
     }
 
-    // Check if user is already enrolled
+    // Check if user is already enrolled (soporta ambos formatos)
     const isAlreadyEnrolled = ticketClass.students.some(
-      (student: any) => student.studentId === userId || student.studentId?.toString() === userId
+      (student: any) => {
+        if (!student) return false;
+        // Si es formato antiguo (ObjectId directo)
+        if (typeof student === 'string' || student instanceof mongoose.Types.ObjectId) {
+          return student.toString() === userId;
+        }
+        // Formato nuevo
+        return student.studentId === userId || student.studentId?.toString() === userId;
+      }
     );
 
     if (isAlreadyEnrolled) {
@@ -43,15 +51,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No available spots in this class' }, { status: 400 });
     }
 
-    // Add user to students array
-    ticketClass.students.push({
-      studentId: userId,
-      enrolledAt: new Date()
-    });
+    // Agrega solo el ObjectId del usuario al array students
+    ticketClass.students.push(new mongoose.Types.ObjectId(userId));
 
     await ticketClass.save();
 
-    console.log(`✅ User ${userId} successfully enrolled in ticket class ${ticketClassId}`);
+    //console.log(`✅ User ${userId} successfully enrolled in ticket class ${ticketClassId}`);
 
     return NextResponse.json({ 
       message: 'Successfully enrolled in class',

@@ -251,7 +251,7 @@ export default function RegisterOnlinePage() {
       <div className="overflow-x-auto w-full mt-6">
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
-            <tr className="bg-gray-100 text-center">
+            <tr className="bg-white text-center">
               <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">Time</th>
               {weekDates.map((date) => (
                 <th
@@ -283,10 +283,10 @@ export default function RegisterOnlinePage() {
                   // Find classes for this date
                   const classesForDate = ticketClasses.filter(tc => {
                     if (!tc.date) return false;
-                    const tcDate = new Date(tc.date);
-                    return tcDate.getFullYear() === date.getFullYear() &&
-                           tcDate.getMonth() === date.getMonth() &&
-                           tcDate.getDate() === date.getDate();
+                    // Fuerza coincidencia exacta por string YYYY-MM-DD
+                    const tcDateString = tc.date.length >= 10 ? tc.date.slice(0, 10) : '';
+                    const calendarDateString = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    return tcDateString === calendarDateString;
                   });
                   
                   // Find class that overlaps with this time block
@@ -308,10 +308,16 @@ export default function RegisterOnlinePage() {
                       
                       // Check if current user is enrolled in this class
                       const isUserEnrolled = overlappingClass.students.some(
-                        (student: any) => student.studentId === userId
+                        (student: any) =>
+                          (typeof student === 'string' || typeof student === 'object' && student.toString && !student.studentId)
+                            ? student.toString() === userId
+                            : student.studentId === userId || student.studentId?.toString() === userId
                       );
                       
                       // User is enrolled - show blue slot with unbook option
+                      const enrolledCount = Array.isArray(overlappingClass.students)
+                        ? overlappingClass.students.length
+                        : 0;
                       if (isUserEnrolled) {
                         return (
                           <td
@@ -334,7 +340,7 @@ export default function RegisterOnlinePage() {
                               {overlappingClass.hour}-{overlappingClass.endHour}
                             </div>
                             <div className="text-xs">
-                              {overlappingClass.enrolledStudents}/{overlappingClass.totalSpots}
+                              {enrolledCount}/{overlappingClass.totalSpots}
                             </div>
                           </td>
                         );
@@ -366,7 +372,7 @@ export default function RegisterOnlinePage() {
                               {overlappingClass.hour}-{overlappingClass.endHour}
                             </div>
                             <div className="text-xs text-black">
-                              {overlappingClass.enrolledStudents}/{overlappingClass.totalSpots}
+                              {enrolledCount}/{overlappingClass.totalSpots}
                             </div>
                           </td>
                         );
@@ -386,10 +392,7 @@ export default function RegisterOnlinePage() {
                             {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
                           </div>
                           <div className="text-xs text-black">
-                            {overlappingClass.hour}-{overlappingClass.endHour}
-                          </div>
-                          <div className="text-xs text-black">
-                            {overlappingClass.enrolledStudents}/{overlappingClass.totalSpots}
+                            {enrolledCount}/{overlappingClass.totalSpots}
                           </div>
                         </td>
                       );
@@ -402,7 +405,7 @@ export default function RegisterOnlinePage() {
                     return (
                       <td
                         key={date.toDateString()}
-                        className="border border-gray-300 py-1 bg-gray-300 text-black min-w-[80px] w-[80px]"
+                        className="border border-gray-300 py-1 bg-white text-black min-w-[80px] w-[80px]"
                       >
                         -
                       </td>

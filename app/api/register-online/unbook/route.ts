@@ -24,21 +24,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if the user is enrolled
+    // Check if the user is enrolled (soporta ambos formatos)
     const isEnrolled = ticketClass.students.some(
-      (student: any) => student.studentId.toString() === userId
+      (student: any) =>
+        (typeof student === 'string' || typeof student === 'object' && student.toString && !student.studentId)
+          ? student.toString() === userId
+          : student.studentId === userId || student.studentId?.toString() === userId
     );
 
     if (!isEnrolled) {
-      return NextResponse.json(
-        { error: 'User is not enrolled in this class' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'User is not enrolled in this class' }, { status: 400 });
     }
 
-    // Remove the user from the students array
+    // Elimina el usuario del array students, soportando ambos formatos
     ticketClass.students = ticketClass.students.filter(
-      (student: any) => student.studentId.toString() !== userId
+      (student: any) =>
+        (typeof student === 'string' || typeof student === 'object' && student.toString && !student.studentId)
+          ? student.toString() !== userId
+          : student.studentId !== userId && student.studentId?.toString() !== userId
     );
 
     await ticketClass.save();

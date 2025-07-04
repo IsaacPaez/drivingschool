@@ -146,6 +146,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     ticketClassChangeStream.on('change', async () => {
+      console.log('🔔 TicketClass change detected!');
       try {
         const ticketClasses = await fetchTicketClasses();
         sendEvent({ type: "update", ticketClasses });
@@ -161,6 +162,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     instructorChangeStream.on('change', async () => {
+      console.log('🔔 Instructor change detected!');
       try {
         const ticketClasses = await fetchTicketClasses();
         sendEvent({ type: "update", ticketClasses });
@@ -175,6 +177,17 @@ export async function GET(req: NextRequest) {
     sendEvent({ type: "error", message: "Failed to setup real-time updates" });
   }
 
+  // --- Fallback: Emit update every 2 seconds if there are clients connected ---
+  let intervalId: NodeJS.Timeout | null = null;
+  intervalId = setInterval(async () => {
+    try {
+      const ticketClasses = await fetchTicketClasses();
+      sendEvent({ type: "update", ticketClasses });
+    } catch (err) {
+      // Silenciar errores de polling
+    }
+  }, 2000);
+
   // Handle client disconnect
   req.signal.addEventListener('abort', () => {
     if (ticketClassChangeStream) {
@@ -182,6 +195,9 @@ export async function GET(req: NextRequest) {
     }
     if (instructorChangeStream) {
       instructorChangeStream.close();
+    }
+    if (intervalId) {
+      clearInterval(intervalId);
     }
     writer.close().catch((err) => {
       console.warn("Error closing SSE writer:", err);
