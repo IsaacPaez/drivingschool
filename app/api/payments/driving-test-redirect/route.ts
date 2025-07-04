@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Espera a que el backend esté listo
-    const backendReady = await waitForBackendReady(`${EC2_URL}/health`);
+    const backendReady = await waitForBackendReady(`${EC2_URL}/health`, 40, 3000);
     if (!backendReady) {
       return NextResponse.json({
         error: "ec2",

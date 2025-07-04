@@ -73,24 +73,24 @@ export async function GET(request: Request) {
 
     // DEBUG: Let's see what ticket classes exist for this instructor (regardless of type)
     const allTicketClasses = await TicketClass.find({ instructorId: instructorId }).lean();
-    console.log(`🔍 DEBUG: All ticket classes for instructor ${instructorId}:`, allTicketClasses.length);
-    allTicketClasses.forEach(tc => {
-      console.log(`🔍 DEBUG RAW OBJECT:`, tc);
-      console.log(`🔍 DEBUG FIELDS:`, {
-        type: tc.type,
-        date: tc.date,
-        hour: tc.hour,
-        endHour: tc.endHour,
-        duration: tc.duration,
-        allKeys: Object.keys(tc)
-      });
-      console.log(`  - Class: ${tc.type}, Date: ${tc.date}, Hour: ${tc.hour}, EndHour: ${tc.endHour}, Duration: ${tc.duration}`);
-    });
+    // console.log(`🔍 DEBUG: All ticket classes for instructor ${instructorId}:`, allTicketClasses.length);
+    // allTicketClasses.forEach(tc => {
+    //   console.log(`🔍 DEBUG RAW OBJECT:`, tc);
+    //   console.log(`🔍 DEBUG FIELDS:`, {
+    //     type: tc.type,
+    //     date: tc.date,
+    //     hour: tc.hour,
+    //     endHour: tc.endHour,
+    //     duration: tc.duration,
+    //     allKeys: Object.keys(tc)
+    //   });
+    //   console.log(`  - Class: ${tc.type}, Date: ${tc.date}, Hour: ${tc.hour}, EndHour: ${tc.endHour}, Duration: ${tc.duration}`);
+    // });
     
     // Get all the ticket classes for this instructor
     const ticketClasses = await TicketClass.find(query).lean();
     
-    console.log(`📊 API: Found ${ticketClasses.length} ticketclasses`);
+    // console.log(`📊 API: Found ${ticketClasses.length} ticketclasses`);
     
     if (ticketClasses.length === 0) {
       return NextResponse.json([]);
@@ -129,17 +129,6 @@ export async function GET(request: Request) {
         const totalSpots = tc.cupos || 0;
         availableSpots = totalSpots - enrolledStudents;
         
-        // DEBUG: Check the endHour field specifically
-        console.log(`🔍 DEBUG TICKET CLASS FIELDS:`, {
-          _id: tc._id,
-          type: tc.type,
-          hour: tc.hour,
-          endHour: tc.endHour,
-          duration: tc.duration,
-          hasEndHour: tc.hasOwnProperty('endHour'),
-          endHourType: typeof tc.endHour,
-          allKeys: Object.keys(tc)
-        });
         
         return {
           ...tc,
@@ -165,7 +154,7 @@ export async function GET(request: Request) {
       })
     );
     
-    console.log(`✅ API: Returning ${ticketClassesWithInfo.length} classes with info`);
+    // console.log(`✅ API: Returning ${ticketClassesWithInfo.length} classes with info`);
     return NextResponse.json(ticketClassesWithInfo);
   } catch (error) {
     console.error('❌ API: Error fetching ticket classes:', error);

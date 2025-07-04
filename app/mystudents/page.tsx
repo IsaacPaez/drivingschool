@@ -71,6 +71,24 @@ function toLocalDateOnly(dateStr: string) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+// Utilidad para mostrar la fecha igual que en MongoDB (sin desfase de zona horaria)
+function formatDateUTC(dateStr: string) {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('T')[0].split('-');
+  return `${day}/${month}/${year}`;
+}
+
+// Extraer IDs de estudiantes (string u objeto)
+function extractStudentIds(studentsArr: any[]): string[] {
+  if (!Array.isArray(studentsArr)) return [];
+  return studentsArr.map(s => {
+    if (typeof s === 'string') return s;
+    if (typeof s === 'object' && s.studentId) return s.studentId;
+    if (typeof s === 'object' && s._id) return s._id;
+    return null;
+  }).filter(Boolean);
+}
+
 const StudentsPage = () => {
   const router = useRouter();
   const { user } = useAuth();
@@ -96,6 +114,8 @@ const StudentsPage = () => {
   const [filterDate, setFilterDate] = useState<string>('');
   const [filterDateFrom, setFilterDateFrom] = useState<string>('');
   const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Redirección si no hay usuario
   useEffect(() => {
@@ -147,11 +167,35 @@ const StudentsPage = () => {
 
   // Actualizar estudiantes de la clase cuando cambia la clase seleccionada
   useEffect(() => {
-    if (selectedCourse && Array.isArray(selectedCourse.students)) {
-      setClassStudents(selectedCourse.students);
-    } else {
-      setClassStudents([]);
+    async function fetchClassStudents() {
+      if (selectedCourse && Array.isArray(selectedCourse.students)) {
+        const ids = extractStudentIds(selectedCourse.students);
+        if (ids.length === 0) {
+          setClassStudents([]);
+          return;
+        }
+        setLoadingStudents(true);
+        try {
+          const res = await fetch('/api/users/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+          });
+          if (res.ok) {
+            const users = await res.json();
+            setClassStudents(users);
+          } else {
+            setClassStudents([]);
+          }
+        } catch {
+          setClassStudents([]);
+        }
+        setLoadingStudents(false);
+      } else {
+        setClassStudents([]);
+      }
     }
+    fetchClassStudents();
   }, [selectedCourse]);
 
   // 3. Cuando seleccionas un estudiante, traer su historial en ese curso
@@ -160,7 +204,11 @@ const StudentsPage = () => {
     setNotes('');
     setNotesHistory([]);
     setSaveMsg('');
-    if (!selectedCourse || !instructorId) return;
+    setLoadingHistory(true);
+    if (!selectedCourse || !instructorId) {
+      setLoadingHistory(false);
+      return;
+    }
     // Traer historial de clases
     const res = await fetch(`/api/ticketclasses?instructorId=${instructorId}&studentId=${student._id}&classId=${selectedCourse._id}`);
     const data = await res.json() as ClassResponse[];
@@ -179,6 +227,7 @@ const StudentsPage = () => {
       date: note.createdAt
     }));
     setNotesHistory(notesArr);
+    setLoadingHistory(false);
   };
 
   const filtered = classStudents.filter(s =>
@@ -345,7 +394,7 @@ const StudentsPage = () => {
                     </div>
                     <div className="flex justify-center gap-4 mb-2">
                       {course.date && (
-                        <span className="text-sm text-gray-500">Date: <b>{new Date(course.date).toLocaleDateString()}</b></span>
+                        <span className="text-sm text-gray-500">Date: <b>{formatDateUTC(course.date)}</b></span>
                       )}
                       {course.hour && (
                         <span className="text-sm text-gray-500">Time: <b>{course.hour}</b></span>
@@ -370,6 +419,15 @@ const StudentsPage = () => {
   }
 
   // Pantalla 2: Students in [Course]
+  if (loadingStudents) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]">
+        <LoadingSpinner />
+        <span className="ml-4 text-lg text-gray-600">Loading students...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1] py-8 px-4 flex flex-col items-center">
       <div className="max-w-5xl w-full mt-32">
@@ -401,19 +459,26 @@ const StudentsPage = () => {
             setSearch={setSearch}
             handleSelect={handleSelect}
             handleOpenSingleMail={handleOpenSingleMail}
-            loadingStudents={false}
+            loadingStudents={loadingStudents}
           />
           <main className="flex-1 bg-white rounded-3xl shadow-2xl p-6 border border-[#e0e0e0]">
-            <StudentDetails
-              selected={selected}
-              history={history}
-              notesHistory={notesHistory}
-              notes={notes}
-              setNotes={setNotes}
-              handleSaveNotes={handleSaveNotes}
-              saving={saving}
-              saveMsg={saveMsg}
-            />
+            {loadingHistory ? (
+              <div className="flex justify-center items-center min-h-screen">
+                <LoadingSpinner />
+                <span className="ml-4 text-lg text-gray-600">Loading class history...</span>
+              </div>
+            ) : (
+              <StudentDetails
+                selected={selected}
+                history={history}
+                notesHistory={notesHistory}
+                notes={notes}
+                setNotes={setNotes}
+                handleSaveNotes={handleSaveNotes}
+                saving={saving}
+                saveMsg={saveMsg}
+              />
+            )}
           </main>
         </div>
       </div>
