@@ -1,6 +1,6 @@
 import React from 'react';
 
-const LoadingSpinner: React.FC<{ label?: string }> = ({ label = 'Loading...' }) => (
+const LoadingSpinner: React.FC<{ label?: string }> = ({ label }) => (
   <div className="flex flex-col items-center justify-center py-8">
     {/* SVG volante de auto animado */}
     <svg className="animate-spin h-16 w-16 text-[#0056b3] mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -12,7 +12,7 @@ const LoadingSpinner: React.FC<{ label?: string }> = ({ label = 'Loading...' }) 
       <rect x="10" y="29" width="16" height="6" rx="3" fill="#0056b3" />
       <rect x="38" y="29" width="16" height="6" rx="3" fill="#0056b3" />
     </svg>
-    <span className="text-[#0056b3] text-lg font-semibold">{label}</span>
+    {label && <span className="text-[#0056b3] text-lg font-semibold">{label}</span>}
   </div>
 );
 

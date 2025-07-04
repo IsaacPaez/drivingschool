@@ -39,7 +39,7 @@ const StudentDetails: React.FC<Props> = ({ selected, history, notesHistory, note
       <ul className="mb-4">
         {history.map(h => (
           <li key={h._id} className="mb-1">
-            <span className="font-mono text-sm text-[#0056b3]">{new Date(h.date).toLocaleDateString()} {h.hour}</span> - {h.type} ({h.duration})
+            <span className="font-mono text-sm text-[#0056b3]">{new Date(h.date).toLocaleDateString()} {h.hour}</span> <span className="text-black">- {h.type} ({h.duration})</span>
           </li>
         ))}
         {history.length === 0 && <li className="text-gray-400">No classes found</li>}
