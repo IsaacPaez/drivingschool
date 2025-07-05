@@ -23,6 +23,8 @@ export interface IUser extends Document {
   updatedAt?: Date;
   privateNotes?: string;
   photo?: string;
+  classReminder?: boolean;
+  drivingTestReminder?: boolean;
 }
 
 const UserSchema = new Schema<IUser>({
@@ -48,6 +50,8 @@ const UserSchema = new Schema<IUser>({
   updatedAt: { type: Date },
   privateNotes: { type: String },
   photo: { type: String },
+  classReminder: { type: Boolean, default: false },
+  drivingTestReminder: { type: Boolean, default: false },
 });
 
 const User = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
