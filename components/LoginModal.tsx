@@ -206,43 +206,49 @@ export default function LoginModal({ open, onClose, onLoginSuccess }: LoginModal
         <h2 className="text-3xl font-extrabold text-blue-700 text-center mb-6 drop-shadow-lg">
           {step === "login" || step === "verify" ? "Sign In" : step === "reset-email" ? "Reset Password" : step === "reset-code" ? "Enter Code" : step === "reset-password" ? "Set New Password" : "Password Reset"}
         </h2>
-        <form onSubmit={handleLogin} className="flex flex-col gap-5">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-            autoFocus
-            required
-          />
-          <div className="relative">
+        
+        {/* Formulario de login principal - solo mostrar en steps login o verify */}
+        {(step === "login" || step === "verify") && (
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
             <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 w-full focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              autoFocus
               required
             />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="rounded-lg border border-gray-300 px-4 py-3 text-gray-900 w-full focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                required
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800"
+                onClick={() => setShowPassword(v => !v)}
+                tabIndex={-1}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+            {error && <div className="text-red-600 text-center">{error}</div>}
             <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800"
-              onClick={() => setShowPassword(v => !v)}
-              tabIndex={-1}
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-md mt-2"
             >
-              {showPassword ? "Hide" : "Show"}
+              {loading ? "Signing in..." : "Sign In"}
             </button>
-          </div>
-          {error && <div className="text-red-600 text-center">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-md mt-2"
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
+          </form>
+        )}
+
+        {/* Formulario de reset password - paso 1: solicitar email */}
         {step === "reset-email" && (
           <form onSubmit={handleResetEmail} className="flex flex-col gap-5">
             <input
@@ -266,6 +272,8 @@ export default function LoginModal({ open, onClose, onLoginSuccess }: LoginModal
             <button type="button" className="text-blue-600 hover:underline text-sm mt-2" onClick={handleResetBackToLogin}>Back to login</button>
           </form>
         )}
+
+        {/* Formulario de reset password - paso 2: ingresar código */}
         {step === "reset-code" && (
           <form onSubmit={handleResetCode} className="flex flex-col gap-5">
             <div className="text-center text-gray-700 mb-2">A reset code was sent to <b>{resetEmail}</b>. Please enter it below.</div>
@@ -290,6 +298,8 @@ export default function LoginModal({ open, onClose, onLoginSuccess }: LoginModal
             <button type="button" className="text-blue-600 hover:underline text-sm mt-2" onClick={handleResetBackToLogin}>Back to login</button>
           </form>
         )}
+
+        {/* Formulario de reset password - paso 3: nueva contraseña */}
         {step === "reset-password" && (
           <form onSubmit={handleResetPassword} className="flex flex-col gap-5">
             <input
@@ -321,6 +331,8 @@ export default function LoginModal({ open, onClose, onLoginSuccess }: LoginModal
             <button type="button" className="text-blue-600 hover:underline text-sm mt-2" onClick={handleResetBackToLogin}>Back to login</button>
           </form>
         )}
+
+        {/* Pantalla de éxito del reset */}
         {step === "reset-success" && (
           <div className="flex flex-col items-center gap-4">
             <div className="text-green-600 text-center font-bold">Password changed successfully! You can now log in.</div>
@@ -332,6 +344,8 @@ export default function LoginModal({ open, onClose, onLoginSuccess }: LoginModal
             </button>
           </div>
         )}
+        
+        {/* Enlaces del footer */}
         <div className="flex flex-col items-center mt-6 gap-2">
           {step === "login" && (
             <button

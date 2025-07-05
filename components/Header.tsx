@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
 import { useCart } from "@/app/context/CartContext";
 import LoadingSpinner from "./common/LoadingSpinner";
+import UserDropdown from "./UserDropdown";
 
 interface User {
   name: string;
@@ -115,14 +116,7 @@ const Header = () => {
                 {user.name}
               </span>
               {showMenu && (
-                <div className="absolute top-14 left-0 bg-white border rounded shadow-lg py-2 px-4 z-50">
-                  <button
-                    onClick={() => { logout(); router.replace("/"); }}
-                    className="text-red-600 font-semibold hover:underline"
-                  >
-                    Log out
-                  </button>
-                </div>
+                <UserDropdown onClose={() => setShowMenu(false)} />
               )}
             </div>
           ) : (
