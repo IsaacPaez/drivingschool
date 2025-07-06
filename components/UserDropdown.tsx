@@ -152,7 +152,7 @@ export default function UserDropdown({ onClose }: UserDropdownProps) {
             />
             <div className="flex items-center gap-2">
               <FaBell className="text-green-500 text-sm" />
-              <span className="text-sm text-gray-700">Clases</span>
+              <span className="text-sm text-gray-700">Classes</span>
             </div>
           </label>
 
