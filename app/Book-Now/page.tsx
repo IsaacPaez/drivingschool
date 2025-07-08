@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "@/globals.css";
@@ -10,6 +10,12 @@ import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
 import { useScheduleSSE } from "@/hooks/useScheduleSSE";
 import { useRouter } from "next/navigation";
+import { useJsApiLoader } from "@react-google-maps/api";
+import LocationInput from "@/components/LocationInput";
+
+// Google Maps configuration
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const LIBRARIES: "places"[] = ["places"];
 
 interface Slot {
   _id: string;
@@ -51,6 +57,19 @@ export default function BookNowPage() {
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
+
+  // Google Maps states
+  const [pickupLocation, setPickupLocation] = useState<string>("");
+  const [dropoffLocation, setDropoffLocation] = useState<string>("");
+  const pickupAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const dropoffAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  // Load Google Maps API
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: LIBRARIES,
+  });
 
   const { user } = useAuth();
   const userId = user?._id || "";
@@ -70,6 +89,33 @@ export default function BookNowPage() {
 
   // Use SSE hook instead of polling
   const { schedule: sseSchedule, error: sseError, isConnected } = useScheduleSSE(selectedInstructorId);
+
+  // Google Maps Autocomplete handlers
+  const onPickupLoad = (autocomplete: google.maps.places.Autocomplete) => {
+    pickupAutocompleteRef.current = autocomplete;
+  };
+
+  const onPickupPlaceChanged = () => {
+    if (pickupAutocompleteRef.current) {
+      const place = pickupAutocompleteRef.current.getPlace();
+      if (place?.formatted_address) {
+        setPickupLocation(place.formatted_address);
+      }
+    }
+  };
+
+  const onDropoffLoad = (autocomplete: google.maps.places.Autocomplete) => {
+    dropoffAutocompleteRef.current = autocomplete;
+  };
+
+  const onDropoffPlaceChanged = () => {
+    if (dropoffAutocompleteRef.current) {
+      const place = dropoffAutocompleteRef.current.getPlace();
+      if (place?.formatted_address) {
+        setDropoffLocation(place.formatted_address);
+      }
+    }
+  };
 
   // Debug SSE connection
   useEffect(() => {
@@ -99,7 +145,15 @@ export default function BookNowPage() {
 
   // Process SSE schedule data
   useEffect(() => {
-    if (!selectedInstructorId || !sseSchedule) return;
+    if (!selectedInstructorId) {
+      setIsLoadingSchedule(false);
+      return;
+    }
+
+    if (!sseSchedule) {
+      setIsLoadingSchedule(true);
+      return;
+    }
     
     // Filtra solo los slots de tipo "driving test" y agrupa por fecha
     const filteredSchedule = Array.isArray(sseSchedule) 
@@ -135,7 +189,10 @@ export default function BookNowPage() {
     const base = instructors.find(i => i._id === selectedInstructorId);
     if (base) {
       setSelectedInstructor({ ...base, schedule: groupedSchedule });
+      setIsLoadingSchedule(false);
       // console.log("✅ Instructor schedule updated:", groupedSchedule.length, "days with slots");
+    } else {
+      setIsLoadingSchedule(false);
     }
   }, [sseSchedule, selectedInstructorId, instructors]);
 
@@ -168,6 +225,7 @@ export default function BookNowPage() {
     setInstructors(location.instructors);
     setSelectedInstructor(null);
     setSelectedInstructorId(null);
+    setIsLoadingSchedule(false);
     setIsModalOpen(false);
     
     // Navigate to Book-Now page if not already there
@@ -198,6 +256,33 @@ export default function BookNowPage() {
 
   const pad = (n: number) => n.toString().padStart(2, '0');
   const renderScheduleTable = () => {
+    // Mostrar loading si se está cargando el horario
+    if (isLoadingSchedule && selectedInstructorId) {
+      return (
+        <div className="overflow-x-auto w-full mt-6">
+          <div className="flex flex-col items-center justify-center py-20 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg shadow-md">
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 border-2 border-indigo-300 border-t-indigo-500 rounded-full animate-spin animation-delay-150"></div>
+              </div>
+            </div>
+            <div className="mt-6 text-center">
+              <p className="text-blue-700 text-xl font-semibold">Loading Schedule...</p>
+              <p className="text-blue-500 mt-2 text-sm">Please wait while we load the available appointments</p>
+              <div className="flex justify-center mt-4">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce animation-delay-200"></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce animation-delay-400"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (!selectedInstructor || !selectedDate) {
       // Mostrar tabla vacía con mensaje
       const weekDates = getWeekDates(selectedDate || new Date());
@@ -241,15 +326,21 @@ export default function BookNowPage() {
               ))}
             </tbody>
           </table>
-          <p className="text-gray-400 text-center mt-4">Select an instructor to see available driving test appointments.</p>
+          <div className="text-center mt-6">
+            {selectedInstructorId ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800 font-medium">No driving test appointments available for this instructor.</p>
+                <p className="text-yellow-600 text-sm mt-1">Please select another instructor or check back later.</p>
+              </div>
+            ) : (
+              <p className="text-gray-400">Select an instructor to see available driving test appointments.</p>
+            )}
+          </div>
         </div>
       );
     }
 
     const weekDates = getWeekDates(selectedDate);
-    
-    // Crear una estructura para rastrear qué slots ya se han mostrado
-    const renderedSlots = new Set<string>();
     
     // Generar bloques de 30 minutos
     const allTimes: { start: string, end: string }[] = [];
@@ -381,6 +472,9 @@ export default function BookNowPage() {
                                   pickupLocation: slot.pickupLocation,
                                   dropoffLocation: slot.dropoffLocation
                                 });
+                                // Reset location fields
+                                setPickupLocation(slot.pickupLocation || "");
+                                setDropoffLocation(slot.dropoffLocation || "");
                                 setIsBookingModalOpen(true);
                               }}
                           >
@@ -475,12 +569,16 @@ export default function BookNowPage() {
       onClose={() => setIsBookingModalOpen(false)}
     >
       <div className="p-6 text-black">
-        <h2 className="text-xl font-bold mb-4">Confirm Driving Test Appointment</h2>
+        <h2 className="text-xl font-bold mb-4 mt-6">Confirm Driving Test Appointment</h2>
+        
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="mb-2">
                 <strong>Instructor:</strong> {selectedInstructor?.name}
+              </p>
+              <p className="mb-2">
+                <strong>Amount:</strong> ${selectedSlot?.amount || 100}
               </p>
               <p className="mb-2">
                 <strong>Date:</strong> {selectedSlot?.date}
@@ -494,15 +592,25 @@ export default function BookNowPage() {
             </div>
             
             <div>
-              <p className="mb-2">
-                <strong>Amount:</strong> ${selectedSlot?.amount || 100}
-              </p>
-              <p className="mb-2">
-                <strong>Pickup Location:</strong> {selectedSlot?.pickupLocation || "N/A"}
-              </p>
-              <p className="mb-2">
-                <strong>Drop-off Location:</strong> {selectedSlot?.dropoffLocation || "N/A"}
-              </p>
+              <LocationInput
+                label="Pickup Location"
+                value={pickupLocation}
+                onChange={setPickupLocation}
+                onLoad={onPickupLoad}
+                onPlaceChanged={onPickupPlaceChanged}
+                placeholder="Enter pickup location"
+                isLoaded={isLoaded}
+              />
+              
+              <LocationInput
+                label="Drop-off Location"
+                value={dropoffLocation}
+                onChange={setDropoffLocation}
+                onLoad={onDropoffLoad}
+                onPlaceChanged={onDropoffPlaceChanged}
+                placeholder="Enter drop-off location"
+                isLoaded={isLoaded}
+              />
             </div>
           </div>
         </div>
@@ -565,8 +673,8 @@ export default function BookNowPage() {
                       end: selectedSlot.end,
                       classType: 'driving test',
                       amount: selectedSlot.amount || 100,
-                      pickupLocation: selectedSlot.pickupLocation || "",
-                      dropoffLocation: selectedSlot.dropoffLocation || ""
+                      pickupLocation: pickupLocation || "",
+                      dropoffLocation: dropoffLocation || ""
                     }),
                   });
                   if (res.ok) {
@@ -584,7 +692,7 @@ export default function BookNowPage() {
                     const errorData = await res.json();
                     alert(`No se pudo iniciar el pago: ${errorData.error || 'Intenta de nuevo.'}`);
                   }
-                } catch (error) {
+                } catch {
                   setIsOnlinePaymentLoading(false);
                   alert('Error iniciando el pago. Intenta de nuevo.');
                 }
@@ -604,8 +712,8 @@ export default function BookNowPage() {
                     classType: 'driving test',
                     amount: selectedSlot.amount || 100,
                     paymentMethod: paymentMethod,
-                    pickupLocation: selectedSlot.pickupLocation || "",
-                    dropoffLocation: selectedSlot.dropoffLocation || ""
+                    pickupLocation: pickupLocation || "",
+                    dropoffLocation: dropoffLocation || ""
                   }),
                 });
                 if (res.ok) {
@@ -617,7 +725,7 @@ export default function BookNowPage() {
                   const errorData = await res.json();
                   alert(`Could not book the slot: ${errorData.error || 'Please try again.'}`);
                 }
-              } catch (error) {
+              } catch {
                 alert('Error booking appointment. Please try again.');
               }
             }}
@@ -673,16 +781,30 @@ export default function BookNowPage() {
             {instructors.map((inst) => {
               const [firstName, ...lastNameParts] = inst.name.split(' ');
               const lastName = lastNameParts.join(' ');
+              const isSelected = selectedInstructor?._id === inst._id;
+              const isLoadingThis = isLoadingSchedule && selectedInstructorId === inst._id;
+              
               return (
                 <div
                   key={inst._id}
-                  className={`shadow-lg rounded-xl p-2 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full ${selectedInstructor?._id === inst._id ? "border-4 border-blue-500 bg-blue-100" : "bg-white"}`}
+                  className={`shadow-lg rounded-xl p-2 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full relative ${
+                    isSelected 
+                      ? "border-4 border-blue-500 bg-blue-100" 
+                      : "bg-white"
+                  }`}
                   onClick={() => {
                     // console.log("🎯 Instructor selected:", inst._id, inst.name);
+                    setIsLoadingSchedule(true);
                     setSelectedInstructorId(inst._id);
+                    setSelectedInstructor(null);
                     setSelectedDate(null);
                   }}
                 >
+                  {isLoadingThis && (
+                    <div className="absolute inset-0 bg-blue-100 bg-opacity-90 rounded-xl flex items-center justify-center z-10">
+                      <div className="w-8 h-8 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+                    </div>
+                  )}
                   <Image
                     src={inst.photo || "/default-avatar.png"}
                     alt={inst.name}
@@ -854,7 +976,7 @@ export default function BookNowPage() {
                       setCancellationMessage('Could not cancel the booking. Please try again.');
                       setShowCancellation(true);
                     }
-                  } catch (error) {
+                  } catch {
                     setCancellationMessage('Error cancelling booking. Please try again.');
                     setShowCancellation(true);
                   }
