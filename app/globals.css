@@ -83,3 +83,16 @@ body {
   animation: fadeIn 0.2s ease-out;
 }
 
+/* Animation delays for loading spinner */
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+

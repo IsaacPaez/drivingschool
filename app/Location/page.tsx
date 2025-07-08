@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import LocationMap from "./LocationMap";
-import Modal from "@/components/Modal";
+import LocationModal from "./LocationModal";
 import { useRouter } from 'next/navigation';
 
 interface Instructor {
@@ -201,11 +201,18 @@ const LocationPage: React.FC = () => {
 
               {/* Modal para mostrar la zona seleccionada */}
               {selectedZone && (
-                <Modal
+                <LocationModal
                   isOpen={selectedZone !== null}
                   onClose={() => setSelectedZone(null)}
                 >
-                  <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl sm:max-w-6xl max-h-[90vh] relative flex flex-col">
+                  <div 
+                    className="bg-white rounded-lg shadow-xl w-full max-h-[90vh] relative flex flex-col"
+                    style={{
+                      margin: '0',
+                      padding: '0',
+                      boxSizing: 'border-box'
+                    }}
+                  >
 
 
 
@@ -223,50 +230,159 @@ const LocationPage: React.FC = () => {
                       </div>
                     )}
 
-                    <div className="p-6 overflow-y-auto flex-1" style={{maxHeight: 'calc(90vh - 220px)'}}>
-                      <h2 className="text-3xl font-bold text-gray-900 text-center mt-4 mb-6">
+                    <div 
+                      className="p-8 overflow-y-auto flex-1" 
+                      style={{
+                        maxHeight: 'calc(90vh - 220px)',
+                        margin: '0',
+                        padding: '32px',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <h2 
+                        className="text-4xl font-bold text-gray-900 text-center mt-4 mb-8"
+                        style={{
+                          margin: '16px 0 32px 0',
+                          padding: '0',
+                          fontSize: '2.5rem',
+                          lineHeight: '1.2'
+                        }}
+                      >
                         {selectedZone?.title}
                       </h2>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <p className="text-lg text-gray-700 whitespace-pre-line">
+                      <div 
+                        className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                          gap: '32px',
+                          marginBottom: '32px'
+                        }}
+                      >
+                        <div 
+                          className="text-lg text-gray-700 whitespace-pre-line"
+                          style={{
+                            fontSize: '1.125rem',
+                            lineHeight: '1.6',
+                            color: '#374151'
+                          }}
+                        >
                           {selectedZone?.description}
-                        </p>
+                        </div>
 
-                        <div className="p-5 bg-gray-50 rounded-lg shadow-md border border-gray-200">
-                          <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <div 
+                          className="p-6 bg-gray-50 rounded-lg shadow-md border border-gray-200"
+                          style={{
+                            padding: '24px',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '12px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          <h3 
+                            className="text-2xl font-semibold text-gray-900 mb-6 flex items-center gap-2"
+                            style={{
+                              fontSize: '1.5rem',
+                              fontWeight: '600',
+                              marginBottom: '24px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}
+                          >
                             📍 Location Info
                           </h3>
 
-                          <div className="space-y-3">
-                            <p className="flex items-center gap-2 text-gray-800 text-sm">
-                              <span className="text-red-600 text-lg">📞</span>
+                          <div 
+                            className="space-y-4"
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '16px'
+                            }}
+                          >
+                            <p 
+                              className="flex items-center gap-3 text-gray-800"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                fontSize: '1rem',
+                                color: '#1f2937'
+                              }}
+                            >
+                              <span className="text-red-600 text-xl">📞</span>
                               <strong>Phone:</strong>
                               <a
                                 href="tel:5613307007"
                                 className="text-blue-600 hover:underline"
+                                style={{
+                                  color: '#2563eb',
+                                  textDecoration: 'none'
+                                }}
                               >
                                 561 330 7007
                               </a>
                             </p>
 
-                            <p className="flex items-center gap-2 text-gray-800 text-sm">
-                              <span className="text-purple-600 text-lg">✉️</span>
+                            <p 
+                              className="flex items-center gap-3 text-gray-800"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                fontSize: '1rem',
+                                color: '#1f2937'
+                              }}
+                            >
+                              <span className="text-purple-600 text-xl">✉️</span>
                               <strong>Email:</strong>
                               <a
                                 href="mailto:info@drivingschoolpalmbeach.com"
                                 className="text-blue-600 hover:underline"
+                                style={{
+                                  color: '#2563eb',
+                                  textDecoration: 'none'
+                                }}
                               >
                                 info@drivingschoolpalmbeach.com
                               </a>
                             </p>
                           </div>
 
-                          <div className="border-t pt-4 mt-4">
-                            <h3 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <div 
+                            className="border-t pt-6 mt-6"
+                            style={{
+                              borderTop: '1px solid #e5e7eb',
+                              paddingTop: '24px',
+                              marginTop: '24px'
+                            }}
+                          >
+                            <h3 
+                              className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-2"
+                              style={{
+                                fontSize: '1.5rem',
+                                fontWeight: '600',
+                                marginBottom: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                            >
                               🕒 Opening Hours
                             </h3>
-                            <div className="grid grid-cols-2 md:grid-cols-2 gap-2 text-gray-800 text-sm">
+                            <div 
+                              className="grid grid-cols-1 gap-2 text-gray-800"
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr',
+                                gap: '8px',
+                                fontSize: '1rem',
+                                color: '#1f2937'
+                              }}
+                            >
                               {[
                                 "Monday",
                                 "Tuesday",
@@ -276,9 +392,22 @@ const LocationPage: React.FC = () => {
                                 "Saturday",
                                 "Sunday",
                               ].map((day) => (
-                                <div key={day} className="flex justify-between border-b pb-1">
+                                <div 
+                                  key={day} 
+                                  className="flex justify-between items-center py-2 px-4 bg-white rounded-lg shadow-sm border border-gray-100"
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '8px 16px',
+                                    backgroundColor: '#ffffff',
+                                    borderRadius: '8px',
+                                    border: '1px solid #f3f4f6',
+                                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                                  }}
+                                >
                                   <span className="font-semibold">{day}:</span>
-                                  <span className="text-right">8:00am - 8:00pm</span>
+                                  <span className="text-right font-medium text-green-600">8:00am - 8:00pm</span>
                                 </div>
                               ))}
                             </div>
@@ -286,7 +415,18 @@ const LocationPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="w-full h-64 md:h-80 rounded-lg overflow-hidden border border-gray-300 shadow-md mt-6">
+                      <div 
+                        className="w-full h-80 rounded-lg overflow-hidden border border-gray-300 shadow-lg mb-8"
+                        style={{
+                          width: '100%',
+                          height: '320px',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          border: '1px solid #d1d5db',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                          marginBottom: '32px'
+                        }}
+                      >
                         <iframe
                           src={`https://www.google.com/maps?q=${encodeURIComponent(
                             selectedZone?.zone || ""
@@ -295,28 +435,94 @@ const LocationPage: React.FC = () => {
                           height="100%"
                           allowFullScreen
                           loading="lazy"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            border: 'none'
+                          }}
                         ></iframe>
                       </div>
 
-                      <div className="mt-6">
-                        <h3 className="text-2xl font-semibold text-gray-900 text-center mb-4">
-                          Instructors
+                      <div 
+                        className="mt-8"
+                        style={{
+                          marginTop: '32px'
+                        }}
+                      >
+                        <h3 
+                          className="text-3xl font-semibold text-gray-900 text-center mb-6"
+                          style={{
+                            fontSize: '1.875rem',
+                            fontWeight: '600',
+                            textAlign: 'center',
+                            marginBottom: '24px',
+                            color: '#111827'
+                          }}
+                        >
+                          Available Instructors
                         </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div 
+                          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '24px'
+                          }}
+                        >
                           {Array.isArray(selectedZone?.instructorsDetails) &&
                             selectedZone.instructorsDetails.map((instructor, index) => (
-                              <div key={instructor._id || `instructor-${index}`} className="text-center p-4 border rounded-lg shadow-sm bg-white flex flex-col items-center">
-                                <div className="w-24 h-24 relative">
+                              <div 
+                                key={instructor._id || `instructor-${index}`} 
+                                className="text-center p-6 border rounded-lg shadow-sm bg-white flex flex-col items-center"
+                                style={{
+                                  textAlign: 'center',
+                                  padding: '24px',
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '12px',
+                                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                  backgroundColor: '#ffffff',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <div 
+                                  className="w-28 h-28 relative mb-4"
+                                  style={{
+                                    width: '112px',
+                                    height: '112px',
+                                    position: 'relative',
+                                    marginBottom: '16px'
+                                  }}
+                                >
                                   <Image
-                                    src={instructor.photo || "/default-avatar.png"} // 👈 Usar "photo" en lugar de "image"
+                                    src={instructor.photo || "/default-avatar.png"}
                                     alt={instructor.name || "Instructor"}
-                                    width={96}
-                                    height={96}
+                                    width={112}
+                                    height={112}
                                     className="rounded-full border border-gray-300 shadow-sm object-cover"
                                     priority
+                                    style={{
+                                      borderRadius: '50%',
+                                      border: '1px solid #d1d5db',
+                                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                                      objectFit: 'cover'
+                                    }}
                                   />
                                 </div>
-                                <p className="text-gray-900 mt-2 font-semibold text-center min-h-[3rem] flex items-center justify-center">
+                                <p 
+                                  className="text-gray-900 mt-2 font-semibold text-center min-h-[3rem] flex items-center justify-center"
+                                  style={{
+                                    color: '#111827',
+                                    marginTop: '8px',
+                                    fontWeight: '600',
+                                    textAlign: 'center',
+                                    minHeight: '3rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                >
                                   {instructor.name || "Instructor Name Missing"}
                                 </p>
                                 <button 
@@ -325,7 +531,25 @@ const LocationPage: React.FC = () => {
                                     e.stopPropagation();
                                     handleBookNow(instructor.name || "Unknown Instructor");
                                   }}
-                                  className="mt-auto w-full max-w-[160px] h-[50px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center cursor-pointer"
+                                  className="mt-auto w-full max-w-[180px] h-[60px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center cursor-pointer"
+                                  style={{
+                                    marginTop: 'auto',
+                                    width: '100%',
+                                    maxWidth: '180px',
+                                    height: '60px',
+                                    backgroundColor: '#16a34a',
+                                    color: '#ffffff',
+                                    fontWeight: '600',
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    transition: 'background-color 0.2s'
+                                  }}
                                 >
                                   <span>Book</span>
                                   <span>{instructor.name ? instructor.name.split(" ")[0] : "No Name"}</span>
@@ -337,7 +561,7 @@ const LocationPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                </Modal>
+                </LocationModal>
               )}
             </>
           )

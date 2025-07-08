@@ -28,7 +28,7 @@ const Footer = () => {
             Affordable Driving <br /> Traffic School
           </h2>
           <Link
-            href="/book-now"
+            href="/Book-Now"
             className="mt-6 bg-gradient-to-r from-[#0056b3] to-[#27ae60] text-white font-bold px-6 py-3 rounded-full transition-all duration-500 transform hover:scale-105 hover:shadow-lg hover:shadow-[#27ae60]"
           >
             Book Now
