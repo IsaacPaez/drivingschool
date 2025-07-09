@@ -10,10 +10,14 @@ import AuthRedirector from "./components/AuthRedirector";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthContext";
+import { useAutoStartEC2 } from "@/hooks/useAutoStartEC2";
 
 export default function Home() {
   const { user } = useAuth();
   const router = useRouter();
+  
+  // Iniciar EC2 automáticamente
+  const ec2Status = useAutoStartEC2();
 
   useEffect(() => {
     if (user && (user as any).type === "instructor") {
