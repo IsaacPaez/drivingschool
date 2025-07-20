@@ -28,10 +28,25 @@ const Header = () => {
   const { user, setUser, logout } = useAuth();
   const { clearCart } = useCart();
   const [showTeacherLoading, setShowTeacherLoading] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     setIsHome(pathname === "/"); // Se actualiza correctamente en cada cambio de ruta
   }, [pathname]);
+
+  // Scroll detection for home page
+  useEffect(() => {
+          const handleScroll = () => {
+        if (isHome) {
+          setIsScrolled(window.scrollY > 1000);
+        }
+      };
+
+    if (isHome) {
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [isHome]);
 
   useEffect(() => {
     if (user) {
@@ -81,14 +96,16 @@ const Header = () => {
       {/* Top Row with Phone and Login */}
       <div className={`${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'} flex lg:justify-center gap-4 items-center py-2 text-sm font-sans relative`}>
         <span
-          className={`hidden lg:flex ${isHome ? "text-white" : "text-blue-800"} font-semibold`}
+          className={`hidden lg:flex ${isHome ? (isScrolled ? "text-blue-600" : "text-white") : "text-blue-800"} font-semibold`}
         >
           Phone: <strong className="font-semibold">561 330 7007</strong>
         </span>
         {/* 🛒 Carrito de Compras con color dinámico */}
-        <CartIcon
-          color={` ${isHome ? "black" : "black"}`}
-        />
+        <div>
+          <CartIcon
+            color={` ${isHome ? (isScrolled ? "blue" : "white") : "black"}`}
+          />
+        </div>
         {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
         <div className="fixed top-4 right-8 flex items-end z-50 mt-0">
           {user ? (
