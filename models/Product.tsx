@@ -7,6 +7,7 @@ const ProductSchema = new mongoose.Schema(
     price: Number,
     buttonLabel: String,
     category: String,
+    duration: Number, // Campo para las horas del paquete
     media: [String], // Asegura que el array de imágenes sea reconocido
   },
   { collection: "products" }

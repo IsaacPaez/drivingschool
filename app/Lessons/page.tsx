@@ -97,6 +97,15 @@ const LessonsPage = () => {
               const isBooking = lesson.buttonLabel
                 ?.toLowerCase()
                 .includes("book");
+              
+              // Determinar si es un paquete basado en título, categoría o buttonLabel
+              const isPackage = lesson.category === "Road Skills for Life" ||
+                               lesson.title?.toLowerCase().includes("hour") ||
+                               lesson.title?.toLowerCase().includes("pack") ||
+                               (lesson.buttonLabel?.toLowerCase().includes("buy") && 
+                                lesson.buttonLabel?.toLowerCase().includes("hour"));
+
+              console.log(`🔍 Lesson: ${lesson.title}, isPackage: ${isPackage}, buttonLabel: ${lesson.buttonLabel}`);
 
               return (
                 <div
@@ -109,9 +118,25 @@ const LessonsPage = () => {
                   <p className="text-sm text-black text-center">
                     {lesson.description}
                   </p>
+                  
+                  {/* Mostrar duración si está disponible */}
+                  {lesson.duration && (
+                    <p className="text-sm text-blue-600 font-semibold text-center mt-1">
+                      {lesson.duration} Hours Package
+                    </p>
+                  )}
+                  
                   <p className="text-xl font-bold text-[#27ae60] text-center mt-2">
                     ${lesson.price}
                   </p>
+                  
+                  {/* Mostrar indicador si es paquete */}
+                  {isPackage && (
+                    <p className="text-xs text-orange-600 font-bold text-center">
+                      📅 Schedule with Calendly
+                    </p>
+                  )}
+                  
                   {/* Contenedor flex para centrar el botón */}
                   <div className="flex justify-center w-full mt-3">
                     <AuthenticatedButton
@@ -120,6 +145,8 @@ const LessonsPage = () => {
                         itemId: lesson._id,
                         title: lesson.title,
                         price: lesson.price,
+                        category: lesson.category, // Pasar categoría
+                        duration: lesson.duration, // Pasar duración
                       }}
                       label={lesson.buttonLabel || "Add to Cart"}
                       className="w-full bg-[#27ae60] text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition duration-300"

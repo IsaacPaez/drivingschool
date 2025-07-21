@@ -8,6 +8,8 @@ interface Lesson {
   description: string;
   price: number;
   buttonLabel?: string;
+  category?: string;
+  duration?: number; // Agregamos duración para mostrar horas
   media?: string[];
 }
 
