@@ -160,7 +160,11 @@ export async function GET(req: NextRequest) {
         sendData(initialData);
       } catch (error) {
         console.error('❌ Error sending initial package schedules data:', error);
-        sendData({ error: 'Failed to load initial data', schedules: [] });
+        sendData({ 
+          error: 'Failed to load initial data', 
+          schedules: [],
+          timestamp: new Date().toISOString()
+        });
       }
 
       // Set up polling for updates (every 30 seconds)
@@ -175,7 +179,11 @@ export async function GET(req: NextRequest) {
           sendData(data);
         } catch (error) {
           console.error('❌ Error in package schedules polling:', error);
-          sendData({ error: 'Polling error', schedules: [] });
+          sendData({ 
+            error: 'Polling error', 
+            schedules: [],
+            timestamp: new Date().toISOString()
+          });
         }
       }, 30000);
 
