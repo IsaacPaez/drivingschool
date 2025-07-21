@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "@/globals.css";
@@ -55,7 +55,8 @@ interface TicketClass {
   };
 }
 
-export default function RegisterOnlinePage() {
+// Component that uses useSearchParams
+function RegisterOnlineContent() {
   const searchParams = useSearchParams();
   const classId = searchParams?.get('classId') || null;
   
@@ -833,5 +834,14 @@ export default function RegisterOnlinePage() {
         onLoginSuccess={() => setShowLogin(false)}
       />
     </section>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function RegisterOnlinePage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <RegisterOnlineContent />
+    </Suspense>
   );
 }
