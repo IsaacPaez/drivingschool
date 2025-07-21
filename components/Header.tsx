@@ -96,7 +96,7 @@ const Header = () => {
       {/* Top Row with Phone and Login */}
       <div className={`${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'} flex lg:justify-center gap-4 items-center py-2 text-sm font-sans relative`}>
         <span
-          className={`hidden lg:flex ${isHome ? (isScrolled ? "text-blue-600" : "text-white") : "text-blue-800"} font-semibold`}
+          className={`hidden lg:flex ${isHome ? (isScrolled ? "text-[#0056b3]" : "text-white") : "text-[#0056b3]"} font-semibold`}
         >
           Phone: <strong className="font-semibold">561 330 7007</strong>
         </span>
@@ -230,7 +230,7 @@ const Header = () => {
                 href={item.href}
                 className={`font-medium transition ${pathname === item.href
                   ? "text-[#27ae60] font-bold"
-                  : "text-gray-800 hover:text-green-600"
+                  : "text-[#000000] hover:text-[#0056b3]"
                 }`}
               >
                 {item.name}

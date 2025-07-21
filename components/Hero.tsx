@@ -9,43 +9,32 @@ const Hero = () => {
       className="relative min-h-screen flex items-center px-6 md:px-12 pt-32 sm:pt-0 bg-no-repeat bg-center sm:bg-cover"
       style={{
         backgroundImage: "url('/BMW2.jpg')",
-        backgroundSize: "cover", // Ajuste para evitar franjas negras
-        backgroundPosition: "center", // Centrar correctamente
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       }}
     >
-      {/* Imagen de fondo para pantallas grandes */}
+      {/* Imagen de fondo para pantallas grandes (como antes) */}
       <div className="absolute inset-0 hidden sm:block bg-cover bg-center" style={{ backgroundImage: "url('/8.jpg')" }}></div>
+      {/* Fondo degradado oscuro para resaltar el texto, con menor opacidad */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/30 to-transparent z-0" />
 
       {/* Contenido principal */}
-      <div className="relative max-w-7xl mx-auto flex flex-col items-start text-left w-full">
-        {/* ✅ Contenedor para móviles: Mantiene la descripción dentro de un cuadro */}
-        <div className="w-full max-w-xl">
-          <div className="bg-white/30 backdrop-blur-sm shadow-lg rounded-lg px-8 py-6 mb-8">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl mt-0 font-extrabold text-[#4CAF50] leading-tight mb-6 animate-fade-in-up">
-              Learn To Drive
-              <br className="hidden md:block" /> Safely For Life
+      <div className="relative max-w-6xl mx-auto flex flex-col items-start text-left w-full z-10" style={{maxWidth: '1500px'}}>
+        {/* Hero Text Mejorado */}
+        <div className="w-full max-w-xl mb-8">
+          <div className="px-8 py-10 rounded-xl shadow-2xl animate-fade-in-up">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white leading-tight mb-6 drop-shadow-2xl transition-all duration-500">
+              <span className="block bg-gradient-to-r from-[#4CAF50] via-[#43e97b] to-[#38f9d7] bg-clip-text text-transparent animate-gradient-x">Learn To Drive</span>
+              <span className="block mt-2">Safely For Life</span>
             </h1>
-
-            {/* Contenedor de descripción SOLO en móviles */}
-            <div className="bg-white/30 backdrop-blur-sm shadow-lg rounded-lg px-6 py-4 mb-8 sm:hidden">
-              <p className="text-black text-base font-semibold text-center">
-                Affordable Driving School offers professional Behind the Wheel
-                Driving Lessons and Traffic School Courses in Palm Beach County.
-              </p>
-            </div>
-
-            {/* Descripción NORMAL en pantallas grandes */}
-            <p className="text-lg sm:text-xl text-black font-semibold mb-0 w-full max-w-xl hidden sm:block">
-              Affordable Driving School offers professional{" "}
-              <br className="hidden md:block" />
-              Behind the Wheel Driving Lessons and Traffic{" "}
-              <br className="hidden md:block" />
+            <p className="text-xl sm:text-2xl text-white/90 font-medium mb-0 w-full max-w-xl drop-shadow-lg transition-all duration-500">
+              Affordable Driving School offers professional <br className="hidden md:block" />
+              Behind the Wheel Driving Lessons and Traffic <br className="hidden md:block" />
               School Courses in Palm Beach County.
             </p>
           </div>
         </div>
-
-        {/* 📌 Contenedor de estadísticas (SIEMPRE visible) */}
+        {/* 📌 Contenedor de estadísticas (igual que antes) */}
         <div className="bg-white/30 backdrop-blur-sm shadow-lg rounded-lg px-8 py-4 mb-12 sm:mb-8 w-full max-w-xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
@@ -68,7 +57,6 @@ const Hero = () => {
             </div>
           </div>
         </div>
-
         {/* 📌 Botones */}
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xl mb-16 sm:mb-8">
           <Link

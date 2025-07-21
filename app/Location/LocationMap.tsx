@@ -8,8 +8,9 @@ const LocationMap: React.FC = () => {
       <iframe
         title="Driving School Locations"
         src="https://www.google.co.nz/maps/d/embed?mid=1YX9aMhL_FOvws9x6haE02QOE_mYtvpYQ&ehbc=2E312F"
-        width="540"
-        height="480"
+        width="100%"
+        height="100%"
+        style={{ minHeight: '700px' }}
         className="border-0"
         allowFullScreen
       ></iframe>

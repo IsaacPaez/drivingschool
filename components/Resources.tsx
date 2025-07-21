@@ -18,41 +18,46 @@ const Resources = () => {
   ];
 
   return (
-    <section className="bg-[#f9f9f9] py-16">
-      <h2 className="text-4xl font-extrabold text-center text-black mb-12">
-        Resources
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto px-6">
-        {resources.map((resource, index) => (
-          <div
-            key={index}
-            className="bg-white shadow-lg rounded-lg flex flex-col items-center text-center p-4 h-48 transition-transform duration-300 hover:shadow-xl"
-          >
-            <div className="flex items-center justify-center h-24 mb-4">
-              <Image
-                src={resource.image}
-                alt={resource.title}
-                width={100}
-                height={100}
-                className="object-contain"
-              />
-            </div>
-            {/* 📌 Si el recurso es FAQ, lo envolvemos en un Link */}
-            {resource.href ? (
-              <Link href={resource.href} scroll={true}>
-                <h3 className="text-lg font-bold text-black hover:text-[#0056b3] transition-colors duration-300 cursor-pointer">
-                  {resource.title}
-                </h3>
-              </Link>
-            ) : (
-              <h3 className="text-lg font-bold text-black hover:text-[#0056b3] transition-colors duration-300">
-                {resource.title}
-              </h3>
-            )}
+    <div style={{overflowX: 'visible', position: 'relative', width: '100%'}}>
+      <section className="bg-white py-12">
+        <h2 className="text-4xl font-extrabold text-center text-[#000000] mb-8">
+          Resources
+        </h2>
+        <div className="max-w-6xl mx-auto px-2 md:px-6 pt-4" style={{maxWidth: '1500px'}}>
+          {/* Fila horizontal con scroll en todos los tamaños */}
+          <div className="flex gap-4 overflow-x-auto overflow-visible pb-2 scrollbar-thin scrollbar-thumb-[#27ae60]/60 scrollbar-track-transparent justify-center">
+            {resources.map((resource, index) => (
+              <div
+                key={index}
+                className="min-w-[140px] max-w-[160px] h-[200px] bg-white rounded-2xl border border-[#e5e7eb] flex flex-col items-center justify-center text-center p-2 mx-0.5 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-2 hover:border-[#27ae60] group cursor-pointer"
+                style={{ flex: '0 0 150px' }}
+              >
+                <div className="flex items-center justify-center h-18 w-18 mb-3 rounded-full bg-white transition-all duration-300 overflow-hidden" style={{height:'72px',width:'72px'}}>
+                  <Image
+                    src={resource.image}
+                    alt={resource.title}
+                    width={64}
+                    height={64}
+                    className="object-contain w-12 h-12"
+                  />
+                </div>
+                {resource.href ? (
+                  <Link href={resource.href} scroll={true}>
+                    <h3 className="text-[15px] md:text-base font-bold text-black group-hover:text-[#0056b3] transition-colors duration-300 mt-1">
+                      {resource.title}
+                    </h3>
+                  </Link>
+                ) : (
+                  <h3 className="text-[15px] md:text-base font-bold text-black group-hover:text-[#0056b3] transition-colors duration-300 mt-1">
+                    {resource.title}
+                  </h3>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </section>
+        </div>
+      </section>
+    </div>
   );
 };
 
