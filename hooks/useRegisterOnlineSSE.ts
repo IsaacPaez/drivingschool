@@ -12,7 +12,9 @@ interface TicketClass {
   availableSpots: number;
   enrolledStudents: number;
   totalSpots: number;
-  students: any[];
+  students: unknown[];
+  userHasPendingRequest?: boolean;
+  userIsEnrolled?: boolean;
   classInfo?: {
     _id: string;
     title: string;
@@ -32,7 +34,7 @@ interface SSEData {
   message?: string;
 }
 
-export default function useRegisterOnlineSSE(instructorId: string | null, classType: string = 'ALL') {
+export default function useRegisterOnlineSSE(instructorId: string | null, classId: string | null = null, userId: string | null = null) {
   const [ticketClasses, setTicketClasses] = useState<TicketClass[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,10 @@ export default function useRegisterOnlineSSE(instructorId: string | null, classT
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    if (!instructorId) {
+    // If we have classId, start connection immediately 
+    if (classId) {
+      // For classId filtering, we can connect right away
+    } else if (!instructorId || instructorId === "ALL") {
       setTicketClasses([]);
       setError(null);
       setIsConnected(false);
@@ -57,7 +62,10 @@ export default function useRegisterOnlineSSE(instructorId: string | null, classT
     setError(null);
 
     // Create new EventSource connection
-    const eventSource = new EventSource(`/api/register-online/ticket-classes-sse?instructorId=${instructorId}&type=${classType}`);
+    const url = classId 
+      ? `/api/register-online/ticket-classes-sse?classId=${classId}${instructorId && instructorId !== "ALL" ? `&instructorId=${instructorId}` : ""}${userId ? `&userId=${userId}` : ""}`
+      : `/api/register-online/ticket-classes-sse?instructorId=${instructorId}&type=ALL${userId ? `&userId=${userId}` : ""}`;
+    const eventSource = new EventSource(url);
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
@@ -101,7 +109,7 @@ export default function useRegisterOnlineSSE(instructorId: string | null, classT
       setIsConnected(false);
       setIsLoading(false);
     };
-  }, [instructorId, classType]);
+  }, [instructorId, classId]);
 
   // Manual cleanup function
   const disconnect = () => {

@@ -94,7 +94,7 @@ const ClassesPage: React.FC = () => {
                   {selectedClass.buttonLabel}
                 </button>
                 <button 
-                  onClick={() => router.push('/register-online')}
+                  onClick={() => router.push(`/register-online?classId=${selectedClass._id}`)}
                   className="bg-green-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-green-700 transition text-lg sm:text-xl w-full sm:w-auto"
                 >
                   Register Online
