@@ -107,7 +107,7 @@ const Header = () => {
           />
         </div>
         {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
-        <div className="fixed top-4 right-8 flex items-end z-50 mt-0">
+        <div className="fixed top-8 right-10 flex items-end z-50 mt-0">
           {user ? (
             <div className="relative flex flex-col items-center">
               <button

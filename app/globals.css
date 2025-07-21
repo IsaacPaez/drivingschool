@@ -83,6 +83,22 @@ body {
   animation: fadeIn 0.2s ease-out;
 }
 
+/* Animación fade-in-up para el título del hero */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 1s ease-out;
+}
+
 /* Animation delays for loading spinner */
 .animation-delay-150 {
   animation-delay: 150ms;
