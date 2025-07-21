@@ -36,7 +36,13 @@ export async function POST(req: NextRequest) {
 
     // Check if user has a pending request
     const hasRequest = ticketClass.studentRequests?.some(
-      (request: any) => request.studentId.toString() === userId && request.status === 'pending'
+      (request: unknown) => {
+        if (typeof request === 'object' && request !== null && 'studentId' in request && 'status' in request) {
+          const requestObj = request as { studentId: unknown; status: unknown };
+          return requestObj.studentId?.toString() === userId && requestObj.status === 'pending';
+        }
+        return false;
+      }
     );
 
     if (!hasRequest) {

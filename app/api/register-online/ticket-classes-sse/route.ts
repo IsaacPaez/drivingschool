@@ -134,7 +134,13 @@ export async function GET(req: NextRequest) {
           
           // Check if user is already enrolled
           const userIsEnrolled = userId && students.some(
-            (student: any) => student.studentId?.toString() === userId
+            (student: unknown) => {
+              if (typeof student === 'object' && student !== null && 'studentId' in student) {
+                const studentObj = student as { studentId: unknown };
+                return studentObj.studentId?.toString() === userId;
+              }
+              return false;
+            }
           );
           
           // Force status to available if there are spots and no students

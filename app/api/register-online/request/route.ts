@@ -34,8 +34,15 @@ export async function POST(req: NextRequest) {
 
     // Check if user is already enrolled
     const isAlreadyEnrolled = ticketClass.students.some(
-      (student: any) => 
-        (typeof student === 'string' ? student : student.studentId) === userId
+      (student: unknown) => {
+        if (typeof student === 'string') {
+          return student === userId;
+        } else if (typeof student === 'object' && student !== null && 'studentId' in student) {
+          const studentObj = student as { studentId: unknown };
+          return studentObj.studentId === userId;
+        }
+        return false;
+      }
     );
 
     if (isAlreadyEnrolled) {
@@ -47,7 +54,13 @@ export async function POST(req: NextRequest) {
 
     // Check if user already has a pending request
     const existingRequest = ticketClass.studentRequests?.find(
-      (request: any) => request.studentId === userId && request.status === 'pending'
+      (request: unknown) => {
+        if (typeof request === 'object' && request !== null && 'studentId' in request && 'status' in request) {
+          const requestObj = request as { studentId: unknown; status: unknown };
+          return requestObj.studentId === userId && requestObj.status === 'pending';
+        }
+        return false;
+      }
     );
 
     if (existingRequest) {
