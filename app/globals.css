@@ -13,6 +13,7 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  width: 100%;
 }
 
 /* Prevent uncaught exceptions from breaking the app */
@@ -37,6 +38,22 @@ body {
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Paleta de colores estandarizada - Patrón 33% Verde, 33% Negro, 33% Azul */
+  --primary-green: #27ae60;      /* Verde principal - 33% */
+  --secondary-green: #4CAF50;    /* Verde secundario */
+  --primary-blue: #0056b3;       /* Azul principal - 33% */
+  --secondary-blue: #2563eb;     /* Azul secundario */
+  --primary-black: #000000;      /* Negro principal - 33% */
+  --secondary-black: #222222;    /* Negro secundario */
+  --text-dark: #000000;
+  --text-gray: #666666;
+  --bg-light: #f5f5f5;
+  --bg-lighter: #f9f9f9;
+  --white: #ffffff;
+  
+  /* Colores de acento (mínimos) */
+  --accent-orange: #f39c12;      /* Solo para Sign Up */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -83,6 +100,22 @@ body {
   animation: fadeIn 0.2s ease-out;
 }
 
+/* Animación fade-in-up para el título del hero */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 1s ease-out;
+}
+
 /* Animation delays for loading spinner */
 .animation-delay-150 {
   animation-delay: 150ms;
@@ -95,4 +128,64 @@ body {
 .animation-delay-400 {
   animation-delay: 400ms;
 }
+
+/* Estilos para el scroll azul estético y moderno */
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 50%, #1e40af 100%);
+  border-radius: 10px;
+  border: 2px solid #3b82f6;
+  box-shadow: 
+    0 2px 4px rgba(59, 130, 246, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 50%, #1e3a8a 100%);
+  box-shadow: 
+    0 4px 8px rgba(59, 130, 246, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 50%, #1e3a8a 100%);
+  box-shadow: 
+    0 2px 4px rgba(59, 130, 246, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-corner {
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+/* Ocultar las flechas del scrollbar */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Para Firefox con estilos modernos */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #f8fafc;
+}
+
+/* Animación suave para el scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+
 

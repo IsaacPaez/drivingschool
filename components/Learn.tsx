@@ -48,61 +48,69 @@ const Learn = () => {
   ];
 
   return (
-    <section className="bg-white pt-10 pb-16">
+    <section className="bg-white pt-8 pb-4">
       {/* Título con margen superior para mejor separación */}
-      <h2 className="text-5xl text-center font-extrabold text-[#222] leading-tight mb-12">
+      <h2 className="text-5xl text-center font-extrabold text-[#000000] leading-tight mb-4">
         <span className="text-[#27ae60]">WHY </span> LEARN WITH{" "}
         <span className="text-[#0056b3]">US?</span>
       </h2>
 
       {/* Swiper Carrusel */}
-      <div className="max-w-7xl mx-auto px-6 relative">
-        <Swiper
-          modules={[Pagination, Autoplay, Navigation]}
-          spaceBetween={20}
-          slidesPerView={1}
-          breakpoints={{
-            640: { slidesPerView: 1 },
-            768: { slidesPerView: 2 },
-            1024: { slidesPerView: 3 },
-          }}
-          pagination={{ clickable: true }}
-          autoplay={{ delay: 3000, disableOnInteraction: false }}
-          navigation={{
-            nextEl: ".swiper-button-next-custom",
-            prevEl: ".swiper-button-prev-custom",
-          }}
-          loop
-          className="w-full"
-        >
-          {features.map((feature, index) => (
-            <SwiperSlide key={index}>
-              <div className="relative rounded-lg overflow-hidden shadow-xl group transition-transform transform hover:scale-105">
-                {/* Imagen de fondo */}
-                <div
-                  className="w-full h-56 sm:h-64 md:h-72 lg:h-80 bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url(${feature.image})`,
-                  }}
-                ></div>
+      <div className="max-w-6xl mx-auto px-4 relative flex flex-col items-center" style={{maxWidth: '1500px'}}>
+        <div className="relative w-full flex items-center" style={{minHeight: '320px'}}>
+          <Swiper
+            modules={[Pagination, Autoplay, Navigation]}
+            spaceBetween={20}
+            slidesPerView={1}
+            breakpoints={{
+              640: { slidesPerView: 1 },
+              768: { slidesPerView: 2 },
+              1024: { slidesPerView: 3 },
+            }}
+            pagination={{ clickable: true, el: '.swiper-pagination-custom' }}
+            autoplay={{ delay: 3000, disableOnInteraction: false }}
+            navigation={{
+              nextEl: ".swiper-button-next-custom",
+              prevEl: ".swiper-button-prev-custom",
+            }}
+            loop
+            className="w-full"
+          >
+            {features.map((feature, index) => (
+              <SwiperSlide key={index}>
+                <div className="relative rounded-lg overflow-hidden shadow-xl group transition-transform transform hover:scale-105">
+                  {/* Imagen de fondo */}
+                  <div
+                    className="w-full h-56 sm:h-64 md:h-72 lg:h-80 bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url(${feature.image})`,
+                    }}
+                  ></div>
 
-                {/* Superposición negra con animación de opacidad */}
-                <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col justify-center items-center text-center text-white p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <h3 className="text-lg font-bold">{feature.title}</h3>
-                  <p className="text-sm mt-2">{feature.description}</p>
+                  {/* Superposición negra con animación de opacidad */}
+                  <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col justify-center items-center text-center text-white p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <h3 className="text-lg font-bold">{feature.title}</h3>
+                    <p className="text-sm mt-2">{feature.description}</p>
+                  </div>
                 </div>
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
+              </SwiperSlide>
+            ))}
+          </Swiper>
 
-        {/* Flechas minimalistas */}
-        <div className="swiper-button-prev-custom absolute left-0 top-1/2 transform -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition">
-          <span className="text-2xl text-[#0056b3] hover:text-white font-bold">‹</span>
+          {/* Flechas minimalistas SIEMPRE visibles y más cerca del carrusel, ahora con SVG centrado */}
+          <div className="swiper-button-prev-custom z-20 absolute -left-4 top-1/2 -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition border border-[#0056b3]">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+              <path d="M15.5 19L9.5 12L15.5 5" stroke="#0056b3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="swiper-button-next-custom z-20 absolute -right-4 top-1/2 -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition border border-[#0056b3]">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+              <path d="M8.5 5L14.5 12L8.5 19" stroke="#0056b3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         </div>
-        <div className="swiper-button-next-custom absolute right-0 top-1/2 transform -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition">
-          <span className="text-2xl text-[#0056b3] hover:text-white font-bold">›</span>
-        </div>
+        {/* Paginación personalizada debajo del carrusel */}
+        <div className="swiper-pagination-custom flex justify-center mt-8 mb-2 w-full"></div>
       </div>
     </section>
   );

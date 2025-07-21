@@ -7,10 +7,7 @@ import { FaFacebook, FaInstagram, } from "react-icons/fa";
 
 const Footer = () => {
   return (
-    <footer className="relative bg-gradient-to-br from-[#2563eb] via-[#0056b3] to-[#0a2540] text-white py-12">
-      {/* 🔹 Fondo con efecto Glassmorphism (Margen inferior añadido) */}
-      <div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-3xl mx-6 mt-6 mb-6 shadow-lg border border-white/20"></div>
-
+    <footer className="relative bg-[#2563eb] text-white py-12">
       <div className="relative max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10 items-center z-10">
         {/* 🔹 Sección Izquierda - Logo y Booking */}
         <div className="flex flex-col items-center text-center">
@@ -29,7 +26,7 @@ const Footer = () => {
           </h2>
           <Link
             href="/Book-Now"
-            className="mt-6 bg-gradient-to-r from-[#0056b3] to-[#27ae60] text-white font-bold px-6 py-3 rounded-full transition-all duration-500 transform hover:scale-105 hover:shadow-lg hover:shadow-[#27ae60]"
+            className="mt-6 bg-[#27ae60] text-white font-bold px-6 py-3 rounded-full transition-all duration-500 transform hover:scale-105 hover:shadow-lg hover:bg-[#219150]"
           >
             Book Now
           </Link>
@@ -40,7 +37,7 @@ const Footer = () => {
           <h3 className="text-2xl font-extrabold mb-6 mt-2 uppercase tracking-widest text-[#27ae60] border-b border-[#27ae60]/60 inline-block pb-1" style={{textShadow: '0 0 12px #27ae60aa, 0 2px 8px #0006'}}>
             Navigation
           </h3>
-          <ul className="space-y-3 text-lg">
+          <ul className="space-y-3 text-lg font-bold">
             <li>
               <Link href="/Lessons" className="hover:text-[#27ae60] transition-all duration-300 hover:drop-shadow-lg">
                 Lessons
@@ -69,7 +66,7 @@ const Footer = () => {
           <h3 className="text-2xl font-extrabold mb-6 mt-2 uppercase tracking-widest text-[#27ae60] border-b border-[#27ae60]/60 inline-block pb-1" style={{textShadow: '0 0 12px #27ae60aa, 0 2px 8px #0006'}}>
             Contact Us
           </h3>
-          <ul className="space-y-3 text-lg">
+          <ul className="space-y-3 text-lg font-bold">
             <li>
               <a href="/Location" className="hover:text-[#27ae60] transition-all duration-300">
               West Palm Beach, FL
@@ -97,7 +94,7 @@ const Footer = () => {
       </div>
 
       {/* 🔹 Derechos de Autor (Centrado completamente en el contenedor) */}
-      <div className="relative text-center text-gray-400 text-sm mt-10 pb-4">
+      <div className="relative text-center text-gray-400 text-sm mt-10 pb-4 font-bold">
         &copy; {new Date().getFullYear()} Powered By Botopia Technology S.A.S
       </div>
     </footer>
