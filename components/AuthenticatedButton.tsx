@@ -12,6 +12,8 @@ interface AuthenticatedButtonActionData {
   itemId?: string;
   title?: string;
   price?: number;
+  category?: string; // Agregamos categoría para identificar paquetes
+  duration?: number; // Agregamos duración para mostrar horas del paquete
   // ...otros campos que necesites
 }
 
@@ -36,8 +38,35 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
 
   const handleClick = async () => {
     if (loading || added || cartLoading) return;
+    
     switch (type) {
       case "buy":
+        // Verificar si es un paquete que debe ir a la página de scheduling
+        const isPackage = actionData.category === "Road Skills for Life" || 
+                         actionData.title?.toLowerCase().includes("hour") ||
+                         actionData.title?.toLowerCase().includes("pack") ||
+                         label.toLowerCase().includes("buy") && 
+                         (label.toLowerCase().includes("hour") || label.toLowerCase().includes("pack"));
+        
+        if (isPackage) {
+          // Redirigir a la página de driving-lessons en lugar de Calendly externo
+          console.log('🎯 Redirecting package to driving-lessons page:', actionData.title);
+          
+          // Guardar información del paquete seleccionado en localStorage para la página
+          localStorage.setItem('selectedPackage', JSON.stringify({
+            id: actionData.itemId,
+            title: actionData.title,
+            price: actionData.price,
+            duration: actionData.duration,
+            category: actionData.category
+          }));
+          
+          // Redirigir a la página de driving-lessons
+          router.push('/driving-lessons');
+          return;
+        }
+        
+        // Para productos normales, agregar al carrito
         if (
           actionData.itemId &&
           actionData.title &&
@@ -56,14 +85,18 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
           setTimeout(() => setAdded(false), 1200);
         }
         break;
+        
       case "book":
         if (type === "book" || /book|schedule/i.test(label)) {
           router.push("/Book-Now");
           return;
         }
+        break;
+        
       case "contact":
         alert("📩 Opening contact form...");
         break;
+        
       default:
         console.warn("Unknown action type:", type);
     }

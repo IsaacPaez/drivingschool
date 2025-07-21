@@ -9,27 +9,35 @@ import mongoose from "mongoose";
 interface SSEEvent {
   type: string;
   message?: string;
-  ticketClasses?: any[];
+  ticketClasses?: unknown[];
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const instructorId = searchParams.get("instructorId");
   const classType = searchParams.get("type");
+  const classId = searchParams.get("classId");
+  const userId = searchParams.get("userId"); // Get userId to check user's requests
 
-  if (!instructorId || !mongoose.Types.ObjectId.isValid(instructorId)) {
+  // If we have classId, we don't require instructorId validation
+  if (!classId && (!instructorId || !mongoose.Types.ObjectId.isValid(instructorId))) {
     return new Response(JSON.stringify({ error: "Invalid instructor ID" }), { status: 400 });
   }
 
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
   const encoder = new TextEncoder();
+  let isStreamClosed = false;
 
   const sendEvent = (data: SSEEvent) => {
+    if (isStreamClosed) {
+      return; // Don't try to write to closed stream
+    }
     try {
       writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-    } catch (e) {
-      console.warn("SSE stream closed prematurely.");
+    } catch (error) {
+      console.warn("SSE stream closed prematurely:", error);
+      isStreamClosed = true;
     }
   };
   
@@ -46,46 +54,59 @@ export async function GET(req: NextRequest) {
   // Function to fetch and process ticket classes
   const fetchTicketClasses = async () => {
     try {
-      // Build query to find ticket classes directly by instructorId
-      let query: any = {
-        instructorId: instructorId
-      };
+      // Build query to find ticket classes
+      const query: Record<string, unknown> = {};
       
-      // Filter by class type if specified
-      if (classType && classType !== 'ALL') {
-        // Convert frontend format to database format
-        let dbClassType = classType.toLowerCase();
-        if (classType === 'A.D.I') dbClassType = 'adi';
-        if (classType === 'B.D.I') dbClassType = 'bdi';
-        if (classType === 'D.A.T.E') dbClassType = 'date';
+      // Filter by classId if specified (priority over everything else)
+      if (classId && mongoose.Types.ObjectId.isValid(classId)) {
+        query.classId = classId;
+        // If instructorId is also specified, add it to the filter
+        if (instructorId && mongoose.Types.ObjectId.isValid(instructorId)) {
+          query.instructorId = instructorId;
+        }
+      } else if (instructorId && mongoose.Types.ObjectId.isValid(instructorId)) {
+        // Original logic for instructor-based filtering
+        query.instructorId = instructorId;
         
-        query.type = dbClassType;
+        if (classType && classType !== 'ALL') {
+          // Convert frontend format to database format
+          let dbClassType = classType.toLowerCase();
+          if (classType === 'A.D.I') dbClassType = 'adi';
+          if (classType === 'B.D.I') dbClassType = 'bdi';
+          if (classType === 'D.A.T.E') dbClassType = 'date';
+          
+          query.type = dbClassType;
+        }
+      } else {
+        // If no valid filters, return empty array
+        return [];
       }
 
       const ticketClasses = await TicketClass.find(query).lean();
       
       // Populate class info for each ticket class
       const ticketClassesWithInfo = await Promise.all(
-        ticketClasses.map(async (tc: any) => {
+        ticketClasses.map(async (tc: Record<string, unknown>) => {
           // Get instructor info to access their schedule
-          const instructor = await Instructor.findById(tc.instructorId).lean() as any;
+          const instructor = await Instructor.findById(tc.instructorId).lean() as Record<string, unknown>;
           
           // Get class info using classId
-          const classInfo = await Classes.findById(tc.classId).lean() as any;
+          const classInfo = await Classes.findById(tc.classId).lean() as Record<string, unknown>;
           
           // Find the status by looking for this ticketClassId in instructor's schedule
-          let status = 'available';
-          let availableSpots = tc.cupos || 0;
+          let status = 'available';  // Default to available
           
           if (instructor?.schedule) {
             // Search through instructor's schedule to find this ticket class
-            for (const daySchedule of instructor.schedule) {
+            const schedule = instructor.schedule as Record<string, unknown>[];
+            for (const daySchedule of schedule) {
               if (daySchedule.slots) {
-                const slot = daySchedule.slots.find((slot: any) => 
-                  slot.ticketClassId && slot.ticketClassId.toString() === tc._id.toString()
+                const slots = daySchedule.slots as Record<string, unknown>[];
+                const slot = slots.find((slot: Record<string, unknown>) => 
+                  slot.ticketClassId && slot.ticketClassId.toString() === tc._id?.toString()
                 );
                 if (slot) {
-                  status = slot.status || 'available';
+                  status = (slot.status as string) || 'available';
                   break;
                 }
               }
@@ -93,9 +114,39 @@ export async function GET(req: NextRequest) {
           }
           
           // Calculate enrolled students and available spots
-          const enrolledStudents = tc.students ? tc.students.length : 0;
-          const totalSpots = tc.cupos || 0;
-          availableSpots = totalSpots - enrolledStudents;
+          const students = tc.students as unknown[] || [];
+          const enrolledStudents = Array.isArray(students) ? students.length : 0;
+          
+          // Handle both field names: 'cupos' from model and 'spots' from database
+          const totalSpots = (tc.cupos as number) || (tc.spots as number) || 0;
+          const availableSpots = Math.max(0, totalSpots - enrolledStudents);
+          
+          // Check if current user has a pending request for this class
+          const studentRequests = tc.studentRequests as Array<{
+            studentId: string;
+            requestDate: string;
+            status: string;
+          }> || [];
+          
+          const userHasPendingRequest = userId && studentRequests.some(
+            request => request.studentId.toString() === userId && request.status === 'pending'
+          );
+          
+          // Check if user is already enrolled
+          const userIsEnrolled = userId && students.some(
+            (student: unknown) => {
+              if (typeof student === 'object' && student !== null && 'studentId' in student) {
+                const studentObj = student as { studentId: unknown };
+                return studentObj.studentId?.toString() === userId;
+              }
+              return false;
+            }
+          );
+          
+          // Force status to available if there are spots and no students
+          if (availableSpots > 0 && enrolledStudents === 0) {
+            status = 'available';
+          }
           
           return {
             ...tc,
@@ -104,16 +155,18 @@ export async function GET(req: NextRequest) {
             enrolledStudents,
             totalSpots,
             endHour: tc.endHour,
+            userHasPendingRequest,
+            userIsEnrolled,
             classInfo: classInfo ? {
               _id: classInfo._id,
-              title: classInfo.title,
-              overview: classInfo.overview
+              title: classInfo.title as string,
+              overview: classInfo.overview as string
             } : null,
             instructorInfo: instructor ? {
               _id: instructor._id,
-              name: instructor.name,
-              email: instructor.email,
-              photo: instructor.photo
+              name: instructor.name as string,
+              email: instructor.email as string,
+              photo: instructor.photo as string
             } : null
           };
         })
@@ -136,41 +189,61 @@ export async function GET(req: NextRequest) {
   }
 
   // Setup Change Stream for TicketClass collection
-  let ticketClassChangeStream: any = null;
-  let instructorChangeStream: any = null;
+  let ticketClassChangeStream: unknown = null;
+  let instructorChangeStream: unknown = null;
   
   try {
-    // Watch for changes in TicketClass collection for this instructor
-    ticketClassChangeStream = mongoose.connection.collection('ticketclasses').watch([
-      { $match: { 'fullDocument.instructorId': new mongoose.Types.ObjectId(instructorId) } }
-    ]);
+    // Watch for changes in TicketClass collection
+    if (classId) {
+      // If filtering by classId, watch for changes in any ticket class with this classId
+      ticketClassChangeStream = mongoose.connection.collection('ticketclasses').watch([
+        { $match: { 'fullDocument.classId': new mongoose.Types.ObjectId(classId) } }
+      ]);
+    } else if (instructorId) {
+      // If filtering by instructorId, watch for changes for this instructor
+      ticketClassChangeStream = mongoose.connection.collection('ticketclasses').watch([
+        { $match: { 'fullDocument.instructorId': new mongoose.Types.ObjectId(instructorId) } }
+      ]);
+    }
 
-    ticketClassChangeStream.on('change', async () => {
-      console.log('🔔 TicketClass change detected!');
-      try {
-        const ticketClasses = await fetchTicketClasses();
-        sendEvent({ type: "update", ticketClasses });
-      } catch(err) {
-        console.error("Error fetching updated ticket classes:", err);
-        sendEvent({ type: "error", message: "Failed to fetch updated data" });
-      }
-    });
+    if (ticketClassChangeStream) {
+      (ticketClassChangeStream as unknown as { on: (event: string, callback: () => void) => void }).on('change', async () => {
+        if (isStreamClosed) return;
+        
+        console.log('🔔 TicketClass change detected!');
+        try {
+          const ticketClasses = await fetchTicketClasses();
+          sendEvent({ type: "update", ticketClasses });
+        } catch(error) {
+          console.error("Error fetching updated ticket classes:", error);
+          if (!isStreamClosed) {
+            sendEvent({ type: "error", message: "Failed to fetch updated data" });
+          }
+        }
+      });
+    }
 
-    // Watch for changes in Instructor collection (for schedule updates)
-    instructorChangeStream = mongoose.connection.collection('instructors').watch([
-      { $match: { 'documentKey._id': new mongoose.Types.ObjectId(instructorId) } }
-    ]);
+    // Watch for changes in Instructor collection (for schedule updates) - only if we have instructorId
+    if (instructorId) {
+      instructorChangeStream = mongoose.connection.collection('instructors').watch([
+        { $match: { 'documentKey._id': new mongoose.Types.ObjectId(instructorId) } }
+      ]);
 
-    instructorChangeStream.on('change', async () => {
-      console.log('🔔 Instructor change detected!');
-      try {
-        const ticketClasses = await fetchTicketClasses();
-        sendEvent({ type: "update", ticketClasses });
-      } catch(err) {
-        console.error("Error fetching updated ticket classes after instructor change:", err);
-        sendEvent({ type: "error", message: "Failed to fetch updated data" });
-      }
-    });
+      (instructorChangeStream as unknown as { on: (event: string, callback: () => void) => void }).on('change', async () => {
+        if (isStreamClosed) return;
+        
+        console.log('🔔 Instructor change detected!');
+        try {
+          const ticketClasses = await fetchTicketClasses();
+          sendEvent({ type: "update", ticketClasses });
+        } catch(error) {
+          console.error("Error fetching updated ticket classes after instructor change:", error);
+          if (!isStreamClosed) {
+            sendEvent({ type: "error", message: "Failed to fetch updated data" });
+          }
+        }
+      });
+    }
 
   } catch (error) {
     console.error("Failed to setup change streams:", error);
@@ -180,28 +253,44 @@ export async function GET(req: NextRequest) {
   // --- Fallback: Emit update every 2 seconds if there are clients connected ---
   let intervalId: NodeJS.Timeout | null = null;
   intervalId = setInterval(async () => {
+    if (isStreamClosed) {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      return;
+    }
+    
     try {
       const ticketClasses = await fetchTicketClasses();
       sendEvent({ type: "update", ticketClasses });
-    } catch (err) {
+    } catch (error) {
       // Silenciar errores de polling
+      console.warn("Polling error:", error);
     }
   }, 2000);
 
   // Handle client disconnect
   req.signal.addEventListener('abort', () => {
-    if (ticketClassChangeStream) {
-      ticketClassChangeStream.close();
+    console.log('🔌 SSE client disconnected');
+    isStreamClosed = true;
+    
+    if (ticketClassChangeStream && typeof ticketClassChangeStream === 'object' && 'close' in ticketClassChangeStream) {
+      (ticketClassChangeStream as { close: () => void }).close();
     }
-    if (instructorChangeStream) {
-      instructorChangeStream.close();
+    if (instructorChangeStream && typeof instructorChangeStream === 'object' && 'close' in instructorChangeStream) {
+      (instructorChangeStream as { close: () => void }).close();
     }
     if (intervalId) {
       clearInterval(intervalId);
+      intervalId = null;
     }
-    writer.close().catch((err) => {
-      console.warn("Error closing SSE writer:", err);
-    });
+    
+    if (!isStreamClosed) {
+      writer.close().catch((error) => {
+        console.warn("Error closing SSE writer:", error);
+      });
+    }
   });
   
   return new Response(stream.readable, {

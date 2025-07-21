@@ -16,6 +16,11 @@ export interface ITicketClass extends Document {
     citation_ticket?: string;
     course_country?: string;
   }[];
+  studentRequests?: {
+    studentId: mongoose.Schema.Types.ObjectId;
+    requestDate: Date;
+    status: 'pending' | 'accepted' | 'rejected';
+  }[];
   cupos: number;
 }
 
@@ -33,6 +38,13 @@ const TicketClassSchema = new Schema<ITicketClass>(
       {
         type: mongoose.Schema.Types.Mixed,
         required: false
+      }
+    ],
+    studentRequests: [
+      {
+        studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        requestDate: { type: Date, default: Date.now },
+        status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }
       }
     ],
     cupos: { type: Number, required: true },

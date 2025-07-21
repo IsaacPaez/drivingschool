@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "@/globals.css";
 import Modal from "@/components/Modal";
-import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import useRegisterOnlineSSE from "@/hooks/useRegisterOnlineSSE";
 
 interface Instructor {
@@ -29,12 +28,19 @@ interface TicketClass {
   availableSpots: number;
   enrolledStudents: number;
   totalSpots: number;
+  userHasPendingRequest?: boolean;
+  userIsEnrolled?: boolean;
   students: {
     studentId: string;
     reason?: string;
     citation_number?: string;
     citation_ticket?: string;
     course_country?: string;
+  }[];
+  studentRequests?: {
+    studentId: string;
+    requestDate: string;
+    status: 'pending' | 'accepted' | 'rejected';
   }[];
   classInfo?: {
     _id: string;
@@ -49,13 +55,17 @@ interface TicketClass {
   };
 }
 
-export default function RegisterOnlinePage() {
-  const router = useRouter();
+// Component that uses useSearchParams
+function RegisterOnlineContent() {
+  const searchParams = useSearchParams();
+  const classId = searchParams?.get('classId') || null;
+  
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [classList, setClassList] = useState<{_id: string; title: string}[]>([]);
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
-  const [selectedClassType, setSelectedClassType] = useState<string>("ALL");
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(classId);
   const [weekOffset, setWeekOffset] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
   const [showAuthWarning, setShowAuthWarning] = useState(false);
@@ -65,14 +75,24 @@ export default function RegisterOnlinePage() {
   const [selectedTicketClass, setSelectedTicketClass] = useState<TicketClass | null>(null);
   const [showUnbookConfirm, setShowUnbookConfirm] = useState(false);
   const [classToUnbook, setClassToUnbook] = useState<TicketClass | null>(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestedTicketClass, setRequestedTicketClass] = useState<TicketClass | null>(null);
 
   const { user } = useAuth();
   const userId = user?._id || "";
 
-  const classTypes = ["ALL", "A.D.I", "B.D.I", "D.A.T.E"];
+  // Use SSE hook for real-time updates with selectedClassId and userId
+  const { ticketClasses, isLoading } = useRegisterOnlineSSE(selectedInstructorId, selectedClassId, userId);
 
-  // Use SSE hook for real-time updates
-  const { ticketClasses, isLoading, error: sseError, isConnected } = useRegisterOnlineSSE(selectedInstructorId, selectedClassType);
+  // Effect to handle classId from URL - automatically show calendar if classId is present
+  useEffect(() => {
+    if (classId) {
+      // If we have a classId, we don't need to select instructor manually
+      // The calendar should show all instructors' classes for this specific class type
+      setSelectedInstructorId("ALL");
+      setSelectedClassId(classId);
+    }
+  }, [classId]);
 
   // Helper functions
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -123,6 +143,42 @@ export default function RegisterOnlinePage() {
     }
   };
 
+  const handleRequestClass = async (ticketClass: TicketClass) => {
+    if (!userId) {
+      setShowAuthWarning(true);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/register-online/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketClassId: ticketClass._id,
+          userId: userId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Show custom modal with phone number and cancel option
+        setRequestedTicketClass(ticketClass);
+        setShowRequestModal(true);
+        // The SSE will automatically update the UI with new request data
+      } else {
+        setConfirmationMessage(data.error || 'Failed to send request');
+        setShowConfirmation(true);
+      }
+    } catch (error) {
+      console.error('Error sending class request:', error);
+      setConfirmationMessage('An error occurred while sending request');
+      setShowConfirmation(true);
+    }
+  };
+
   const handleUnbookClass = async () => {
     if (!classToUnbook || !userId) {
       return;
@@ -161,11 +217,53 @@ export default function RegisterOnlinePage() {
     }
   };
 
-  const getWeekDates = (date: Date) => {
-    const base = new Date(date);
-    base.setDate(base.getDate() + weekOffset * 7);
+  const handleCancelRequest = async () => {
+    if (!requestedTicketClass || !userId) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/register-online/cancel-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketClassId: requestedTicketClass._id,
+          userId: userId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setShowRequestModal(false);
+        setRequestedTicketClass(null);
+        setConfirmationMessage('Request cancelled successfully');
+        setShowConfirmation(true);
+        // The SSE will automatically update the UI
+      } else {
+        setConfirmationMessage(data.error || 'Failed to cancel request');
+        setShowConfirmation(true);
+      }
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      setConfirmationMessage('An error occurred while cancelling request');
+      setShowConfirmation(true);
+    }
+  };
+
+  const getWeekDates = () => {
+    // Start from today's week, then add weekOffset
+    const today = new Date();
+    const base = new Date(today);
+    base.setDate(today.getDate() + weekOffset * 7);
+    
+    // Get the start of that week (Sunday)
     const startOfWeek = new Date(base);
-    startOfWeek.setDate(base.getDate() - startOfWeek.getDay());
+    startOfWeek.setDate(base.getDate() - base.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
@@ -191,13 +289,21 @@ export default function RegisterOnlinePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch instructors
         const instructorsRes = await fetch('/api/instructors');
         if (instructorsRes.ok) {
           const instructorsData = await instructorsRes.json();
           setInstructors(instructorsData);
         }
+
+        // Fetch classes
+        const classesRes = await fetch('/api/classes');
+        if (classesRes.ok) {
+          const classesData = await classesRes.json();
+          setClassList(classesData);
+        }
       } catch (error) {
-        console.error('❌ Error fetching instructors:', error);
+        console.error('❌ Error fetching data:', error);
       }
     };
 
@@ -216,7 +322,7 @@ export default function RegisterOnlinePage() {
 
   // Render schedule table (similar to Book Now but for classes)
   const renderScheduleTable = () => {
-    const weekDates = getWeekDates(selectedDate || new Date());
+    const weekDates = getWeekDates();
     
     // Generate 30-minute time blocks from 6:00 to 19:30
     const allTimes: { start: string, end: string }[] = [];
@@ -248,7 +354,7 @@ export default function RegisterOnlinePage() {
     };
 
     return (
-      <div className="overflow-x-auto w-full mt-6">
+      <div id="schedule-table" className="overflow-x-auto w-full mt-6">
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-white text-center">
@@ -278,8 +384,6 @@ export default function RegisterOnlinePage() {
                   {timeBlock.start}-{timeBlock.end}
                 </td>
                 {weekDates.map((date) => {
-                  const dateString = `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
-                  
                   // Find classes for this date
                   const classesForDate = ticketClasses.filter(tc => {
                     if (!tc.date) return false;
@@ -304,20 +408,22 @@ export default function RegisterOnlinePage() {
                       const classDurationMin = classEndMin - classStartMin;
                       const rowSpan = Math.ceil(classDurationMin / 30);
                       
-                      const isAvailable = overlappingClass.status === 'available' && overlappingClass.availableSpots > 0;
+                      // FORCE AVAILABLE: Si hay spots disponibles, la clase DEBE estar disponible
+                      const hasAvailableSpots = overlappingClass.availableSpots > 0;
+                      const isAvailable = hasAvailableSpots || overlappingClass.status === 'available';
                       
                       // Check if current user is enrolled in this class
                       const isUserEnrolled = overlappingClass.students.some(
-                        (student: any) =>
-                          (typeof student === 'string' || typeof student === 'object' && student.toString && !student.studentId)
-                            ? student.toString() === userId
+                        (student: string | { studentId?: string }) =>
+                          (typeof student === 'string')
+                            ? student === userId
                             : student.studentId === userId || student.studentId?.toString() === userId
                       );
+
+                      // Check if current user has a pending request
+                      const hasPendingRequest = overlappingClass.userHasPendingRequest;
                       
                       // User is enrolled - show blue slot with unbook option
-                      const enrolledCount = Array.isArray(overlappingClass.students)
-                        ? overlappingClass.students.length
-                        : 0;
                       if (isUserEnrolled) {
                         return (
                           <td
@@ -325,7 +431,7 @@ export default function RegisterOnlinePage() {
                             className="border border-gray-300 p-1 cursor-pointer min-w-[80px] w-[80px] bg-blue-500 text-white hover:bg-red-500"
                             rowSpan={rowSpan}
                             onClick={() => {
-                              setClassToUnbook(overlappingClass);
+                              setClassToUnbook(overlappingClass as TicketClass);
                               setShowUnbookConfirm(true);
                             }}
                             title="Click to unenroll from this class"
@@ -336,11 +442,33 @@ export default function RegisterOnlinePage() {
                             <div className="text-xs font-bold">
                               {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
                             </div>
+                          </td>
+                        );
+                      }
+                      
+                      // User has pending request - show yellow slot with click to cancel
+                      if (hasPendingRequest) {
+                        return (
+                          <td
+                            key={date.toDateString()}
+                            className="border border-gray-300 p-1 cursor-pointer min-w-[80px] w-[80px] bg-yellow-100 hover:bg-yellow-200 text-black"
+                            rowSpan={rowSpan}
+                            title="Click to cancel your pending request"
+                            onClick={() => {
+                              if (!userId) {
+                                setShowAuthWarning(true);
+                                return;
+                              }
+                              // Show the request modal to allow cancellation
+                              setRequestedTicketClass(overlappingClass as TicketClass);
+                              setShowRequestModal(true);
+                            }}
+                          >
                             <div className="text-xs">
-                              {overlappingClass.hour}-{overlappingClass.endHour}
+                              Pending
                             </div>
-                            <div className="text-xs">
-                              {enrolledCount}/{overlappingClass.totalSpots}
+                            <div className="text-xs font-bold">
+                              {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
                             </div>
                           </td>
                         );
@@ -358,8 +486,8 @@ export default function RegisterOnlinePage() {
                                 setShowAuthWarning(true);
                                 return;
                               }
-                              setSelectedTicketClass(overlappingClass);
-                              setIsBookingModalOpen(true);
+                              // Instead of opening modal, send request directly
+                              handleRequestClass(overlappingClass as TicketClass);
                             }}
                           >
                             <div className="text-xs text-black">
@@ -368,17 +496,11 @@ export default function RegisterOnlinePage() {
                             <div className="text-xs font-bold text-black">
                               {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
                             </div>
-                            <div className="text-xs text-black">
-                              {overlappingClass.hour}-{overlappingClass.endHour}
-                            </div>
-                            <div className="text-xs text-black">
-                              {enrolledCount}/{overlappingClass.totalSpots}
-                            </div>
                           </td>
                         );
                       }
                       
-                      // Class is full
+                      // Class is not available (occupied by other students or not available)
                       return (
                         <td
                           key={date.toDateString()}
@@ -386,13 +508,10 @@ export default function RegisterOnlinePage() {
                           rowSpan={rowSpan}
                         >
                           <div className="text-xs text-black">
-                            Full
+                            Occupied
                           </div>
                           <div className="text-xs font-bold text-black">
                             {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
-                          </div>
-                          <div className="text-xs text-black">
-                            {enrolledCount}/{overlappingClass.totalSpots}
                           </div>
                         </td>
                       );
@@ -424,8 +543,14 @@ export default function RegisterOnlinePage() {
     <section className="bg-white pt-32 pb-8 px-2 sm:px-6 flex flex-col items-center w-full">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-6 items-start">
         
-        {/* Left Side - Calendar and Filters */}
+        {/* Left Side - Calendar and Class Types */}
         <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
+          
+          {/* Calendar Title */}
+          <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-gray-800">
+            Select Date
+          </h2>
+          
           {/* Calendar */}
           <div className="mb-4 w-full flex justify-center">
             <Calendar
@@ -433,52 +558,59 @@ export default function RegisterOnlinePage() {
               value={selectedDate}
               locale="en-US"
               className="border rounded-lg shadow-md w-full max-w-xs p-2"
+              onClickDay={(date) => {
+                // ALWAYS change week when clicking on calendar
+                console.log('📅 Calendar click on:', date.toDateString());
+                
+                // Calculate the start of the week for the clicked date (Sunday = 0)
+                const targetWeekStart = new Date(date);
+                targetWeekStart.setDate(date.getDate() - date.getDay());
+                targetWeekStart.setHours(0, 0, 0, 0);
+                
+                // Calculate the start of TODAY's week for reference
+                const today = new Date();
+                const currentWeekStart = new Date(today);
+                currentWeekStart.setDate(today.getDate() - today.getDay());
+                currentWeekStart.setHours(0, 0, 0, 0);
+                
+                // Calculate the week difference from current week
+                const weekDiff = Math.round((targetWeekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+                
+                console.log('📅 Week calculation:', {
+                  clickedDate: date.toDateString(),
+                  targetWeekStart: targetWeekStart.toDateString(),
+                  currentWeekStart: currentWeekStart.toDateString(),
+                  calculatedWeekDiff: weekDiff,
+                  previousOffset: weekOffset,
+                  willUpdate: true
+                });
+                
+                // ALWAYS update the week offset - force update
+                setWeekOffset(weekDiff);
+                console.log('📅 Updated weekOffset to:', weekDiff);
+              }}
             />
           </div>
-          
-          {/* Class Type Selector */}
-          <div className="mb-4 w-full">
-            <h3 className="text-lg font-semibold text-center mb-2 text-blue-600">Select Class Type</h3>
-            <div className="flex flex-wrap justify-center gap-2">
-              {classTypes.map((classType) => (
-                <button
-                  key={classType}
-                  className={`px-4 py-2 rounded-md font-medium transition-all ${
-                    selectedClassType === classType
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                  onClick={() => setSelectedClassType(classType)}
-                >
-                  {classType}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Instructors Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2 w-full">
-            {instructors.map((inst) => {
-              const [firstName, ...lastNameParts] = inst.name.split(' ');
-              const lastName = lastNameParts.join(' ');
+          {/* Available Ticket Classes Title */}
+          <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">
+            Available Ticket Classes
+          </h3>
+
+          {/* Class Types Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 w-full">
+            {classList.map((cls) => {
               return (
                 <div
-                  key={inst._id}
-                  className={`shadow-lg rounded-xl p-2 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full ${selectedInstructor?._id === inst._id ? "border-4 border-blue-500 bg-blue-100" : "bg-white"}`}
+                  key={cls._id}
+                  className={`shadow-lg rounded-xl p-3 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full ${selectedClassId === cls._id ? "border-4 border-blue-500 bg-blue-100" : "bg-white"}`}
                   onClick={() => {
-                    setSelectedInstructorId(inst._id);
+                    setSelectedClassId(cls._id);
+                    setSelectedInstructorId("ALL"); // Show all instructors for this class
                   }}
                 >
-                  <Image
-                    src={inst.photo || "/default-avatar.png"}
-                    alt={inst.name}
-                    width={60}
-                    height={60}
-                    className="w-14 h-14 sm:w-20 sm:h-20 rounded-full mx-auto mb-1 sm:mb-2"
-                  />
-                  <div className="flex flex-col items-center mt-1 sm:mt-2">
-                    <span className="text-sm sm:text-md font-semibold text-black leading-tight">{firstName}</span>
-                    <span className="text-xs sm:text-sm text-gray-600 leading-tight">{lastName}</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-sm sm:text-md font-semibold text-black text-center leading-tight">{cls.title}</span>
                   </div>
                 </div>
               );
@@ -488,27 +620,27 @@ export default function RegisterOnlinePage() {
 
         {/* Right Side - Schedule Table */}
         <div className="w-full lg:w-2/3 mt-6 lg:mt-0">
-          {selectedInstructorId && isLoading && (
+          {isLoading && (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="mt-2 text-gray-600">Loading {selectedClassType} classes schedule...</p>
+              <p className="mt-2 text-gray-600">Loading classes schedule...</p>
             </div>
           )}
           
-          {selectedInstructor && !isLoading && (
+          {/* Show schedule when we have selected class */}
+          {selectedClassId && !isLoading && (
             <>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 mt-12">
-                <span className="text-blue-700">{selectedInstructor.name}&apos;s </span>
-                <span className="text-[#10B981]">{selectedClassType} Classes</span>
+                <span className="text-[#10B981]">Available Classes</span>
               </h2>
               <p className="text-center text-gray-600 mb-6 text-sm">
-                Showing only {selectedClassType} appointments. Green slots are available for booking.
+                Green slots are available for booking.
               </p>
               
               {(!ticketClasses || ticketClasses.length === 0) && (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 text-lg">No {selectedClassType} classes available for this instructor.</p>
-                  <p className="text-gray-400 text-sm mt-2">Please select another instructor or check back later.</p>
+                  <p className="text-gray-500 text-lg">No classes available for this class type.</p>
+                  <p className="text-gray-400 text-sm mt-2">Please check back later.</p>
                 </div>
               )}
               
@@ -646,6 +778,55 @@ export default function RegisterOnlinePage() {
           </div>
         </div>
       </Modal>
+
+      {/* Request Confirmation Modal */}
+      <Modal isOpen={showRequestModal} onClose={() => setShowRequestModal(false)}>
+        <div className="p-6 text-center">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold mb-4 text-green-600">Request Submitted Successfully!</h2>
+          </div>
+          
+          {requestedTicketClass && (
+            <div className="bg-green-50 p-4 rounded-lg mb-4 text-left">
+              <p className="mb-2"><strong>Class:</strong> {requestedTicketClass.classInfo?.title || getClassTypeDisplay(requestedTicketClass.type)}</p>
+              <p className="mb-2"><strong>Date:</strong> {new Date(requestedTicketClass.date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</p>
+              <p className="mb-2"><strong>Time:</strong> {formatTime(requestedTicketClass.hour)} - {formatTime(requestedTicketClass.endHour)}</p>
+            </div>
+          )}
+          
+          <div className="bg-blue-50 p-4 rounded-lg mb-6">
+            <p className="text-blue-800 font-medium mb-2">To complete the enrollment process, please contact:</p>
+            <p className="text-2xl font-bold text-blue-900">(561) 330-7007</p>
+          </div>
+          
+          <p className="text-gray-600 mb-6">Your request is now pending approval. Our team will contact you soon to finalize your enrollment.</p>
+          
+          <div className="flex justify-center gap-3">
+            <button
+              className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600"
+              onClick={handleCancelRequest}
+            >
+              Cancel Request
+            </button>
+            <button
+              className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
+              onClick={() => setShowRequestModal(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      </Modal>
       
       <LoginModal
         open={showLogin}
@@ -653,5 +834,14 @@ export default function RegisterOnlinePage() {
         onLoginSuccess={() => setShowLogin(false)}
       />
     </section>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function RegisterOnlinePage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <RegisterOnlineContent />
+    </Suspense>
   );
 }

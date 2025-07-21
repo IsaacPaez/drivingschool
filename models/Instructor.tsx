@@ -9,6 +9,11 @@ export interface ScheduleSlot {
   studentId: mongoose.Schema.Types.ObjectId | null;
   status: 'free' | 'scheduled' | 'cancelled' | 'available';
   classType?: string; // 'driving_test', 'lesson', etc.
+  pickupLocation?: string;
+  dropoffLocation?: string;
+  selectedProduct?: string;
+  studentName?: string;
+  paid?: boolean;
 }
 
 export interface IInstructor extends Document {
@@ -19,6 +24,7 @@ export interface IInstructor extends Document {
   certifications?: string;
   experience?: string;
   schedule?: ScheduleSlot[];
+  schedule_driving_lesson?: ScheduleSlot[];
 }
 
 const ScheduleSlotSchema = new Schema<ScheduleSlot>({
@@ -29,6 +35,11 @@ const ScheduleSlotSchema = new Schema<ScheduleSlot>({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   status: { type: String, enum: ['free', 'scheduled', 'cancelled', 'available'], default: 'free' },
   classType: { type: String, default: 'lesson' }, // Nuevo campo para el tipo de clase
+  pickupLocation: { type: String, default: '' },
+  dropoffLocation: { type: String, default: '' },
+  selectedProduct: { type: String, default: '' },
+  studentName: { type: String, default: '' },
+  paid: { type: Boolean, default: false },
 });
 
 const InstructorSchema = new Schema<IInstructor>(
@@ -41,6 +52,7 @@ const InstructorSchema = new Schema<IInstructor>(
     certifications: { type: String, default: "N/A" },
     experience: { type: String, default: "N/A" },
     schedule: [ScheduleSlotSchema],
+    schedule_driving_lesson: [ScheduleSlotSchema],
   },
   { timestamps: true }
 );
