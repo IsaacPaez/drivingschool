@@ -23,11 +23,11 @@ const CorporatePrograms = () => {
   return (
     <section
       id="corporate-programs-section"
-      className={`${poppins.variable} bg-gray-100 py-5 px-10`}
+      className={`${poppins.variable} bg-[#f5f5f5] py-2 px-4`}
     >
-      {/* 📌 TÍTULO CENTRALIZADO (Subido más cerca de la sección anterior) */}
+      {/* 📌 TÍTULO CENTRALIZADO */}
       <motion.h2
-        className="text-5xl font-extrabold text-center mb-16 leading-tight"
+        className="text-5xl md:text-6xl font-extrabold text-center mb-8 leading-tight"
         initial="hidden"
         whileInView="visible"
         variants={fadeIn}
@@ -37,26 +37,28 @@ const CorporatePrograms = () => {
         <span className="text-[#0056b3]">Programs</span>
       </motion.h2>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         {/* 📜 CONTENIDO A LA IZQUIERDA */}
         <motion.div
-          className="space-y-4 text-left"
+          className="space-y-6 text-left"
           initial="hidden"
           whileInView="visible"
           variants={fadeIn}
           viewport={{ once: true }}
         >
-          <h3 className="text-3xl font-bold text-black">
-            Upskill Your Organization
+          <h3 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
+            <span className="text-[#0056b3]">Upskill</span>{" "}
+            <span className="text-black">Your</span>{" "}
+            <span className="text-[#27ae60]">Organization</span>
           </h3>
 
-          <p className="text-base text-black leading-relaxed">
+          <p className="text-lg text-black leading-relaxed">
             Affordable Driving Traffic School offers courses that benefit
             industries of all sizes, training employees who need to drive as
             part of their occupation.
           </p>
 
-          <p className="text-base text-black leading-relaxed">
+          <p className="text-lg text-black leading-relaxed">
             Our instructors bring extensive experience from various industries,
             including Law Enforcement, Emergency Transportation, and the
             Transportation sector. Our focus is on reducing risks on the road by
@@ -65,10 +67,10 @@ const CorporatePrograms = () => {
           </p>
 
           {/* 🔹 Contenedor para el texto y el botón con más separación */}
-          <div className="flex flex-col space-y-6">
+          <div className="flex flex-col space-y-3 pt-1">
             {/* 🔹 Contacto con enlace azul SOLO en "Contact us" */}
-            <p className="text-base font-semibold text-black">
-              <Link href="/contact" className="text-[#0056b3] hover:underline">
+            <p className="text-lg font-semibold text-black">
+              <Link href="/contact" className="text-[#0056b3] hover:text-[#27ae60] transition-colors duration-300 hover:underline">
                 Contact us
               </Link>{" "}
               for more information
@@ -77,7 +79,7 @@ const CorporatePrograms = () => {
             {/* Botón de "Inquire Now" */}
             <Link
               href="/contact"
-              className="bg-[#0056b3] text-white font-semibold px-6 py-2 w-fit rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+              className="bg-[#0056b3] text-white font-semibold px-8 py-3 w-fit rounded-full shadow-lg hover:shadow-xl hover:bg-[#27ae60] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer active:translate-y-1 text-base"
             >
               Inquire Now
             </Link>
@@ -86,7 +88,8 @@ const CorporatePrograms = () => {
 
         {/* 📌 IMAGEN A LA DERECHA */}
         <motion.div
-          className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 group hover:brightness-105"
+          className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 group"
+          style={{ minHeight: '324px' }}
           initial="hidden"
           whileInView="visible"
           variants={fadeIn}
@@ -95,9 +98,10 @@ const CorporatePrograms = () => {
           <Image
             src="/CP.jpg" // Asegúrate de que la imagen esté en /public
             alt="Corporate Training"
-            width={750}
-            height={520}
-            className="rounded-2xl object-cover transition-all duration-500 group-hover:scale-105"
+            width={900}
+            height={567}
+            className="rounded-2xl object-cover w-full transition-all duration-500 group-hover:scale-105"
+            style={{ objectFit: 'cover', height: '324px', minHeight: '324px' }}
           />
         </motion.div>
       </div>

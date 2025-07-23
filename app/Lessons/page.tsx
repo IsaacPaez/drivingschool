@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import { Poppins } from "next/font/google";
-import DrivingTestSection from "./DrivingTestSection";
 import CorporatePrograms from "./CorporatePrograms";
 import Link from "next/link";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
@@ -64,36 +63,125 @@ const LessonsPage = () => {
                 ensuring they gain confidence behind the wheel while learning
                 essential safety and defensive driving techniques.
               </p>
-              <ul className="space-y-3 text-lg font-semibold text-black">
-                <li>
-                  Nervous Driver or Parent?{" "}
+              {/* Cartas informativas simétricas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                {/* Carta para Nervous Driver */}
+                <motion.div
+                  className="bg-white rounded-xl shadow-lg border-2 border-[#0056b3]/20 p-6 hover:shadow-xl hover:border-[#0056b3]/40 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="w-12 h-12 bg-[#0056b3] rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-6 h-6 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-[#0056b3]">
+                      Nervous Driver or Parent?
+                    </h3>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4 leading-relaxed flex-grow">
+                    Get specialized guidance and tips for nervous drivers and concerned parents.
+                  </p>
                   <Link
                     href="/Article/Information-for-Nervous-Drivers-and-Parents"
-                    className="text-[#27ae60] hover:underline"
+                    className="inline-flex items-center bg-[#0056b3] text-white font-semibold px-4 py-2 rounded-full hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 hover:bg-[#27ae60] mt-auto"
                   >
                     Read More
+                    <svg
+                      className="w-4 h-4 ml-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
                   </Link>
-                </li>
-                <li>
-                  Want to know more?{" "}
-                  <Link href="/FAQ" className="text-[#27ae60] hover:underline">
+                </motion.div>
+
+                {/* Carta para FAQ */}
+                <motion.div
+                  className="bg-white rounded-xl shadow-lg border-2 border-[#27ae60]/20 p-6 hover:shadow-xl hover:border-[#27ae60]/40 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="w-12 h-12 bg-[#27ae60] rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-6 h-6 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-[#27ae60]">
+                      Want to know more?
+                    </h3>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4 leading-relaxed flex-grow">
+                    Find answers to frequently asked questions about our driving lessons and services.
+                  </p>
+                  <Link
+                    href="/FAQ"
+                    className="inline-flex items-center bg-[#27ae60] text-white font-semibold px-4 py-2 rounded-full hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 hover:bg-[#0056b3] mt-auto"
+                  >
                     Read our FAQ
+                    <svg
+                      className="w-4 h-4 ml-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
                   </Link>
-                </li>
-              </ul>
+                </motion.div>
+              </div>
             </div>
           </motion.div>
           {/* Imagen con animación */}
           <motion.div className="relative flex justify-center items-start mt-20 lg:mt-28" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, delay: 0.2 }}>
             <div
               className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all"
-              style={{ width: 480, height: 600, maxWidth: '100%' }}
+              style={{ width: 480, height: 685, maxWidth: '100%' }}
             >
               <Image
                 src="/TPB.jpg"
                 alt="Traffic in Palm Beach"
                 width={480}
-                height={600}
+                height={685}
                 className="rounded-2xl object-cover w-full h-full group-hover:scale-105 transition-all duration-500"
                 style={{ objectFit: 'cover' }}
               />
@@ -102,7 +190,7 @@ const LessonsPage = () => {
         </div>
 
         {/* Sección de Driving Lessons */}
-        <motion.div className="mt-10" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, delay: 0.25 }}>
+        <motion.div className="mt-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, delay: 0.25 }}>
           {/* Grid para mostrar las lecciones correctamente */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {lessons.map((lesson) => {
@@ -110,48 +198,50 @@ const LessonsPage = () => {
               const isBooking = lesson.buttonLabel
                 ?.toLowerCase()
                 .includes("book");
-              
-              // Determinar si es un paquete basado en título, categoría o buttonLabel
-              const isPackage = lesson.category === "Road Skills for Life" ||
-                               lesson.title?.toLowerCase().includes("hour") ||
-                               lesson.title?.toLowerCase().includes("pack") ||
-                               (lesson.buttonLabel?.toLowerCase().includes("buy") && 
-                                lesson.buttonLabel?.toLowerCase().includes("hour"));
-
-              console.log(`🔍 Lesson: ${lesson.title}, isPackage: ${isPackage}, buttonLabel: ${lesson.buttonLabel}`);
 
               return (
-                <div
+                <motion.div
                   key={lesson._id}
-                  className="p-6 bg-white rounded-xl shadow-md border border-gray-300 flex flex-col items-center"
+                  className="bg-white rounded-xl shadow-lg border border-gray-200 hover:border-[#0056b3]/30 p-4 flex flex-col items-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full group"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
                 >
-                  <h3 className="text-lg text-black font-semibold text-center">
+                  {/* Icono decorativo más pequeño */}
+                  <div className="w-10 h-10 bg-[#0056b3] rounded-full flex items-center justify-center mb-2 group-hover:bg-[#27ae60] transition-colors duration-300">
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                      />
+                    </svg>
+                  </div>
+
+                  <h3 className="text-base text-[#0056b3] font-bold text-center mb-2 group-hover:text-[#27ae60] transition-colors duration-300">
                     {lesson.title}
                   </h3>
-                  <p className="text-sm text-black text-center">
+                  
+                  <p className="text-gray-600 text-center text-xs mb-2 leading-relaxed flex-grow">
                     {lesson.description}
                   </p>
                   
-                  {/* Mostrar duración si está disponible */}
-                  {lesson.duration && (
-                    <p className="text-sm text-blue-600 font-semibold text-center mt-1">
-                      {lesson.duration} Hours Package
+                  {/* Precio destacado más compacto */}
+                  <div className="bg-[#27ae60]/10 rounded-lg p-2 mb-3 w-full">
+                    <p className="text-xl font-extrabold text-[#27ae60] text-center">
+                      ${lesson.price}
                     </p>
-                  )}
+                  </div>
                   
-                  <p className="text-xl font-bold text-[#27ae60] text-center mt-2">
-                    ${lesson.price}
-                  </p>
-                  
-                  {/* Mostrar indicador si es paquete */}
-                  {isPackage && (
-                    <p className="text-xs text-orange-600 font-bold text-center">
-                      📅 Schedule with Calendly
-                    </p>
-                  )}
-                  
-                  {/* Contenedor flex para centrar el botón */}
-                  <div className="flex justify-center w-full mt-3">
+                  {/* Contenedor flex para centrar el botón - siempre al final */}
+                  <div className="flex justify-center w-full mt-auto">
                     <AuthenticatedButton
                       type={isBooking ? "book" : "buy"}
                       actionData={{
@@ -162,10 +252,10 @@ const LessonsPage = () => {
                         duration: lesson.duration, // Pasar duración
                       }}
                       label={lesson.buttonLabel || "Add to Cart"}
-                      className="w-full bg-[#27ae60] text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition duration-300"
+                      className="w-full bg-[#27ae60] text-white font-semibold text-sm px-4 py-2 rounded-full shadow-lg hover:bg-[#0056b3] hover:-translate-y-1 transition-all duration-300"
                     />
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
