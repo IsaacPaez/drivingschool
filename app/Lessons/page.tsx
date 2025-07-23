@@ -8,6 +8,8 @@ import CorporatePrograms from "./CorporatePrograms";
 import Link from "next/link";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
+import { motion } from "framer-motion";
+import clsx from "clsx";
 
 // Fuente moderna
 const poppins = Poppins({
@@ -20,12 +22,23 @@ const LessonsPage = () => {
   const lessons = useDrivingLessons("Road Skills for Life");
 
   return (
-    <section className={`${poppins.variable} bg-[#f5f5f5] py-24 px-8 relative`}>
-      <div className="max-w-7xl mx-auto">
+    <section className={clsx(poppins.variable, "bg-[#f5f5f5] py-20 px-4 relative")}> 
+      <motion.div
+        className="max-w-7xl mx-auto"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+      >
         {/* Contenedor principal de texto e imagen */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start relative z-10">
           {/* Texto con animaciones */}
-          <div className="flex flex-col justify-between animate-fadeIn mt-20">
+          <motion.div
+            className="flex flex-col justify-between mt-20 md:mt-28"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+          >
             <div className="space-y-6">
               <div className="hidden md:block text-left">
                 <Link href="/Book-Now" passHref>
@@ -34,10 +47,11 @@ const LessonsPage = () => {
                   </div>
                 </Link>
               </div>
-
-              <h2 className="text-6xl font-extrabold text-[#222] leading-tight">
-                <span className="text-[#27ae60]">LEARN</span> ROAD <br />
-                SKILLS <span className="text-[#0056b3]">FOR LIFE</span>
+              {/* Título con paleta profesional */}
+              <h2 className="text-5xl md:text-6xl font-extrabold leading-tight">
+                <span className="text-[#0056b3]">LEARN</span>{" "}
+                <span className="text-black">ROAD SKILLS</span>{" "}
+                <span className="text-[#27ae60]">FOR LIFE</span>
               </h2>
               <p className="text-lg text-black leading-relaxed">
                 With over 25 years of experience, we go beyond preparing
@@ -45,15 +59,11 @@ const LessonsPage = () => {
                 traffic scenarios, defensive driving, and high-speed highways
                 like I-95.
               </p>
-
-              {/* Segunda descripción agregada */}
               <p className="text-lg text-black leading-relaxed">
                 We provide personalized lessons tailored for each student,
                 ensuring they gain confidence behind the wheel while learning
                 essential safety and defensive driving techniques.
               </p>
-
-              {/* 📌 Nuevas líneas agregadas */}
               <ul className="space-y-3 text-lg font-semibold text-black">
                 <li>
                   Nervous Driver or Parent?{" "}
@@ -72,24 +82,27 @@ const LessonsPage = () => {
                 </li>
               </ul>
             </div>
-          </div>
-
+          </motion.div>
           {/* Imagen con animación */}
-          <div className="relative flex justify-center items-start mt-20">
-            <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all">
+          <motion.div className="relative flex justify-center items-start mt-20 lg:mt-28" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, delay: 0.2 }}>
+            <div
+              className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all"
+              style={{ width: 480, height: 600, maxWidth: '100%' }}
+            >
               <Image
                 src="/TPB.jpg"
                 alt="Traffic in Palm Beach"
-                width={400}
-                height={320}
-                className="rounded-2xl object-cover transition-all group-hover:scale-110"
+                width={480}
+                height={600}
+                className="rounded-2xl object-cover w-full h-full group-hover:scale-105 transition-all duration-500"
+                style={{ objectFit: 'cover' }}
               />
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Sección de Driving Lessons */}
-        <div className="mt-14">
+        <motion.div className="mt-10" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, delay: 0.25 }}>
           {/* Grid para mostrar las lecciones correctamente */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {lessons.map((lesson) => {
@@ -156,14 +169,16 @@ const LessonsPage = () => {
               );
             })}
           </div>
-        </div>
-      </div>
-
-      {/* Sección de Driving Test */}
-      {/* <DrivingTestSection /> */}
+        </motion.div>
+        {/* Sección de Driving Test */}
+        {/* <DrivingTestSection /> */}
 
       {/* Sección de Corporate Programs */}
-      <CorporatePrograms />
+      <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, delay: 0.3 }}>
+        <CorporatePrograms />
+      </motion.div>
+      {/* CIERRE CORRECTO DEL motion.div PRINCIPAL */}
+      </motion.div>
     </section>
   );
 };
