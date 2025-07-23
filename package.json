@@ -24,7 +24,7 @@
     "autoprefixer": "^10.4.20",
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
-    "framer-motion": "^12.0.6",
+    "framer-motion": "^12.23.7",
     "handlebars": "^4.7.8",
     "heatmap.js": "^2.0.5",
     "ip-location": "^1.0.1",
