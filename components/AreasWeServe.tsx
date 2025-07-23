@@ -2,11 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import Modal from "@/components/Modal";
 import LoadingSpinner from './common/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import LocationMap from "../app/Location/LocationMap";
 import LocationModal from "../app/Location/LocationModal";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Pagination, Autoplay, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
 
 // Definir interfaces
 interface Instructor {
@@ -29,11 +33,11 @@ const AreasWeServe = () => {
   const [selectedZone, setSelectedZone] = useState<Area | null>(null);
   const router = useRouter();
 
-  const handleBookNow = (instructorName: string) => {
+  const handleBookNow = () => {
     setSelectedZone(null);
     try {
       router.push('/Book-Now');
-    } catch (error) {
+    } catch {
       window.location.href = '/Book-Now';
     }
   };
@@ -89,31 +93,71 @@ const AreasWeServe = () => {
             </div>
           )}
 
-          {/* Si hay varias zonas, mostrar como tarjetas premium */}
+          {/* Si hay varias zonas, mostrar como carrusel premium */}
           {areas.length > 1 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full">
-              {areas.map((area) => (
-                <div
-                  key={area._id}
-                  className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center hover:shadow-xl transition cursor-pointer group"
-                  onClick={() => setSelectedZone(area)}
+            <div className="w-full relative">
+              <div className="relative w-full flex items-center" style={{minHeight: '320px'}}>
+                <Swiper
+                  modules={[Pagination, Autoplay, Navigation]}
+                  spaceBetween={20}
+                  slidesPerView={1}
+                  breakpoints={{
+                    640: { slidesPerView: 1 },
+                    768: { slidesPerView: 2 },
+                    1024: { slidesPerView: 3 },
+                  }}
+                  pagination={{ clickable: true, el: '.swiper-pagination-areas' }}
+                  autoplay={{ delay: 4000, disableOnInteraction: false }}
+                  navigation={{
+                    nextEl: ".swiper-button-next-areas",
+                    prevEl: ".swiper-button-prev-areas",
+                  }}
+                  loop
+                  className="w-full"
                 >
-                  <div className="w-12 h-12 mb-3 flex items-center justify-center bg-[#F5F6FA] rounded-full group-hover:bg-green-100 transition">
-                    <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="16" cy="16" r="15" fill="#F5F6FA" stroke="#1A7F5A" strokeWidth="2"/>
-                      <path d="M16 8C12.6863 8 10 10.6863 10 14C10 18.25 16 24 16 24C16 24 22 18.25 22 14C22 10.6863 19.3137 8 16 8Z" fill="#1A7F5A"/>
-                      <circle cx="16" cy="14" r="3" fill="white"/>
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-bold text-[#1A7F5A] mb-1 text-center">{area.zone}</h3>
-                  <p className="text-gray-600 text-sm text-center line-clamp-3 mb-2">{area.description?.slice(0, 80) || 'Driving lessons available here.'}</p>
-                  <button
-                    className="mt-2 bg-gradient-to-r from-[#1A7F5A] to-[#3ECF8E] text-white font-semibold py-2 px-6 rounded-lg hover:from-[#14804a] hover:to-[#2ebd7f] transition"
-                  >
-                    View Details
-                  </button>
+                  {areas.map((area) => (
+                    <SwiperSlide key={area._id}>
+                      <div
+                        className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center hover:shadow-xl transition cursor-pointer group h-80"
+                        onClick={() => setSelectedZone(area)}
+                      >
+                        <div className="w-12 h-12 mb-3 flex items-center justify-center bg-[#F5F6FA] rounded-full group-hover:bg-green-100 transition">
+                          <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="16" cy="16" r="15" fill="#F5F6FA" stroke="#1A7F5A" strokeWidth="2"/>
+                            <path d="M16 8C12.6863 8 10 10.6863 10 14C10 18.25 16 24 16 24C16 24 22 18.25 22 14C22 10.6863 19.3137 8 16 8Z" fill="#1A7F5A"/>
+                            <circle cx="16" cy="14" r="3" fill="white"/>
+                          </svg>
+                        </div>
+                        <h3 className="text-lg font-bold text-[#1A7F5A] mb-3 text-center">{area.zone}</h3>
+                        <p className="text-gray-600 text-sm text-center mb-4 flex-grow">{area.description?.slice(0, 120) || 'Driving lessons available here.'}</p>
+                        <button
+                          className="mt-auto flex items-center gap-2 border-2 border-[#27ae60] text-[#27ae60] font-bold py-3 px-6 rounded-full bg-white shadow hover:bg-green-50 transition focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
+                        >
+                          <svg xmlns='http://www.w3.org/2000/svg' className='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2} style={{minWidth: '1.25rem'}}>
+                            <path strokeLinecap='round' strokeLinejoin='round' d='M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z' />
+                          </svg>
+                          View Details
+                        </button>
+                      </div>
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+
+                {/* Flechas de navegación para el carrusel de áreas */}
+                <div className="swiper-button-prev-areas z-20 absolute -left-4 top-1/2 -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition border border-[#1A7F5A]">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+                    <path d="M15.5 19L9.5 12L15.5 5" stroke="#1A7F5A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
-              ))}
+                <div className="swiper-button-next-areas z-20 absolute -right-4 top-1/2 -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition border border-[#1A7F5A]">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+                    <path d="M8.5 5L14.5 12L8.5 19" stroke="#1A7F5A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Paginación personalizada para el carrusel de áreas */}
+              <div className="swiper-pagination-areas flex justify-center mt-6 mb-2 w-full"></div>
             </div>
           )}
 
@@ -206,7 +250,7 @@ const AreasWeServe = () => {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        handleBookNow(instructor.name);
+                        handleBookNow();
                       }}
                       className="mt-auto w-full max-w-[140px] h-[44px] bg-gradient-to-r from-[#1A7F5A] to-[#3ECF8E] text-white font-semibold py-2 px-4 rounded-lg hover:from-[#14804a] hover:to-[#2ebd7f] transition flex flex-col justify-center items-center cursor-pointer"
                     >
