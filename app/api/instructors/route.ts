@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type');
     const includeSchedule = searchParams.get('includeSchedule') === 'true';
     
-    console.log('🔍 Fetching instructors with type:', type, 'includeSchedule:', includeSchedule);
+    // console.log('🔍 Fetching instructors with type:', type, 'includeSchedule:', includeSchedule);
     
     let filter = {};
     let selectFields = 'name photo email specialization category type';
@@ -39,12 +39,12 @@ export async function GET(request: NextRequest) {
       .sort({ name: 1 })
       .lean();
     
-    console.log('👨‍🏫 Instructors found:', instructors.length);
-    console.log('📋 Instructors data:', JSON.stringify(instructors, null, 2));
+    // console.log('👨‍🏫 Instructors found:', instructors.length);
+    // console.log('📋 Instructors data:', JSON.stringify(instructors, null, 2));
     
     // Si no encontramos instructores específicos, devolver todos
     if (instructors.length === 0 && type === 'driving-lessons') {
-      console.log('📝 No specific driving instructors found, fetching all instructors');
+      // console.log('📝 No specific driving instructors found, fetching all instructors');
       const allInstructors = await Instructor.find({})
         .select(selectFields)
         .sort({ name: 1 })
