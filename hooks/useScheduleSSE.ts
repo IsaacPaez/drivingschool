@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 
 interface ScheduleData {
   type: 'initial' | 'update' | 'error';
-  schedule?: any[];
+  schedule?: unknown[];
   message?: string;
 }
 
 export function useScheduleSSE(instructorId: string | null) {
-  const [schedule, setSchedule] = useState<any[]>([]);
+  const [schedule, setSchedule] = useState<unknown[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -37,14 +37,15 @@ export function useScheduleSSE(instructorId: string | null) {
     eventSource.onmessage = (event) => {
       try {
         const data: ScheduleData = JSON.parse(event.data);
-        // console.log("📡 SSE data received:", data);
+        console.log("📡 SSE data received for instructor", instructorId, ":", data);
         
         if (data.type === 'initial' || data.type === 'update') {
           if (data.schedule) {
-            // console.log("📅 Setting schedule:", data.schedule);
+            console.log("📅 Setting schedule:", data.schedule.length, "slots");
             setSchedule(data.schedule);
           }
         } else if (data.type === 'error') {
+          console.log("❌ SSE Error:", data.message);
           setError(data.message || 'Unknown error occurred');
         }
       } catch (err) {

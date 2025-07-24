@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import Instructor from '@/models/Instructor';
-import mongoose from 'mongoose';
+import Instructor, { ScheduleSlot } from '@/models/Instructor';
 
 export async function POST(request: Request) {
   try {
     await connectToDatabase();
-    const { studentId, instructorId, date, start, end } = await request.json();
+    const { studentId, instructorId, date, start, end, slotId, classType } = await request.json();
+    
+    // console.log('🔥 Cancel booking request:', { studentId, instructorId, date, start, end, slotId, classType });
     
     if (!studentId || !instructorId || !date || !start || !end) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -18,32 +19,56 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Instructor not found' }, { status: 404 });
     }
 
-    // Buscar el slot
-    const slot = instructor.schedule.find((slot: any) => 
-      slot.date === date && slot.start === start && slot.end === end
-    );
+    // console.log('🔍 Found instructor:', instructor.name);
+
+    // Buscar el slot en la estructura correcta
+    let foundSlot: ScheduleSlot | null = null;
+    let scheduleType: string | null = null;
+
+    // Check in driving test schedule
+    if (instructor.schedule_driving_test) {
+      foundSlot = instructor.schedule_driving_test.find((slot: ScheduleSlot) => 
+        slot.date === date && slot.start === start && slot.end === end
+      );
+      if (foundSlot) scheduleType = 'schedule_driving_test';
+    }
+
+    // Check in regular schedule if not found
+    if (!foundSlot && instructor.schedule) {
+      foundSlot = instructor.schedule.find((slot: ScheduleSlot) => 
+        slot.date === date && slot.start === start && slot.end === end
+      );
+      if (foundSlot) scheduleType = 'schedule';
+    }
     
-    if (!slot) {
+    if (!foundSlot) {
+    // console.log('❌ Slot not found in instructor schedules');
       return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
     }
 
+    // console.log('✅ Found slot:', foundSlot, 'in', scheduleType);
+
     // Verificar que el slot pertenece al estudiante
-    if (slot.studentId?.toString() !== studentId) {
+    if (foundSlot.studentId?.toString() !== studentId) {
+    // console.log('❌ Unauthorized - slot belongs to:', foundSlot.studentId, 'but request from:', studentId);
       return NextResponse.json({ error: 'Unauthorized to cancel this booking' }, { status: 403 });
     }
 
     // Liberar el slot y volverlo disponible
-    slot.status = 'available';
-    slot.booked = false;
-    slot.studentId = null;
+    foundSlot.status = 'available';
+    foundSlot.booked = false;
+    foundSlot.studentId = null;
     
-    instructor.markModified('schedule');
+    // Mark the correct schedule as modified
+    instructor.markModified(scheduleType);
     await instructor.save();
+
+    // console.log('✅ Slot cancelled and set to available');
 
     // Emit socket event for real-time updates (if socket.io is available)
     try {
-      if (typeof globalThis !== 'undefined' && (globalThis as any).io) {
-        (globalThis as any).io.emit('scheduleUpdate', {
+      if (typeof globalThis !== 'undefined' && (globalThis as unknown as { io?: unknown }).io) {
+        ((globalThis as unknown as { io: { emit: (event: string, data: unknown) => void } }).io).emit('scheduleUpdate', {
           instructorId,
           date,
           start,
@@ -53,7 +78,7 @@ export async function POST(request: Request) {
         });
       }
     } catch (socketError) {
-      console.log('Socket emission failed:', socketError);
+      // console.log('Socket emission failed:', socketError);
     }
 
     return NextResponse.json({ 
@@ -67,9 +92,10 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
+    // console.error('❌ Error cancelling booking:', error);
     return NextResponse.json({ 
       error: 'Failed to cancel booking', 
       details: error instanceof Error ? error.message : String(error) 
     }, { status: 500 });
   }
-} 
+}
