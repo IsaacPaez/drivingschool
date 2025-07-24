@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 interface SSEEvent {
   type: string;
   message?: string;
-  schedule?: any[];
+  schedule?: unknown[];
 }
 
 export async function GET(req: NextRequest) {
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const sendEvent = (data: SSEEvent) => {
     try {
       writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-    } catch (e) {
+    } catch {
       console.warn("SSE stream closed prematurely.");
     }
   };
@@ -51,24 +51,27 @@ export async function GET(req: NextRequest) {
     }
     
     // Filter schedule to only include driving test slots
-    const fullSchedule = instructor.get('schedule', { lean: true }) || [];
-    const drivingTestSchedule = fullSchedule.filter((slot: any) => slot.classType === "driving test");
+    const fullSchedule = instructor.get('schedule_driving_test', { lean: true }) || [];
+    console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${fullSchedule.length} schedule_driving_test slots`);
     
-    //console.log(`📊 Instructor ${instructorId}: ${fullSchedule.length} total slots, ${drivingTestSchedule.length} driving test slots`);
-    
-    if (drivingTestSchedule.length > 0) {
-      //console.log(`✅ Found ${drivingTestSchedule.length} driving test slots for instructor ${instructorId}`);
-      //console.log("📅 Sample slots:", drivingTestSchedule.slice(0, 3).map(s => ({ date: s.date, start: s.start, end: s.end, status: s.status })));
-    } else {
-      //console.log(`⚠️ No driving test slots found for instructor ${instructorId}`);
+    if (fullSchedule.length > 0) {
+      console.log("📅 Sample slots:", fullSchedule.slice(0, 3).map(s => ({ 
+        date: s.date, 
+        start: s.start, 
+        end: s.end, 
+        status: s.status,
+        classType: s.classType 
+      })));
     }
-    sendEvent({ type: "initial", schedule: drivingTestSchedule });
+    
+    sendEvent({ type: "initial", schedule: fullSchedule });
   } catch (error) {
     console.error("Error fetching initial schedule:", error);
     sendEvent({ type: "error", message: "Failed to fetch initial data" });
   }
 
   // Setup Change Stream with error handling
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let changeStream: any = null;
   try {
     changeStream = mongoose.connection.collection('instructors').watch([
@@ -80,12 +83,11 @@ export async function GET(req: NextRequest) {
         console.log(`🔄 Change detected for instructor ${instructorId}`);
         const instructor = await Instructor.findById(instructorId);
         if (instructor) {
-          // Filter schedule to only include driving test slots
-          const fullSchedule = instructor.get('schedule', { lean: true }) || [];
-          const drivingTestSchedule = fullSchedule.filter((slot: any) => slot.classType === "driving test");
+          // Get schedule_driving_test slots
+          const updatedSchedule = instructor.get('schedule_driving_test', { lean: true }) || [];
           
-          console.log(`🔄 Updated schedule for ${instructorId}: ${fullSchedule.length} total, ${drivingTestSchedule.length} driving test slots`);
-          sendEvent({ type: "update", schedule: drivingTestSchedule });
+          console.log(`🔄 Updated schedule for ${instructorId}: ${updatedSchedule.length} driving test slots`);
+          sendEvent({ type: "update", schedule: updatedSchedule });
         }
       } catch(err) {
         console.error("Error fetching updated schedule for broadcast:", err);

@@ -34,12 +34,11 @@ export async function POST(req: NextRequest) {
 
     // Check if user is already enrolled
     const isAlreadyEnrolled = ticketClass.students.some(
-      (student: unknown) => {
+      (student: { studentId: mongoose.Types.ObjectId } | string) => {
         if (typeof student === 'string') {
           return student === userId;
         } else if (typeof student === 'object' && student !== null && 'studentId' in student) {
-          const studentObj = student as { studentId: unknown };
-          return studentObj.studentId === userId;
+          return student.studentId.toString() === userId;
         }
         return false;
       }
@@ -54,12 +53,8 @@ export async function POST(req: NextRequest) {
 
     // Check if user already has a pending request
     const existingRequest = ticketClass.studentRequests?.find(
-      (request: unknown) => {
-        if (typeof request === 'object' && request !== null && 'studentId' in request && 'status' in request) {
-          const requestObj = request as { studentId: unknown; status: unknown };
-          return requestObj.studentId === userId && requestObj.status === 'pending';
-        }
-        return false;
+      (request: { studentId: mongoose.Types.ObjectId; status: string }) => {
+        return request.studentId.toString() === userId && request.status === 'pending';
       }
     );
 
@@ -70,25 +65,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Add the request to studentRequests array
-    const newRequest = {
-      studentId: new mongoose.Types.ObjectId(userId),
-      requestDate: new Date(),
-      status: 'pending' as const
-    };
+    // Add the request using updateOne to avoid validation issues with the full document
+    const updateResult = await TicketClass.updateOne(
+      { _id: ticketClassId },
+      {
+        $push: {
+          studentRequests: {
+            studentId: new mongoose.Types.ObjectId(userId),
+            requestDate: new Date(),
+            status: 'pending'
+          }
+        }
+      }
+    );
 
-    if (!ticketClass.studentRequests) {
-      ticketClass.studentRequests = [];
+    if (updateResult.modifiedCount === 0) {
+      return NextResponse.json(
+        { error: "Failed to add request" },
+        { status: 500 }
+      );
     }
-
-    ticketClass.studentRequests.push(newRequest);
-    
-    await ticketClass.save();
 
     return NextResponse.json(
       { 
         message: "Your class request has been submitted successfully! To complete the enrollment process, please contact us at (561) 330-7007.", 
-        request: newRequest 
+        success: true
       },
       { status: 200 }
     );

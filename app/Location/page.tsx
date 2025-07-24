@@ -123,63 +123,105 @@ const LocationPage: React.FC = () => {
               {/* Sección superior con el mapa y la información */}
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="w-full md:w-1/2 flex items-center">
-                  <div className="w-full h-64 md:h-[400px] rounded-lg overflow-hidden">
+                  <div className="w-full h-64 md:h-[400px] rounded-lg overflow-hidden shadow-lg">
                     <LocationMap />
                   </div>
                 </div>
 
                 <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">
-                    {location.title}
-                  </h2>
-                  <div className="text-gray-700 mb-4">
-                    <p>
-                      <strong>Phone:</strong>{" "}
-                      <span className="text-blue-600 font-bold">561 330 7007</span>
+                  <div className="mb-4 text-center">
+                    <h2 className="text-2xl font-bold text-blue-600 mb-2">
+                      Main Office Location
+                    </h2>
+                    <p className="text-lg font-semibold text-gray-800">
+                      {location.title}
                     </p>
-                    <p>
-                      <strong>Email:</strong>{" "}
+                  </div>
+                  
+                  <div className="text-gray-700 mb-6 space-y-2">
+                    <div className="flex items-center">
+                      <span className="text-blue-600 mr-2">📞</span>
+                      <strong>Phone:</strong>
+                      <span className="text-blue-600 font-bold ml-2">561 330 7007</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-blue-600 mr-2">✉️</span>
+                      <strong>Email:</strong>
                       <a
                         href="mailto:info@drivingschoolpalmbeach.com"
-                        className="text-blue-600 underline"
+                        className="text-blue-600 underline ml-2 hover:text-blue-800"
                       >
                         info@drivingschoolpalmbeach.com
                       </a>
-                    </p>
-                    <p>
-                      <strong>Address:</strong> 3167 Forest Hill Blvd, West Palm Beach,
-                      Florida 33406
-                    </p>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="text-blue-600 mr-2 mt-1">📍</span>
+                      <div>
+                        <strong>Address:</strong>
+                        <p className="text-gray-800 font-medium">
+                          3167 Forest Hill Blvd<br />
+                          West Palm Beach, Florida 33406
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-gray-900 grid grid-cols-2 gap-x-8">
-                    {[
-                      "Monday",
-                      "Tuesday",
-                      "Wednesday",
-                      "Thursday",
-                      "Friday",
-                      "Saturday",
-                      "Sunday",
-                    ].map((day, index) => (
-                      <p key={index} className="flex justify-between w-full">
-                        <strong>{day}:</strong>
-                        <span>8:00am - 8:00pm</span>
-                      </p>
-                    ))}
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                      <span className="text-blue-600 mr-2">🕒</span>
+                      Business Hours
+                    </h3>
+                    <div className="text-gray-900 grid grid-cols-1 gap-y-1">
+                      {[
+                        "Monday",
+                        "Tuesday", 
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday",
+                      ].map((day, index) => (
+                        <p key={index} className="flex justify-between">
+                          <strong>{day}:</strong>
+                          <span>8:00am - 8:00pm</span>
+                        </p>
+                      ))}
+                    </div>
                   </div>
-                  <button className="mt-8 w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition" onClick={() => window.location.href = '/Book-Now'}>
-                    Book Now
+                  
+                  <button className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg" onClick={() => window.location.href = '/Book-Now'}>
+                    📅 Book Your Lesson Now
                   </button>
                 </div>
               </div>
 
+              {/* Separador visual claro */}
+              <div className="mt-12 mb-8">
+                <div className="border-t border-gray-300"></div>
+                <div className="text-center -mt-3">
+                  <span className="bg-gray-100 px-4 py-1 text-gray-600 text-sm">Service Areas</span>
+                </div>
+              </div>
+
+              {/* Información de áreas de servicio */}
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Areas We Serve
+                </h3>
+                <p className="text-gray-600 max-w-3xl mx-auto">
+                  While our main office is located in West Palm Beach, we provide driving lessons 
+                  and services throughout the following areas. Our certified instructors will meet 
+                  you at convenient locations within these zones.
+                </p>
+              </div>
+
               {/* Botón para mostrar/ocultar zonas */}
-              <div className="text-center mt-10">
+              <div className="text-center">
                 <button
                   onClick={() => setShowZones(!showZones)}
-                  className="text-blue-600 underline text-lg font-semibold"
+                  className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition shadow-lg"
                 >
-                  {showZones ? "Hide Areas" : "View all Areas Covered"}
+                  {showZones ? "Hide Service Areas" : "View All Service Areas"}
                 </button>
               </div>
 

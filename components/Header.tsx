@@ -61,7 +61,7 @@ const Header = () => {
   const navItems = [
     { name: "Home", href: "/" },
     { name: "Lessons", href: "/Lessons" },
-    { name: "Packages", href: "/driving-lessons" },
+    //{ name: "Packages", href: "/driving-lessons" },
     { name: "Classes", href: "/Classes" },
     { name: "Online Courses", href: "/OnlineCourses" },
     { name: "Driving Test", href: "/driving_test" },
