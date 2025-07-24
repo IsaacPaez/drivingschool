@@ -1060,14 +1060,14 @@ export default function BookNowPage() {
               onClick={async () => {
                 if (slotToCancel && selectedInstructor) {
                   try {
-                    console.log('🔥 Attempting to cancel slot:', {
-                      studentId: userId,
-                      instructorId: selectedInstructor._id,
-                      date: slotToCancel.dateString,
-                      start: slotToCancel.slot.start,
-                      end: slotToCancel.slot.end,
-                      slotId: slotToCancel.slot._id
-                    });
+                    // console.log('🔥 Attempting to cancel slot:', {
+                    //   studentId: userId,
+                    //   instructorId: selectedInstructor._id,
+                    //   date: slotToCancel.dateString,
+                    //   start: slotToCancel.slot.start,
+                    //   end: slotToCancel.slot.end,
+                    //   slotId: slotToCancel.slot._id
+                    // });
                     
                     const res = await fetch('/api/booking/cancel', {
                       method: 'POST',
@@ -1088,17 +1088,17 @@ export default function BookNowPage() {
                     
                     if (res.ok) {
                       const responseData = await res.json();
-                      console.log('✅ Cancellation successful:', responseData);
+                      // console.log('✅ Cancellation successful:', responseData);
                       setCancellationMessage('Booking cancelled successfully. The slot is now available again.');
                       setShowCancellation(true);
                     } else {
                       const errorData = await res.json();
-                      console.error('❌ Cancellation failed:', errorData);
+                      // console.error('❌ Cancellation failed:', errorData);
                       setCancellationMessage(`Could not cancel the booking: ${errorData.error || 'Please try again.'}`);
                       setShowCancellation(true);
                     }
                   } catch (error) {
-                    console.error('❌ Network error during cancellation:', error);
+                    // console.error('❌ Network error during cancellation:', error);
                     setCancellationMessage('Error cancelling booking. Please try again.');
                     setShowCancellation(true);
                   }
