@@ -5,7 +5,7 @@ import Instructor, { ScheduleSlot } from "@/models/Instructor";
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🟢 Endpoint /api/driving-test/available-classes called');
+    // console.log('🟢 Endpoint /api/driving-test/available-classes called');
     
     await dbConnect();
     
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const locationId = searchParams.get('locationId');
     const weekOffset = parseInt(searchParams.get('weekOffset') || '0');
     
-    console.log('🔍 Getting available driving test classes for locationId:', locationId);
+    // console.log('🔍 Getting available driving test classes for locationId:', locationId);
     
     if (!locationId) {
       return NextResponse.json(
@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('📍 Location found:', location.zone);
-    console.log('👥 Instructors in location:', location.instructors.length);
+    // console.log('📍 Location found:', location.zone);
+    // console.log('👥 Instructors in location:', location.instructors.length);
 
     // 2. Filtrar instructores que pueden enseñar driving test
     const drivingTestInstructors = await Instructor.find({
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       canTeachDrivingTest: true
     });
 
-    console.log('🚗 Driving test instructors found:', drivingTestInstructors.length);
+    // console.log('🚗 Driving test instructors found:', drivingTestInstructors.length);
 
     // 3. Obtener todas las clases disponibles de estos instructores
     const availableClasses: {
@@ -69,21 +69,21 @@ export async function GET(request: NextRequest) {
       weekDates.push(date.toISOString().split('T')[0]); // formato YYYY-MM-DD
     }
 
-    console.log('📅 Week dates:', weekDates);
+    // console.log('📅 Week dates:', weekDates);
 
     for (const instructor of drivingTestInstructors) {
-      console.log(`👨‍🏫 Checking instructor: ${instructor.name}`);
-      console.log(`   - Has schedule_driving_test: ${!!instructor.schedule_driving_test}`);
-      console.log(`   - Schedule length: ${instructor.schedule_driving_test?.length || 0}`);
+      // console.log(`👨‍🏫 Checking instructor: ${instructor.name}`);
+      // console.log(`   - Has schedule_driving_test: ${!!instructor.schedule_driving_test}`);
+      // console.log(`   - Schedule length: ${instructor.schedule_driving_test?.length || 0}`);
       
       if (instructor.schedule_driving_test && instructor.schedule_driving_test.length > 0) {
         // Mostrar algunos ejemplos de slots para debug
-        console.log(`   - Sample slots:`, instructor.schedule_driving_test.slice(0, 3).map(slot => ({
-          date: slot.date,
-          start: slot.start,
-          status: slot.status,
-          booked: slot.booked
-        })));
+        // console.log(`   - Sample slots:`, instructor.schedule_driving_test.slice(0, 3).map(slot => ({
+        //   date: slot.date,
+        //   start: slot.start,
+        //   status: slot.status,
+        //   booked: slot.booked
+        // })));
         
         // Filtrar clases disponibles para esta semana
         const weekClasses = instructor.schedule_driving_test.filter((slot: ScheduleSlot) => {
@@ -92,12 +92,12 @@ export async function GET(request: NextRequest) {
           const matchesStatus = slot.status === 'available' || slot.status === 'free';
           const notBooked = !slot.booked;
           
-          console.log(`   - Slot ${slot.date} ${slot.start}: date=${matchesDate}, status=${matchesStatus} (${slot.status}), notBooked=${notBooked}`);
+          // console.log(`   - Slot ${slot.date} ${slot.start}: date=${matchesDate}, status=${matchesStatus} (${slot.status}), notBooked=${notBooked}`);
           
           return matchesDate && matchesStatus && notBooked;
         });
 
-        console.log(`👨‍🏫 ${instructor.name} has ${weekClasses.length} available slots this week`);
+        // console.log(`👨‍🏫 ${instructor.name} has ${weekClasses.length} available slots this week`);
 
         weekClasses.forEach(slot => {
           availableClasses.push({
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('✅ Total available classes found:', availableClasses.length);
+    // console.log('✅ Total available classes found:', availableClasses.length);
 
     return NextResponse.json({
       success: true,

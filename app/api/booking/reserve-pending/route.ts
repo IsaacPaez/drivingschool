@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Instructor from "@/models/Instructor";
 import mongoose from "mongoose";
+import User from "@/models/User";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,15 +20,6 @@ export async function POST(req: NextRequest) {
       pickupLocation,
       dropoffLocation
     } = await req.json();
-
-    console.log('⏳ Reserving slot as pending:', {
-      studentId,
-      instructorId,
-      date,
-      start,
-      end,
-      paymentMethod
-    });
 
     // Validar datos requeridos
     if (!studentId || !instructorId || !date || !start || !end) {
@@ -85,6 +77,17 @@ export async function POST(req: NextRequest) {
     // Actualizar el slot a status "pending"
     slot.status = 'pending';
     slot.studentId = studentId;
+    // Buscar el nombre del estudiante y guardarlo correctamente
+    const student = await User.findById(studentId);
+    let fullName = "";
+    if (student) {
+      fullName = student.firstName;
+      if (student.middleName && student.middleName.trim() !== "") {
+        fullName += " " + student.middleName;
+      }
+      fullName += " " + student.lastName;
+    }
+    slot.studentName = fullName;
     slot.booked = false; // No está completamente reservado hasta que se confirme el pago
     slot.classType = classType || 'driving test';
     if (slot.amount !== undefined) slot.amount = amount || 50;
@@ -96,8 +99,6 @@ export async function POST(req: NextRequest) {
     // Mark the instructor document as modified to trigger save
     instructor.markModified('schedule_driving_test');
     await instructor.save();
-
-    console.log('✅ Slot reserved as pending successfully');
 
     return NextResponse.json({
       success: true,
