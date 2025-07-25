@@ -4,7 +4,7 @@ import User from "@/models/User";
 import Order from '@/models/Order';
 import Cart from '@/models/Cart';
 
-const EC2_URL = "http://3.149.101.8:3000";
+const EC2_URL = "https://botopiapagosatldriving.xyz";
 
 export async function POST(req: NextRequest) {
   try {

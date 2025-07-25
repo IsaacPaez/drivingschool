@@ -7,7 +7,7 @@ import { startAndWaitEC2 } from "@/app/api/checkout/aws-ec2";
 import { secureFetch } from "@/app/utils/secure-fetch";
 
 const BASE_URL = "https://driving-school-mocha.vercel.app";
-const EC2_URL = "http://3.149.101.8:3000";
+const EC2_URL = "https://botopiapagosatldriving.xyz";
 
 async function getRedirectUrlFromEC2(payload) {
   let attempt = 1;
