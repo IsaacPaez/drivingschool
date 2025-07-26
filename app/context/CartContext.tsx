@@ -47,14 +47,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  // Sync with SSE when user logs in
+  // 🔄 SSE Connection for real-time cart updates
   useEffect(() => {
-    if (!user || !user._id) {
-      // If user logs out, keep cart from localStorage
-      const storedCart = localStorage.getItem("cart");
-      setCart(storedCart ? JSON.parse(storedCart) : []);
-      return;
-    }
+    if (!user?._id) return;
 
     let eventSource: EventSource | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
@@ -73,26 +68,27 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           eventSource = null;
         }
 
+        console.log('🛒 Connecting to cart SSE for user:', user._id);
         eventSource = new EventSource(`/api/cart/updates?userId=${user._id}`);
     
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'update' && data.cart && Array.isArray(data.cart.items)) {
-          setCart(data.cart.items);
-        }
-      } catch (error) {
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'update' && data.cart && Array.isArray(data.cart.items)) {
+              setCart(data.cart.items);
+            }
+          } catch (error) {
             console.warn("Failed to parse cart SSE data:", error);
-      }
-    };
+          }
+        };
 
-    eventSource.onerror = (err) => {
+        eventSource.onerror = (err) => {
           console.warn("Cart EventSource error:", err);
           isConnecting = false;
           
           if (eventSource) {
             try {
-      eventSource.close();
+              eventSource.close();
             } catch (closeError) {
               // Ignore close errors
             }
@@ -103,20 +99,23 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000); // Exponential backoff, max 10s
+            console.log(`🔄 Cart SSE reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
             reconnectTimeout = setTimeout(() => {
               connectSSE();
             }, delay);
+          } else {
+            console.error('❌ Cart SSE failed to reconnect after multiple attempts');
           }
         };
 
         eventSource.onopen = () => {
-          console.log("Cart SSE connection established");
+          console.log("✅ Cart SSE connection established");
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
           isConnecting = false;
         };
 
       } catch (error) {
-        console.warn("Failed to create EventSource:", error);
+        console.warn("Failed to create Cart EventSource:", error);
         isConnecting = false;
         
         // Implement reconnection logic for creation errors
@@ -137,7 +136,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       isConnecting = false;
       if (eventSource) {
         try {
-      eventSource.close();
+          eventSource.close();
         } catch (error) {
           // Ignore close errors
         }

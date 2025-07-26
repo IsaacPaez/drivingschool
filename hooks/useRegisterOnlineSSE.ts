@@ -40,8 +40,23 @@ export default function useRegisterOnlineSSE(instructorId: string | null, classI
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
 
-  useEffect(() => {
+  const connectSSE = () => {
+    // Close existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    // Clear existing reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
     // If we have classId, start connection immediately 
     if (classId) {
       // For classId filtering, we can connect right away
@@ -53,52 +68,84 @@ export default function useRegisterOnlineSSE(instructorId: string | null, classI
       return;
     }
 
-    // Close existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
     setIsLoading(true);
     setError(null);
 
-    // Create new EventSource connection
-    const url = classId 
-      ? `/api/register-online/ticket-classes-sse?classId=${classId}${instructorId && instructorId !== "ALL" ? `&instructorId=${instructorId}` : ""}${userId ? `&userId=${userId}` : ""}`
-      : `/api/register-online/ticket-classes-sse?instructorId=${instructorId}&type=ALL${userId ? `&userId=${userId}` : ""}`;
-    const eventSource = new EventSource(url);
-    eventSourceRef.current = eventSource;
+    try {
+      // Create new EventSource connection
+      const url = classId 
+        ? `/api/register-online/ticket-classes-sse?classId=${classId}${instructorId && instructorId !== "ALL" ? `&instructorId=${instructorId}` : ""}${userId ? `&userId=${userId}` : ""}`
+        : `/api/register-online/ticket-classes-sse?instructorId=${instructorId}&type=ALL${userId ? `&userId=${userId}` : ""}`;
+      
+      console.log('🔗 Connecting to SSE:', url);
+      const eventSource = new EventSource(url);
+      eventSourceRef.current = eventSource;
 
-    eventSource.onopen = () => {
-      setIsConnected(true);
-      setError(null);
-    };
+      eventSource.onopen = () => {
+        console.log('✅ SSE connection established');
+        setIsConnected(true);
+        setError(null);
+        reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
+      };
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data: SSEData = JSON.parse(event.data);
-        
-        if (data.type === 'initial' || data.type === 'update') {
-          if (data.ticketClasses) {
-            setTicketClasses(data.ticketClasses);
+      eventSource.onmessage = (event) => {
+        try {
+          const data: SSEData = JSON.parse(event.data);
+          
+          if (data.type === 'initial' || data.type === 'update') {
+            if (data.ticketClasses) {
+              setTicketClasses(data.ticketClasses);
+              setIsLoading(false);
+            }
+          } else if (data.type === 'error') {
+            setError(data.message || 'Unknown error occurred');
             setIsLoading(false);
           }
-        } else if (data.type === 'error') {
-          setError(data.message || 'Unknown error occurred');
+        } catch (err) {
+          console.error('Error parsing SSE data:', err);
+          setError('Failed to parse server data');
           setIsLoading(false);
         }
-      } catch (err) {
-        console.error('Error parsing SSE data:', err);
-        setError('Failed to parse server data');
-        setIsLoading(false);
-      }
-    };
+      };
 
-    eventSource.onerror = (event) => {
-      console.error('SSE connection error:', event);
-      setError('Connection lost. Trying to reconnect...');
-      setIsConnected(false);
+      eventSource.onerror = (event) => {
+        console.error('❌ SSE connection error:', event);
+        setError('Connection lost. Trying to reconnect...');
+        setIsConnected(false);
+        setIsLoading(false);
+        
+        // Implement reconnection logic
+        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+          reconnectAttemptsRef.current++;
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000); // Exponential backoff, max 10s
+          console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connectSSE();
+          }, delay);
+        } else {
+          setError('Failed to establish connection after multiple attempts. Please refresh the page.');
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to create EventSource:', error);
+      setError('Failed to create connection');
       setIsLoading(false);
-    };
+      
+      // Implement reconnection logic for creation errors
+      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        reconnectAttemptsRef.current++;
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connectSSE();
+        }, delay);
+      }
+    }
+  };
+
+  useEffect(() => {
+    connectSSE();
 
     // Cleanup function
     return () => {
@@ -106,16 +153,24 @@ export default function useRegisterOnlineSSE(instructorId: string | null, classI
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       setIsConnected(false);
       setIsLoading(false);
     };
-  }, [instructorId, classId]);
+  }, [instructorId, classId, userId]);
 
   // Manual cleanup function
   const disconnect = () => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
     setIsConnected(false);
   };
