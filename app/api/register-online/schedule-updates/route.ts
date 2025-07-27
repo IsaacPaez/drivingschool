@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
           
           // 3. Get all ticket classes from database  
           const ticketClasses = await TicketClass.find(query);
-          console.log(`📅 Found ${ticketClasses.length} classes`);
+          // console.log(`📅 Found ${ticketClasses.length} classes`);
           console.log(`🔍 Query used:`, JSON.stringify(query));
           
           // Debug: Log first few classes

@@ -41,7 +41,7 @@ export function useScheduleSSE(instructorId: string | null) {
         
         if (data.type === 'initial' || data.type === 'update') {
           if (data.schedule) {
-            console.log("📅 Setting schedule:", data.schedule.length, "slots");
+            // console.log("📅 Setting schedule:", data.schedule.length, "slots");
             setSchedule(data.schedule);
           }
         } else if (data.type === 'error') {

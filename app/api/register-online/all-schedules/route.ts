@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
             instructorId: new mongoose.Types.ObjectId(instructorId)
           }).lean();
 
-          console.log(`📅 Found ${ticketClasses.length} total ticket classes for instructor ${instructorId}`);
+          // console.log(`📅 Found ${ticketClasses.length} total ticket classes for instructor ${instructorId}`);
           
           if (ticketClasses.length > 0) {
             console.log('🔍 Sample ticket class:', JSON.stringify(ticketClasses[0], null, 2));

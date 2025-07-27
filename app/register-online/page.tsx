@@ -77,12 +77,13 @@ function RegisterOnlineContent() {
   const [classToUnbook, setClassToUnbook] = useState<TicketClass | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestedTicketClass, setRequestedTicketClass] = useState<TicketClass | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const { user } = useAuth();
   const userId = user?._id || "";
 
   // Use SSE hook for real-time updates with selectedClassId and userId
-  const { ticketClasses, isLoading } = useRegisterOnlineSSE(selectedInstructorId, selectedClassId, userId);
+  const { ticketClasses, isLoading, error, isConnected } = useRegisterOnlineSSE(selectedInstructorId, selectedClassId, userId);
 
   // Effect to handle classId from URL - automatically show calendar if classId is present
   useEffect(() => {
@@ -304,6 +305,8 @@ function RegisterOnlineContent() {
         }
       } catch (error) {
         console.error('❌ Error fetching data:', error);
+      } finally {
+        setInitialLoading(false);
       }
     };
 
@@ -541,111 +544,144 @@ function RegisterOnlineContent() {
 
   return (
     <section className="bg-white pt-32 pb-8 px-2 sm:px-6 flex flex-col items-center w-full">
+      {initialLoading && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+          <div className="text-center p-12 max-w-lg mx-auto">
+            <div className="inline-block animate-spin rounded-full h-20 w-20 border-4 border-gray-100 border-t-[#10B981] mb-8 shadow-lg"></div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Loading Register Online</h3>
+            <p className="text-gray-600 text-lg leading-relaxed mb-8">
+              Please wait while we load all packages and classes for your registration...
+            </p>
+            <div className="flex justify-center">
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md"></div>
+                <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.2s'}}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-6 items-start">
         
         {/* Left Side - Calendar and Class Types */}
-        <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
-          
-          {/* Calendar Title */}
-          <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-gray-800">
-            Select Date
-          </h2>
-          
-          {/* Calendar */}
-          <div className="mb-4 w-full flex justify-center">
-            <Calendar
-              onChange={(value) => handleDateChange(value as Date | null)}
-              value={selectedDate}
-              locale="en-US"
-              className="border rounded-lg shadow-md w-full max-w-xs p-2"
-              onClickDay={(date) => {
-                // ALWAYS change week when clicking on calendar
-                console.log('📅 Calendar click on:', date.toDateString());
-                
-                // Calculate the start of the week for the clicked date (Sunday = 0)
-                const targetWeekStart = new Date(date);
-                targetWeekStart.setDate(date.getDate() - date.getDay());
-                targetWeekStart.setHours(0, 0, 0, 0);
-                
-                // Calculate the start of TODAY's week for reference
-                const today = new Date();
-                const currentWeekStart = new Date(today);
-                currentWeekStart.setDate(today.getDate() - today.getDay());
-                currentWeekStart.setHours(0, 0, 0, 0);
-                
-                // Calculate the week difference from current week
-                const weekDiff = Math.round((targetWeekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
-                
-                console.log('📅 Week calculation:', {
-                  clickedDate: date.toDateString(),
-                  targetWeekStart: targetWeekStart.toDateString(),
-                  currentWeekStart: currentWeekStart.toDateString(),
-                  calculatedWeekDiff: weekDiff,
-                  previousOffset: weekOffset,
-                  willUpdate: true
-                });
-                
-                // ALWAYS update the week offset - force update
-                setWeekOffset(weekDiff);
-                console.log('📅 Updated weekOffset to:', weekDiff);
-              }}
-            />
-          </div>
+        {!initialLoading && (
+          <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
+            
+            {/* Calendar Title */}
+            <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-[#10B981]">
+              Select Date
+            </h2>
+            
+            {/* Calendar */}
+            <div className="mb-4 w-full flex justify-center">
+              <Calendar
+                onChange={(value) => handleDateChange(value as Date | null)}
+                value={selectedDate}
+                locale="en-US"
+                className="border rounded-lg shadow-md w-full max-w-xs p-2"
+                minDate={new Date()}
+                onClickDay={(date) => {
+                  // ALWAYS change week when clicking on calendar
+                  console.log('📅 Calendar click on:', date.toDateString());
+                  
+                  // Calculate the start of the week for the clicked date (Sunday = 0)
+                  const targetWeekStart = new Date(date);
+                  targetWeekStart.setDate(date.getDate() - date.getDay());
+                  targetWeekStart.setHours(0, 0, 0, 0);
+                  
+                  // Calculate the start of TODAY's week for reference
+                  const today = new Date();
+                  const currentWeekStart = new Date(today);
+                  currentWeekStart.setDate(today.getDate() - today.getDay());
+                  currentWeekStart.setHours(0, 0, 0, 0);
+                  
+                  // Calculate the week difference from current week
+                  const weekDiff = Math.round((targetWeekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+                  
+                  console.log('📅 Week calculation:', {
+                    clickedDate: date.toDateString(),
+                    targetWeekStart: targetWeekStart.toDateString(),
+                    currentWeekStart: currentWeekStart.toDateString(),
+                    calculatedWeekDiff: weekDiff,
+                    previousOffset: weekOffset,
+                    willUpdate: true
+                  });
+                  
+                  // ALWAYS update the week offset - force update
+                  setWeekOffset(weekDiff);
+                  console.log('📅 Updated weekOffset to:', weekDiff);
+                }}
+              />
+            </div>
 
-          {/* Available Ticket Classes Title */}
-          <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">
-            Available Ticket Classes
-          </h3>
+            {/* Available Ticket Classes Title */}
+            <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">
+              Available Ticket Classes
+            </h3>
 
-          {/* Class Types Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 w-full">
-            {classList.map((cls) => {
-              return (
-                <div
-                  key={cls._id}
-                  className={`shadow-lg rounded-xl p-3 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full ${selectedClassId === cls._id ? "border-4 border-blue-500 bg-blue-100" : "bg-white"}`}
-                  onClick={() => {
-                    setSelectedClassId(cls._id);
-                    setSelectedInstructorId("ALL"); // Show all instructors for this class
-                  }}
-                >
-                  <div className="flex flex-col items-center">
-                    <span className="text-sm sm:text-md font-semibold text-black text-center leading-tight">{cls.title}</span>
+            {/* Class Types Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 w-full">
+              {classList.map((cls) => {
+                return (
+                  <div
+                    key={cls._id}
+                    className={`shadow-lg rounded-xl p-3 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full ${selectedClassId === cls._id ? "border-4 border-blue-500 bg-blue-100" : "bg-white"}`}
+                    onClick={() => {
+                      setSelectedClassId(cls._id);
+                      setSelectedInstructorId("ALL"); // Show all instructors for this class
+                    }}
+                  >
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm sm:text-md font-semibold text-black text-center leading-tight">{cls.title}</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right Side - Schedule Table */}
-        <div className="w-full lg:w-2/3 mt-6 lg:mt-0">
-          {isLoading && (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="mt-2 text-gray-600">Loading classes schedule...</p>
+        <div className={`${initialLoading ? 'w-full' : 'w-full lg:w-2/3'} mt-6 lg:mt-0 flex justify-center`}>
+          {/* Initial Loading */}
+          {initialLoading && (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-2xl shadow-2xl border-2 border-gray-50" style={{minHeight: '600px'}}>
+              <div className="text-center p-12 max-w-lg mx-auto">
+                <div className="inline-block animate-spin rounded-full h-20 w-20 border-4 border-gray-100 border-t-[#10B981] mb-8 shadow-lg"></div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Loading Register Online</h3>
+                <p className="text-gray-600 text-lg leading-relaxed mb-8">
+                  Please wait while we load all packages and classes for your registration...
+                </p>
+                <div className="flex justify-center">
+                  <div className="flex space-x-2">
+                    <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md"></div>
+                    <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
-          {/* Show schedule when we have selected class */}
-          {selectedClassId && !isLoading && (
-            <>
+          {/* Always show schedule - with or without classes */}
+          {!initialLoading && selectedClassId && (
+            <div className="w-full max-w-4xl">
+              <div className="flex justify-center">
+                <div className="ml-16">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 mt-12">
                 <span className="text-[#10B981]">Available Classes</span>
               </h2>
               <p className="text-center text-gray-600 mb-6 text-sm">
                 Green slots are available for booking.
               </p>
-              
-              {(!ticketClasses || ticketClasses.length === 0) && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-lg">No classes available for this class type.</p>
-                  <p className="text-gray-400 text-sm mt-2">Please check back later.</p>
                 </div>
-              )}
+              </div>
               
-              {ticketClasses && ticketClasses.length > 0 && (
-                <>
+              {/* Always show the schedule table - empty or with classes */}
+              <div className="flex justify-center">
+                <div className="ml-16">
                   <div className="flex flex-row justify-center items-center mb-8 gap-2 sm:gap-4">
                     <button
                       className="px-3 py-1.5 text-xs sm:text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600 font-semibold shadow transition-all duration-200"
@@ -660,12 +696,19 @@ function RegisterOnlineContent() {
                       Next week →
                     </button>
                   </div>
-                  <div className="overflow-x-auto w-full">
+                </div>
+              </div>
+              <div className="overflow-x-auto w-full -mt-4">
                     {renderScheduleTable()}
                   </div>
-                </>
+              
+              {/* Show message if no classes available */}
+              {(!ticketClasses || ticketClasses.length === 0) && (
+                <div className="text-center py-4 mt-4">
+                  <p className="text-gray-500 text-sm">No classes available for this class type.</p>
+                </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -712,9 +755,45 @@ function RegisterOnlineContent() {
       </Modal>
 
       {/* Confirmation Modal */}
-      <Modal isOpen={showConfirmation} onClose={() => setShowConfirmation(false)}>
-        <div className="p-6 text-center">
-          <div className="mb-4">
+      {showConfirmation && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+          onClick={() => setShowConfirmation(false)}
+        >
+          <div 
+            className="relative bg-white text-black rounded-lg shadow-2xl border border-[#e0e0e0] flex flex-col"
+            style={{
+              minWidth: '320px',
+              maxWidth: '320px',
+              width: '320px',
+              minHeight: '200px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botón de cierre */}
+            <button
+              onClick={() => setShowConfirmation(false)}
+              className="absolute top-3 right-3 p-2 z-[9999] transition-all duration-300 bg-red-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close modal"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-gray-600 hover:text-gray-900"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            <div className="p-6 text-center w-full">
+              <div className="mb-4 mt-4">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
               <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -730,12 +809,52 @@ function RegisterOnlineContent() {
             OK
           </button>
         </div>
-      </Modal>
+          </div>
+        </div>
+      )}
 
-      <Modal isOpen={showAuthWarning} onClose={() => setShowAuthWarning(false)}>
-        <div className="p-6 text-center">
+      {showAuthWarning && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+          onClick={() => setShowAuthWarning(false)}
+        >
+          <div 
+            className="relative bg-white text-black rounded-lg shadow-2xl border border-[#e0e0e0] flex flex-col"
+            style={{
+              minWidth: '320px',
+              maxWidth: '320px',
+              width: '320px',
+              minHeight: '300px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botón de cierre */}
+            <button
+              onClick={() => setShowAuthWarning(false)}
+              className="absolute top-3 right-3 p-2 z-[9999] transition-all duration-300 bg-red-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close modal"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-gray-600 hover:text-gray-900"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            <div className="p-6 text-center w-full">
+              <div className="mb-4 mt-4">
           <h2 className="text-xl font-bold mb-4 text-red-600">Authentication Required</h2>
           <p className="mb-4">You must be logged in to enroll in a class. Please sign in first.</p>
+              </div>
           <button
             className="bg-blue-500 text-white px-6 py-2 rounded"
             onClick={() => setShowAuthWarning(false)}
@@ -743,11 +862,50 @@ function RegisterOnlineContent() {
             Close
           </button>
         </div>
-      </Modal>
+          </div>
+        </div>
+      )}
 
       {/* Unbook Confirmation Modal */}
-      <Modal isOpen={showUnbookConfirm} onClose={() => setShowUnbookConfirm(false)}>
-        <div className="p-6 text-center">
+      {showUnbookConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+          onClick={() => setShowUnbookConfirm(false)}
+        >
+          <div 
+            className="relative bg-white text-black rounded-lg shadow-2xl border border-[#e0e0e0] flex flex-col"
+            style={{
+              minWidth: '320px',
+              maxWidth: '320px',
+              width: '320px',
+              minHeight: '300px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botón de cierre */}
+            <button
+              onClick={() => setShowUnbookConfirm(false)}
+              className="absolute top-3 right-3 p-2 z-[9999] transition-all duration-300 bg-red-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close modal"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-gray-600 hover:text-gray-900"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            <div className="p-6 text-center w-full">
+              <div className="mb-4 mt-4">
           <h2 className="text-xl font-bold mb-4 text-red-600">Unenroll from Class</h2>
           {classToUnbook && (
             <div className="bg-red-50 p-4 rounded-lg mb-4">
@@ -762,6 +920,7 @@ function RegisterOnlineContent() {
             </div>
           )}
           <p className="mb-4 text-gray-700">Are you sure you want to unenroll from this class?</p>
+              </div>
           <div className="flex justify-center gap-3">
             <button
               className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600"
@@ -777,56 +936,96 @@ function RegisterOnlineContent() {
             </button>
           </div>
         </div>
-      </Modal>
+          </div>
+        </div>
+      )}
 
       {/* Request Confirmation Modal */}
-      <Modal isOpen={showRequestModal} onClose={() => setShowRequestModal(false)}>
-        <div className="p-6 text-center">
-          <div className="mb-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {showRequestModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+          onClick={() => setShowRequestModal(false)}
+        >
+                      <div 
+              className="relative bg-white text-black rounded-lg shadow-2xl border border-[#e0e0e0] flex flex-col"
+              style={{
+                minWidth: '320px',
+                maxWidth: '320px',
+                width: '320px',
+                minHeight: '300px'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Botón de cierre */}
+              <button
+                onClick={() => setShowRequestModal(false)}
+                className="absolute top-3 right-3 p-2 z-[9999] transition-all duration-300 bg-red-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Close modal"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-gray-600 hover:text-gray-900"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+
+              <div className="p-6 text-center w-full">
+                <div className="mb-4 mt-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <h2 className="text-xl font-bold mb-4 text-green-600">Request Submitted Successfully!</h2>
+                  <h2 className="text-lg font-semibold mb-3 text-green-600">Request Submitted Successfully!</h2>
           </div>
           
           {requestedTicketClass && (
-            <div className="bg-green-50 p-4 rounded-lg mb-4 text-left">
-              <p className="mb-2"><strong>Class:</strong> {requestedTicketClass.classInfo?.title || getClassTypeDisplay(requestedTicketClass.type)}</p>
-              <p className="mb-2"><strong>Date:</strong> {new Date(requestedTicketClass.date).toLocaleDateString('en-US', {
+                <div className="bg-green-50 p-3 rounded mb-3 text-left text-sm">
+                  <p className="mb-1"><strong>Class:</strong> {requestedTicketClass.classInfo?.title || getClassTypeDisplay(requestedTicketClass.type)}</p>
+                  <p className="mb-1"><strong>Date:</strong> {new Date(requestedTicketClass.date).toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
               })}</p>
-              <p className="mb-2"><strong>Time:</strong> {formatTime(requestedTicketClass.hour)} - {formatTime(requestedTicketClass.endHour)}</p>
+                  <p className="mb-1"><strong>Time:</strong> {formatTime(requestedTicketClass.hour)} - {formatTime(requestedTicketClass.endHour)}</p>
             </div>
           )}
           
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <p className="text-blue-800 font-medium mb-2">To complete the enrollment process, please contact:</p>
-            <p className="text-2xl font-bold text-blue-900">(561) 330-7007</p>
+              <div className="bg-blue-50 p-3 rounded mb-4">
+                <p className="text-blue-800 text-sm font-medium mb-1">To complete enrollment, contact:</p>
+                <p className="text-lg font-bold text-blue-900">(561) 330-7007</p>
           </div>
           
-          <p className="text-gray-600 mb-6">Your request is now pending approval. Our team will contact you soon to finalize your enrollment.</p>
+              <p className="text-gray-600 mb-4 text-sm">Your request is pending approval. Our team will contact you soon.</p>
           
-          <div className="flex justify-center gap-3">
+              <div className="flex justify-center gap-2">
             <button
-              className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600"
+                  className="bg-red-500 text-white px-4 py-1.5 rounded text-sm hover:bg-red-600"
               onClick={handleCancelRequest}
             >
               Cancel Request
             </button>
             <button
-              className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
+                  className="bg-green-500 text-white px-4 py-1.5 rounded text-sm hover:bg-green-600"
               onClick={() => setShowRequestModal(false)}
             >
               OK
             </button>
           </div>
         </div>
-      </Modal>
+          </div>
+        </div>
+      )}
       
       <LoginModal
         open={showLogin}

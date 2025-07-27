@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
             }
           ]);
 
-          console.log('📅 Package schedules found:', schedules.length);
+          // console.log('📅 Package schedules found:', schedules.length);
 
           return {
             schedules,
