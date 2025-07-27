@@ -90,23 +90,23 @@ const BookingModal: React.FC<BookingModalProps> = ({
              <h3 className="text-base font-semibold mb-3 text-center">Payment Method:</h3>
              <div className="flex flex-col gap-2">
                <label className="flex items-center justify-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200">
-                 <input
-                   type="radio"
-                   value="online"
-                   checked={paymentMethod === 'online'}
-                   onChange={(e) => setPaymentMethod(e.target.value)}
-                   className="mr-2"
-                 />
+                                   <input
+                    type="radio"
+                    value="online"
+                    checked={paymentMethod === 'online'}
+                    onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'instructor')}
+                    className="mr-2"
+                  />
                  <span className="font-medium text-sm">Pay Online (Add to Cart)</span>
                </label>
                <label className="flex items-center justify-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200">
-                 <input
-                   type="radio"
-                   value="instructor"
-                   checked={paymentMethod === 'instructor'}
-                   onChange={(e) => setPaymentMethod(e.target.value)}
-                   className="mr-2"
-                 />
+                                   <input
+                    type="radio"
+                    value="instructor"
+                    checked={paymentMethod === 'instructor'}
+                    onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'instructor')}
+                    className="mr-2"
+                  />
                  <span className="font-medium text-sm">Pay at Location</span>
                </label>
              </div>
