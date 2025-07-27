@@ -16,7 +16,7 @@ import "swiper/css/navigation";
 interface Instructor {
   _id: string;
   name: string;
-  image?: string;
+  photo?: string;
 }
 
 interface Area {
@@ -26,12 +26,46 @@ interface Area {
   locationImage?: string;
   description?: string;
   instructors?: Instructor[];
+  instructorsDetails?: Instructor[];
 }
 
 const AreasWeServe = () => {
   const [areas, setAreas] = useState<Area[]>([]);
   const [selectedZone, setSelectedZone] = useState<Area | null>(null);
   const router = useRouter();
+
+  const fetchInstructorsDetails = async (instructorIds: string[]) => {
+    if (!instructorIds || instructorIds.length === 0) {
+      console.warn("⚠️ No instructor IDs provided.");
+      return [];
+    }
+  
+    try {
+      const instructorDetails = await Promise.all(
+        instructorIds.map(async (id) => {
+          const res = await fetch(`/api/instructors/${id}`);
+  
+          if (!res.ok) {
+            console.error(`❌ Invalid response for instructor ${id}, Status: ${res.status}`);
+            return { _id: id, name: "Unknown Instructor", photo: "/default-avatar.png" };
+          }
+  
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            console.error(`❌ Response for instructor ${id} is not JSON.`);
+            return { _id: id, name: "Unknown Instructor", photo: "/default-avatar.png" };
+          }
+  
+          return await res.json();
+        })
+      );
+  
+      return instructorDetails;
+    } catch (error) {
+      console.error("❌ Error fetching instructors:", error);
+      return [];
+    }
+  };
 
   const handleBookNow = () => {
     setSelectedZone(null);
@@ -82,7 +116,16 @@ const AreasWeServe = () => {
                 <p className="text-gray-700 text-base leading-relaxed mb-4">{areas[0].description}</p>
                 <button
                   className="flex items-center gap-2 border-2 border-[#27ae60] text-[#27ae60] font-bold py-3 px-8 rounded-full bg-white shadow hover:bg-green-50 transition text-lg mt-2 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
-                  onClick={() => setSelectedZone(areas[0])}
+                  onClick={async () => {
+                    if (!areas[0].instructors || areas[0].instructors.length === 0) {
+                      setSelectedZone({ ...areas[0], instructorsDetails: [] });
+                      return;
+                    }
+                  
+                    const instructorIds = areas[0].instructors.map(instructor => instructor._id);
+                    const instructorsData = await fetchInstructorsDetails(instructorIds);
+                    setSelectedZone({ ...areas[0], instructorsDetails: instructorsData });
+                  }}
                 >
                   <svg xmlns='http://www.w3.org/2000/svg' className='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2} style={{minWidth: '1.5rem'}}>
                     <path strokeLinecap='round' strokeLinejoin='round' d='M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z' />
@@ -119,7 +162,16 @@ const AreasWeServe = () => {
                     <SwiperSlide key={area._id}>
                       <div
                         className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center hover:shadow-xl transition cursor-pointer group h-80"
-                        onClick={() => setSelectedZone(area)}
+                        onClick={async () => {
+                          if (!area.instructors || area.instructors.length === 0) {
+                            setSelectedZone({ ...area, instructorsDetails: [] });
+                            return;
+                          }
+                        
+                          const instructorIds = area.instructors.map(instructor => instructor._id);
+                          const instructorsData = await fetchInstructorsDetails(instructorIds);
+                          setSelectedZone({ ...area, instructorsDetails: instructorsData });
+                        }}
                       >
                         <div className="w-12 h-12 mb-3 flex items-center justify-center bg-[#F5F6FA] rounded-full group-hover:bg-green-100 transition">
                           <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -231,35 +283,42 @@ const AreasWeServe = () => {
             </div>
             <div className="mt-8">
               <h3 className="text-2xl font-semibold text-gray-900 text-center mb-4">Instructors</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {selectedZone?.instructors?.map((instructor: Instructor) => (
-                  <div key={instructor._id} className="text-center p-4 border rounded-xl shadow-sm bg-white flex flex-col items-center">
-                    <div className="w-20 h-20 relative">
-                      <Image
-                        src={instructor.image || '/default-avatar.png'}
-                        alt={instructor.name}
-                        width={80}
-                        height={80}
-                        className="rounded-full border border-gray-200 shadow-sm object-cover"
-                      />
-                    </div>
-                    <p className="text-gray-900 mt-2 font-semibold text-center min-h-[2.5rem] flex items-center justify-center">
-                      {instructor.name}
-                    </p>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleBookNow();
-                      }}
-                      className="mt-auto w-full max-w-[140px] h-[44px] bg-gradient-to-r from-[#1A7F5A] to-[#3ECF8E] text-white font-semibold py-2 px-4 rounded-lg hover:from-[#14804a] hover:to-[#2ebd7f] transition flex flex-col justify-center items-center cursor-pointer"
-                    >
-                      <span>Book</span>
-                      <span>{instructor.name.split(" ")[0]}</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                 {Array.isArray(selectedZone?.instructorsDetails) &&
+                   selectedZone.instructorsDetails.map((instructor: Instructor, index) => (
+                                                                 <div key={instructor._id || `instructor-${index}`} className="text-center p-4 border rounded-xl shadow-sm bg-white flex flex-col items-center h-[240px]">
+                        <div className="w-24 h-24 relative flex-shrink-0 mb-2">
+                         <Image
+                           src={instructor.photo || '/default-avatar.png'}
+                           alt={instructor.name || "Instructor"}
+                           width={96}
+                           height={96}
+                           className="rounded-full border border-gray-200 shadow-sm object-cover w-24 h-24"
+                           priority
+                           style={{
+                             width: '96px',
+                             height: '96px',
+                             objectFit: 'cover'
+                           }}
+                         />
+                       </div>
+                                                                       <p className="text-gray-900 font-semibold text-center min-h-[1.5rem] max-h-[1.5rem] flex items-center justify-center text-sm leading-tight px-2 mb-1">
+                          {instructor.name || "Instructor Name Missing"}
+                        </p>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleBookNow();
+                          }}
+                          className="mt-auto w-full max-w-[140px] h-[44px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center cursor-pointer"
+                        >
+                         <span>Book</span>
+                         <span>{instructor.name ? instructor.name.split(" ")[0] : "No Name"}</span>
+                       </button>
+                     </div>
+                   ))}
+               </div>
             </div>
           </div>
         </LocationModal>

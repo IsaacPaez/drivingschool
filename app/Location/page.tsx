@@ -515,54 +515,61 @@ const LocationPage: React.FC = () => {
                             selectedZone.instructorsDetails.map((instructor, index) => (
                               <div 
                                 key={instructor._id || `instructor-${index}`} 
-                                className="text-center p-6 border rounded-lg shadow-sm bg-white flex flex-col items-center"
+                                className="text-center p-4 border rounded-xl shadow-sm bg-white flex flex-col items-center h-[240px]"
                                 style={{
                                   textAlign: 'center',
-                                  padding: '24px',
+                                  padding: '16px',
                                   border: '1px solid #e5e7eb',
                                   borderRadius: '12px',
                                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                                   backgroundColor: '#ffffff',
                                   display: 'flex',
                                   flexDirection: 'column',
-                                  alignItems: 'center'
+                                  alignItems: 'center',
+                                  height: '240px'
                                 }}
                               >
                                 <div 
-                                  className="w-28 h-28 relative mb-4"
+                                  className="w-24 h-24 relative flex-shrink-0 mb-2"
                                   style={{
-                                    width: '112px',
-                                    height: '112px',
+                                    width: '96px',
+                                    height: '96px',
                                     position: 'relative',
-                                    marginBottom: '16px'
+                                    marginBottom: '8px'
                                   }}
                                 >
                                   <Image
                                     src={instructor.photo || "/default-avatar.png"}
                                     alt={instructor.name || "Instructor"}
-                                    width={112}
-                                    height={112}
-                                    className="rounded-full border border-gray-300 shadow-sm object-cover"
+                                    width={96}
+                                    height={96}
+                                    className="rounded-full border border-gray-200 shadow-sm object-cover w-24 h-24"
                                     priority
                                     style={{
                                       borderRadius: '50%',
                                       border: '1px solid #d1d5db',
                                       boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                                      objectFit: 'cover'
+                                      objectFit: 'cover',
+                                      width: '96px',
+                                      height: '96px'
                                     }}
                                   />
                                 </div>
                                 <p 
-                                  className="text-gray-900 mt-2 font-semibold text-center min-h-[3rem] flex items-center justify-center"
+                                  className="text-gray-900 font-semibold text-center min-h-[1.5rem] max-h-[1.5rem] flex items-center justify-center text-sm leading-tight px-2 mb-1"
                                   style={{
                                     color: '#111827',
-                                    marginTop: '8px',
                                     fontWeight: '600',
                                     textAlign: 'center',
-                                    minHeight: '3rem',
+                                    minHeight: '1.5rem',
+                                    maxHeight: '1.5rem',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    fontSize: '0.875rem',
+                                    lineHeight: '1.25rem',
+                                    padding: '0 8px',
+                                    marginBottom: '4px'
                                   }}
                                 >
                                   {instructor.name || "Instructor Name Missing"}
@@ -573,7 +580,7 @@ const LocationPage: React.FC = () => {
                                     e.stopPropagation();
                                     handleBookNow(instructor.name || "Unknown Instructor");
                                   }}
-                                  className="mt-auto w-full max-w-[180px] h-[60px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center cursor-pointer"
+                                  className="mt-auto w-full max-w-[140px] h-[44px] bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition flex flex-col justify-center items-center cursor-pointer"
                                   style={{
                                     marginTop: 'auto',
                                     width: '100%',
