@@ -52,7 +52,7 @@ export function useRegisterSSE(instructorId: string | null, classType: string | 
         
         if (data.type === 'initial' || data.type === 'update') {
           if (data.schedule) {
-            console.log("📅 Setting register schedule:", data.schedule);
+            // console.log("📅 Setting register schedule:", data.schedule);
             setSchedule(data.schedule);
           }
         } else if (data.type === 'error') {

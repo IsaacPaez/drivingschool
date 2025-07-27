@@ -52,17 +52,17 @@ export async function GET(req: NextRequest) {
     
     // Filter schedule to only include driving test slots
     const fullSchedule = instructor.get('schedule_driving_test', { lean: true }) || [];
-    console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${fullSchedule.length} schedule_driving_test slots`);
+    // console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${fullSchedule.length} schedule_driving_test slots`);
     
-    if (fullSchedule.length > 0) {
-      console.log("📅 Sample slots:", fullSchedule.slice(0, 3).map(s => ({ 
-        date: s.date, 
-        start: s.start, 
-        end: s.end, 
-        status: s.status,
-        classType: s.classType 
-      })));
-    }
+    // if (fullSchedule.length > 0) {
+    //   console.log("📅 Sample slots:", fullSchedule.slice(0, 3).map(s => ({ 
+    //     date: s.date, 
+    //     start: s.start, 
+    //     end: s.end, 
+    //     status: s.status,
+    //     classType: s.classType 
+    //   })));
+    // }
     
     sendEvent({ type: "initial", schedule: fullSchedule });
   } catch (error) {

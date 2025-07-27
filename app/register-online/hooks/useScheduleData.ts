@@ -41,7 +41,7 @@ export function useScheduleData({
         if (base) {
           const instructorWithSchedule = { ...base, schedule: data };
           setSelectedInstructor(instructorWithSchedule);
-          console.log('📅 DIRECT SCHEDULE SET:', data);
+          // console.log('📅 DIRECT SCHEDULE SET:', data);
           
           // Preload all class data for this schedule
           await preloadClassData(data);
@@ -66,7 +66,7 @@ export function useScheduleData({
       if (Array.isArray(sseSchedule) && sseSchedule.length > 0) {
         const instructorWithSchedule = { ...base, schedule: sseSchedule };
         setSelectedInstructor(instructorWithSchedule);
-        console.log('📅 SSE SCHEDULE SET:', sseSchedule);
+        // console.log('📅 SSE SCHEDULE SET:', sseSchedule);
         
         // Preload all class data for this schedule
         preloadClassData(sseSchedule);
