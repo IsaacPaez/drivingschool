@@ -37,16 +37,34 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
     try {
       console.log("🛒 [DEBUG] Starting checkout process for user:", user._id);
       console.log("🛒 [DEBUG] Cart items:", cart);
+      console.log("🛒 [DEBUG] Starting checkout at:", new Date().toISOString());
       
+      // Agregar timeout personalizado
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
+      
+      const startTime = Date.now();
       // Llama al backend y espera la respuesta
-      const res = await fetch(`/api/payments/redirect?userId=${user._id}`);
+      const res = await fetch(`/api/payments/redirect?userId=${user._id}`, {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      const endTime = Date.now();
+      console.log("🛒 [DEBUG] Request took:", endTime - startTime, "ms");
       console.log("🛒 [DEBUG] Response status:", res.status);
       
       if (!res.ok) {
+        if (res.status === 504) {
+          alert("⏰ El servidor está tardando en responder. Por favor, intenta nuevamente en unos momentos.");
+          return;
+        }
         const errorData = await res.text();
         console.error("🛒 [DEBUG] Error response:", errorData);
         alert("❌ There was an error processing the payment. Please try again.");
-        setLoading(false);
         return;
       }
       const data = await res.json();
@@ -61,8 +79,13 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
         alert("Error en el pago. Intenta de nuevo.");
       }
     } catch (error) {
-      console.error("❌ Payment error:", error);
-      alert("❌ There was an error processing the payment. Please try again.");
+      console.log("🛒 [DEBUG] Error occurred at:", new Date().toISOString());
+      if (error.name === 'AbortError') {
+        alert("⏰ La solicitud tardó demasiado tiempo. Por favor, intenta nuevamente.");
+      } else {
+        console.error("❌ Payment error:", error);
+        alert("❌ There was an error processing the payment. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
