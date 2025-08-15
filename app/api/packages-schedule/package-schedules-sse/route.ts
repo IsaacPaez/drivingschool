@@ -167,41 +167,13 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      // Set up polling for updates (every 30 seconds)
-      const pollInterval = setInterval(async () => {
-        if (!isActive) {
-          clearInterval(pollInterval);
-          return;
-        }
-
-        try {
-          const data = await fetchPackageSchedules();
-          sendData(data);
-        } catch (error) {
-          console.error('❌ Error in package schedules polling:', error);
-          sendData({ 
-            error: 'Polling error', 
-            schedules: [],
-            timestamp: new Date().toISOString()
-          });
-        }
-      }, 30000);
-
-      // Send heartbeat every 15 seconds
-      const heartbeatInterval = setInterval(() => {
-        if (!isActive) {
-          clearInterval(heartbeatInterval);
-          return;
-        }
-        sendData({ type: 'heartbeat', timestamp: new Date().toISOString() });
-      }, 15000);
+      // Polling eliminado - solo usamos change streams de MongoDB para actualizaciones en tiempo real
+      // Los change streams notifican automáticamente cuando hay cambios reales
 
       // Handle client disconnect
       req.signal.addEventListener('abort', () => {
         console.log('🔌 Package schedules SSE client disconnected');
         isActive = false;
-        clearInterval(pollInterval);
-        clearInterval(heartbeatInterval);
         try {
           controller.close();
         } catch (error) {
