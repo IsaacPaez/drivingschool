@@ -169,13 +169,11 @@ export async function GET(request: NextRequest) {
       // Send initial data
       fetchAndSendSchedule();
 
-      // Set up periodic updates every 30 seconds
-      const interval = setInterval(fetchAndSendSchedule, 30000);
+      // Polling eliminado - solo usamos change streams de MongoDB para actualizaciones en tiempo real
 
       // Handle client disconnect
       request.signal.addEventListener('abort', () => {
         console.log(`🔌 SSE connection closed for instructor ${instructorId}`);
-        clearInterval(interval);
         controller.close();
       });
     }

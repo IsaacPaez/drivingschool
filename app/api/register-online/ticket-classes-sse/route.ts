@@ -250,25 +250,7 @@ export async function GET(req: NextRequest) {
     sendEvent({ type: "error", message: "Failed to setup real-time updates" });
   }
 
-  // --- Fallback: Emit update every 2 seconds if there are clients connected ---
-  let intervalId: NodeJS.Timeout | null = null;
-  intervalId = setInterval(async () => {
-    if (isStreamClosed) {
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-      return;
-    }
-    
-    try {
-      const ticketClasses = await fetchTicketClasses();
-      sendEvent({ type: "update", ticketClasses });
-    } catch (error) {
-      // Silenciar errores de polling
-      console.warn("Polling error:", error);
-    }
-  }, 2000);
+  // Polling eliminado - solo usamos change streams de MongoDB para actualizaciones en tiempo real
 
   // Handle client disconnect
   req.signal.addEventListener('abort', () => {
@@ -280,10 +262,6 @@ export async function GET(req: NextRequest) {
     }
     if (instructorChangeStream && typeof instructorChangeStream === 'object' && 'close' in instructorChangeStream) {
       (instructorChangeStream as { close: () => void }).close();
-    }
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
     }
     
     if (!isStreamClosed) {
