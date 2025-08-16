@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, Suspense } from "react";
 import { useCart } from "@/app/context/CartContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -98,8 +98,16 @@ function PaymentSuccessContent() {
 
 export default function PaymentSuccess() {
   return (
-    <div>
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-100 to-blue-100 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full flex flex-col items-center">
+          <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-green-500 mb-6"></div>
+          <h1 className="text-2xl font-bold text-gray-700 mb-2 text-center">Procesando Pago...</h1>
+          <p className="text-gray-600 text-center">Por favor espera mientras confirmamos tu pago.</p>
+        </div>
+      </div>
+    }>
       <PaymentSuccessContent />
-    </div>
+    </Suspense>
   );
 }
