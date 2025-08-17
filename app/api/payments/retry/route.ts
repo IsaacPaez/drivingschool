@@ -53,8 +53,8 @@ export async function GET(req: NextRequest) {
     if (!token || typeof token !== "string") {
       return NextResponse.json({ error: "Invalid token from EC2" }, { status: 500 });
     }    // Nueva URL de cancelación para más reintentos
-    const cancelUrl = `${BASE_URL}/payment-retry?userId=${userId}&orderId=${orderId}`;
-    const successUrl = `${BASE_URL}/payment-success?userId=${userId}&orderId=${orderId}`;
+    const cancelUrl = `${EC2_URL}/webhook/payment-cancel`;
+    const successUrl = `${EC2_URL}/webhook/payment-success`;
     const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}&ssl_result_cancel_url=${encodeURIComponent(cancelUrl)}&ssl_result_success_url=${encodeURIComponent(successUrl)}`;
     return NextResponse.json({ redirectUrl: hostedUrl });
   } catch (error) {
