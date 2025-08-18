@@ -174,12 +174,44 @@ export async function GET(req: NextRequest) {
       zipCode: user.zipCode || "",
       dni: user.dni || "",
       items,
+      // IDs en múltiples formas para mayor compatibilidad
       userId: userId,
       orderId: finalOrderId,
+      user_id: userId,
+      order_id: finalOrderId,
+      customUserId: userId,
+      customOrderId: finalOrderId,
+      userIdentifier: userId,
+      orderIdentifier: finalOrderId,
+
+      // Datos codificados como respaldo
+      encodedData: `uid:${userId}|oid:${finalOrderId}`,
+      backupData: `${userId}:${finalOrderId}`,
+
+      // Metadata adicional
+      metadata: {
+        userId: userId,
+        orderId: finalOrderId,
+        timestamp: Date.now(),
+        source: "frontend-checkout"
+      },
+
+      // Estas URLs no se usan directamente para Converge, pero viajan al EC2
       cancelUrl: `${BASE_URL}/payment-retry?userId=${userId}&orderId=${finalOrderId}`,
       successUrl: `${BASE_URL}/payment-success?userId=${userId}&orderId=${finalOrderId}`
     };
     //console.log("[API][redirect] Payload para EC2:", payload);
+
+    // Construir también parámetros redundantes para cuando el EC2 necesite redirigir
+    const baseParams = new URLSearchParams({
+      userId: userId,
+      orderId: finalOrderId,
+      user_id: userId,
+      order_id: finalOrderId,
+      uid: userId,
+      oid: finalOrderId,
+      data: `${userId}:${finalOrderId}`
+    });
 
     // Usar función con reintento automático
     const redirectUrl = await getRedirectUrlFromEC2(payload);

@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
     const order = await Order.findById(orderId);
     if (!order || order.estado !== 'pending') {
       return NextResponse.json({ error: "Order not found or not pending" }, { status: 404 });
-    }    const payload = {
+    }
+    const payload = {
       amount: Number(order.total.toFixed(2)),
       firstName: user.firstName || "John",
       lastName: user.lastName || "Doe",
@@ -34,8 +35,28 @@ export async function GET(req: NextRequest) {
       zipCode: user.zipCode || "",
       dni: user.dni || "",
       items: order.items,
+
+      // IDs en múltiples formas para mayor compatibilidad
       userId: userId,
-      orderId: orderId
+      orderId: orderId,
+      user_id: userId,
+      order_id: orderId,
+      customUserId: userId,
+      customOrderId: orderId,
+      userIdentifier: userId,
+      orderIdentifier: orderId,
+
+      // Datos codificados como respaldo
+      encodedData: `uid:${userId}|oid:${orderId}`,
+      backupData: `${userId}:${orderId}`,
+
+      // Metadata adicional
+      metadata: {
+        userId: userId,
+        orderId: orderId,
+        timestamp: Date.now(),
+        source: "frontend-checkout-retry"
+      }
     };
     const ec2Response = await fetch(`${EC2_URL}/api/payments/session-token`, {
       method: "POST",
@@ -52,9 +73,19 @@ export async function GET(req: NextRequest) {
     const token = responseData.token;
     if (!token || typeof token !== "string") {
       return NextResponse.json({ error: "Invalid token from EC2" }, { status: 500 });
-    }    // Nueva URL de cancelación para más reintentos
-    const cancelUrl = `${EC2_URL}/webhook/payment-cancel?userId=${userId}&orderId=${orderId}`;
-    const successUrl = `${EC2_URL}/webhook/payment-success?userId=${userId}&orderId=${orderId}`;
+    }
+    // Nueva URL de cancelación para más reintentos (con parámetros redundantes)
+    const baseParams = new URLSearchParams({
+      userId: userId,
+      orderId: orderId,
+      user_id: userId,
+      order_id: orderId,
+      uid: userId,
+      oid: orderId,
+      data: `${userId}:${orderId}`
+    });
+    const cancelUrl = `${EC2_URL}/webhook/payment-cancel?${baseParams.toString()}`;
+    const successUrl = `${EC2_URL}/webhook/payment-success?${baseParams.toString()}`;
     const hostedUrl = `https://api.demo.convergepay.com/hosted-payments?ssl_txn_auth_token=${token}&ssl_result_cancel_url=${encodeURIComponent(cancelUrl)}&ssl_result_success_url=${encodeURIComponent(successUrl)}`;
     return NextResponse.json({ redirectUrl: hostedUrl });
   } catch (error) {
