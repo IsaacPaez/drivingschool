@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
       //console.log("[API][redirect] Carrito encontrado", { items, total });
     }
 
-    let finalOrderId = orderId;
+    let finalOrderId: string;
     if (!orderId) {
       //console.log("[API][redirect] Creando nueva orden...");
       const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
@@ -160,6 +160,9 @@ export async function GET(req: NextRequest) {
       //console.log("[API][redirect] Carrito vaciado:", deleteResult);
     } else if (orderToUse) {
       finalOrderId = orderToUse._id.toString();
+    } else {
+      // orderId existe por control de flujo anterior, afirmamos tipo
+      finalOrderId = orderId as string;
     }
 
     payload = {
@@ -204,13 +207,13 @@ export async function GET(req: NextRequest) {
 
     // Construir también parámetros redundantes para cuando el EC2 necesite redirigir
     const baseParams = new URLSearchParams({
-      userId: userId,
+      userId: userId as string,
       orderId: finalOrderId,
-      user_id: userId,
+      user_id: userId as string,
       order_id: finalOrderId,
-      uid: userId,
+      uid: userId as string,
       oid: finalOrderId,
-      data: `${userId}:${finalOrderId}`
+      data: `${userId as string}:${finalOrderId}`
     });
 
     // Usar función con reintento automático
