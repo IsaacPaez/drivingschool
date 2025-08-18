@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
       //console.log("[API][redirect] Carrito encontrado", { items, total });
     }
 
-    let finalOrderId = orderId;
+    let finalOrderId: string;
     if (!orderId) {
       //console.log("[API][redirect] Creando nueva orden...");
       const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
@@ -160,6 +160,9 @@ export async function GET(req: NextRequest) {
       //console.log("[API][redirect] Carrito vaciado:", deleteResult);
     } else if (orderToUse) {
       finalOrderId = orderToUse._id.toString();
+    } else {
+      // orderId existe por control de flujo anterior, afirmamos tipo
+      finalOrderId = orderId as string;
     }
 
     payload = {
@@ -174,12 +177,44 @@ export async function GET(req: NextRequest) {
       zipCode: user.zipCode || "",
       dni: user.dni || "",
       items,
+      // IDs en múltiples formas para mayor compatibilidad
       userId: userId,
       orderId: finalOrderId,
+      user_id: userId,
+      order_id: finalOrderId,
+      customUserId: userId,
+      customOrderId: finalOrderId,
+      userIdentifier: userId,
+      orderIdentifier: finalOrderId,
+
+      // Datos codificados como respaldo
+      encodedData: `uid:${userId}|oid:${finalOrderId}`,
+      backupData: `${userId}:${finalOrderId}`,
+
+      // Metadata adicional
+      metadata: {
+        userId: userId,
+        orderId: finalOrderId,
+        timestamp: Date.now(),
+        source: "frontend-checkout"
+      },
+
+      // Estas URLs no se usan directamente para Converge, pero viajan al EC2
       cancelUrl: `${BASE_URL}/payment-retry?userId=${userId}&orderId=${finalOrderId}`,
       successUrl: `${BASE_URL}/payment-success?userId=${userId}&orderId=${finalOrderId}`
     };
     //console.log("[API][redirect] Payload para EC2:", payload);
+
+    // Construir también parámetros redundantes para cuando el EC2 necesite redirigir
+    const baseParams = new URLSearchParams({
+      userId: userId as string,
+      orderId: finalOrderId,
+      user_id: userId as string,
+      order_id: finalOrderId,
+      uid: userId as string,
+      oid: finalOrderId,
+      data: `${userId as string}:${finalOrderId}`
+    });
 
     // Usar función con reintento automático
     const redirectUrl = await getRedirectUrlFromEC2(payload);
