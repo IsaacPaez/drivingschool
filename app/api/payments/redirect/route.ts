@@ -9,6 +9,13 @@ import { secureFetch } from "@/app/utils/secure-fetch";
 const BASE_URL = "https://driving-school-mocha.vercel.app";
 const EC2_URL = "https://botopiapagosatldriving.xyz";
 
+// Función helper para crear customer_code de 8 dígitos
+function createCustomerCode(userId: string, orderId: string): string {
+  const userSuffix = userId.slice(-4);  // últimos 4 dígitos del userId
+  const orderSuffix = orderId.slice(-4); // últimos 4 dígitos del orderId
+  return `${userSuffix}${orderSuffix}`;  // total: 8 dígitos
+}
+
 async function getRedirectUrlFromEC2(payload) {
   let attempt = 1;
   let lastError: string = "";
@@ -198,6 +205,10 @@ export async function GET(req: NextRequest) {
         timestamp: Date.now(),
         source: "frontend-checkout"
       },
+
+      // 🔑 CUSTOMER_CODE para ConvergePay (8 dígitos máximo)
+      customer_code: createCustomerCode(userId as string, finalOrderId),
+      customerCode: createCustomerCode(userId as string, finalOrderId), // alias alternativo
 
       // Estas URLs no se usan directamente para Converge, pero viajan al EC2
       cancelUrl: `${BASE_URL}/payment-retry?userId=${userId}&orderId=${finalOrderId}`,

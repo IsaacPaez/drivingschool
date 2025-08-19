@@ -6,6 +6,13 @@ import Order from '@/models/Order';
 const BASE_URL = "https://driving-school-mocha.vercel.app";
 const EC2_URL = "https://botopiapagosatldriving.xyz";
 
+// Función helper para crear customer_code de 8 dígitos
+function createCustomerCode(userId: string, orderId: string): string {
+  const userSuffix = userId.slice(-4);  // últimos 4 dígitos del userId
+  const orderSuffix = orderId.slice(-4); // últimos 4 dígitos del orderId
+  return `${userSuffix}${orderSuffix}`;  // total: 8 dígitos
+}
+
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
@@ -56,7 +63,11 @@ export async function GET(req: NextRequest) {
         orderId: orderId,
         timestamp: Date.now(),
         source: "frontend-checkout-retry"
-      }
+      },
+
+      // 🔑 CUSTOMER_CODE para ConvergePay (8 dígitos máximo)
+      customer_code: createCustomerCode(userId, orderId),
+      customerCode: createCustomerCode(userId, orderId) // alias alternativo
     };
     const ec2Response = await fetch(`${EC2_URL}/api/payments/session-token`, {
       method: "POST",
