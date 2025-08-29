@@ -6,7 +6,7 @@ import Order from '@/models/Order';
 import { startAndWaitEC2 } from "@/app/api/checkout/aws-ec2";
 import { secureFetch } from "@/app/utils/secure-fetch";
 
-const BASE_URL = "https://driving-school-mocha.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 const EC2_URL = "https://botopiapagosatldriving.xyz";
 
 // Función helper para crear customer_code de 8 dígitos
@@ -137,34 +137,101 @@ export async function GET(req: NextRequest) {
       //console.log("[API][redirect] Usando orden existente", { items, total });
     } else {
       //console.log("[API][redirect] Buscando carrito para usuario:", userId);
-      const cart = await Cart.findOne({ userId });
-      if (!cart || !cart.items.length) {
-        //console.log("[API][redirect] Carrito vacío, redirigiendo a cart");
-        return NextResponse.redirect(`${BASE_URL}/cart?error=empty`);
+      
+      // Buscar en el carrito del usuario (para driving-lessons)
+      console.log("[API][redirect] User object:", {
+        _id: user?._id,
+        name: user?.name,
+        cartLength: user?.cart?.length,
+        cart: user?.cart
+      });
+      
+      if (user && user.cart && user.cart.length > 0) {
+        console.log("[API][redirect] Carrito encontrado en usuario:", user.cart.length, "items");
+        items = user.cart;
+        total = user.cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+        console.log("[API][redirect] Total del carrito:", total);
+      } else {
+        console.log("[API][redirect] Carrito del usuario vacío o null. user.cart:", user?.cart);
+        
+        // Si no hay carrito, buscar órdenes pendientes del usuario (para driving-lessons)
+        const pendingOrders = await Order.find({ 
+          userId, 
+          paymentStatus: 'pending',
+          orderType: 'driving_lesson_package'
+        }).sort({ createdAt: -1 });
+        
+        if (pendingOrders && pendingOrders.length > 0) {
+          console.log("[API][redirect] Encontradas órdenes pendientes:", pendingOrders.length);
+          
+          // Usar la orden más reciente
+          const latestOrder = pendingOrders[0];
+          items = latestOrder.items;
+          total = latestOrder.total;
+          orderToUse = latestOrder;
+          
+          console.log("[API][redirect] Usando orden pendiente:", {
+            orderId: latestOrder._id,
+            orderNumber: latestOrder.orderNumber,
+            total: latestOrder.total
+          });
+        } else {
+          // Si no hay órdenes pendientes, buscar en colección Cart (para otros productos)
+          const cart = await Cart.findOne({ userId });
+          if (!cart || !cart.items.length) {
+            console.log("[API][redirect] Carrito vacío en todas las ubicaciones, redirigiendo a cart");
+            return NextResponse.redirect(`${BASE_URL}/cart?error=empty`);
+          }
+          items = cart.items;
+          total = cart.items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+        }
       }
-      items = cart.items;
-      total = cart.items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
       //console.log("[API][redirect] Carrito encontrado", { items, total });
     }
 
     let finalOrderId: string;
     if (!orderId) {
-      //console.log("[API][redirect] Creando nueva orden...");
-      const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
-      const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
-      //console.log("[API][redirect] Siguiente número de orden:", nextOrderNumber);
-      const createdOrder = await Order.create({
-        userId,
-        items,
-        total: Number(total.toFixed(2)),
-        estado: 'pending',
-        createdAt: new Date(),
-        orderNumber: nextOrderNumber,
-      });
-      //console.log("[API][redirect] Orden creada:", createdOrder._id);
-      finalOrderId = createdOrder._id.toString();
-      const deleteResult = await Cart.deleteOne({ userId });
-      //console.log("[API][redirect] Carrito vaciado:", deleteResult);
+      if (orderToUse) {
+        // Si ya tenemos una orden (como en driving-lessons), usarla
+        console.log("[API][redirect] Usando orden existente:", orderToUse._id);
+        finalOrderId = orderToUse._id.toString();
+        
+        // Actualizar el estado de pago de la orden
+        await Order.updateOne(
+          { _id: orderToUse._id },
+          { $set: { paymentStatus: 'processing' } }
+        );
+        console.log("[API][redirect] Estado de pago de orden actualizado a 'processing'");
+      } else {
+        // Solo crear nueva orden si no hay una existente
+        console.log("[API][redirect] Creando nueva orden...");
+        const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
+        const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
+        console.log("[API][redirect] Siguiente número de orden:", nextOrderNumber);
+        
+        const createdOrder = await Order.create({
+          userId,
+          orderType: 'general', // Agregar orderType para evitar error de validación
+          items,
+          total: Number(total.toFixed(2)),
+          estado: 'pending',
+          createdAt: new Date(),
+          orderNumber: nextOrderNumber,
+        });
+        console.log("[API][redirect] Orden creada:", createdOrder._id);
+        finalOrderId = createdOrder._id.toString();
+        
+        // Limpiar carrito del usuario (para driving-lessons)
+        if (user.cart && user.cart.length > 0) {
+          user.cart = [];
+          await user.save();
+          console.log("[API][redirect] Carrito del usuario vaciado");
+        } else {
+          // Limpiar colección Cart (para otros productos)
+          const deleteResult = await Cart.deleteOne({ userId });
+          console.log("[API][redirect] Carrito de colección vaciado:", deleteResult);
+        }
+      }
     } else if (orderToUse) {
       finalOrderId = orderToUse._id.toString();
     } else {

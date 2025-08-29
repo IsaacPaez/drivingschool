@@ -25,6 +25,7 @@ export interface IUser extends Document {
   photo?: string;
   classReminder?: boolean;
   drivingTestReminder?: boolean;
+  cart?: any[]; // Cart items for driving lessons
 }
 
 const UserSchema = new Schema<IUser>({
@@ -52,7 +53,17 @@ const UserSchema = new Schema<IUser>({
   photo: { type: String },
   classReminder: { type: Boolean, default: false },
   drivingTestReminder: { type: Boolean, default: false },
+  cart: { type: [Schema.Types.Mixed], default: [] }, // Cart items for driving lessons
 });
+
+// Add virtual for full name
+UserSchema.virtual('name').get(function() {
+  return `${this.firstName} ${this.lastName}`.trim();
+});
+
+// Ensure virtuals are included when converting to JSON
+UserSchema.set('toJSON', { virtuals: true });
+UserSchema.set('toObject', { virtuals: true });
 
 const User = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 export default User; 

@@ -298,45 +298,14 @@ function DrivingLessonsContent() {
       // Immediately update selected slots to pending in the UI
       updateSlotsTopending();
 
-      // If online payment, create order first then add to cart
+      // If online payment, add to cart and mark slots as pending (NO create order yet)
       if (paymentMethod === 'online') {
         try {
-          console.log('🔄 Creating order for driving lesson package...');
+          console.log('🛒 Adding driving lesson package to cart...');
           
-          // Step 1: Prepare appointments data from selected slots
-          const appointments: any[] = [];
-          
-          selectedSlots.forEach(slotKey => {
-            // Search across all instructors for the lesson
-            for (const instructor of instructors) {
-              const lesson = instructor.schedule_driving_lesson?.find(l => {
-                const lessonKey = `${l.date}-${l.start}-${l.end}`;
-                return lessonKey === slotKey && l.status === "available";
-              });
-              if (lesson) {
-                appointments.push({
-                  instructorId: instructor._id,
-                  instructorName: instructor.name,
-                  date: lesson.date,
-                  start: lesson.start,
-                  end: lesson.end,
-                  classType: 'driving_lesson',
-                  amount: selectedProduct.price / (selectedProduct.duration || 1) // Pro-rate the price
-                });
-                break;
-              }
-            }
-          });
-
-          if (appointments.length === 0) {
-            throw new Error('No valid appointments found');
-          }
-
-          // Step 2: Create order with all appointment details
-          const orderData = {
+          // Step 1: Add to cart with package and slot details using specific endpoint
+          const cartData = {
             userId: userId,
-            orderType: 'driving_lesson_package',
-            appointments: appointments,
             packageDetails: {
               productId: selectedProduct._id,
               packageTitle: selectedProduct.title,
@@ -346,83 +315,68 @@ function DrivingLessonsContent() {
               pickupLocation: pickupLocation,
               dropoffLocation: dropoffLocation,
             },
-            items: [{
-              id: selectedProduct._id,
-              title: selectedProduct.title,
-              price: selectedProduct.price,
-              quantity: 1
-            }],
-            total: selectedProduct.price,
-            paymentMethod: 'online'
+            selectedSlots: Array.from(selectedSlots),
+            instructorData: instructors
           };
 
-          const orderRes = await fetch('/api/orders/create', {
+          const cartResponse = await fetch('/api/cart/add-driving-lesson-package', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderData),
+            body: JSON.stringify(cartData),
           });
 
-          if (!orderRes.ok) {
-            const errorData = await orderRes.json();
-            throw new Error(errorData.error || 'Failed to create order');
+          if (!cartResponse.ok) {
+            const errorData = await cartResponse.json();
+            throw new Error(errorData.error || 'Failed to add to cart');
           }
 
-          const orderResult = await orderRes.json();
-          console.log('✅ Order created successfully:', orderResult.order.orderNumber);
+          const cartResult = await cartResponse.json();
+          console.log('✅ Added to cart and slots marked as pending successfully');
 
-          // Step 3: Add to cart with order reference
+          // Add to local cart context
+          console.log('🛒 [driving-lessons] Adding to cart context:', {
+            id: selectedProduct._id,
+            title: selectedProduct.title,
+            price: selectedProduct.price,
+            packageDetails: cartData.packageDetails,
+            selectedSlots: cartData.selectedSlots
+          });
+
           await addToCart({
             id: selectedProduct._id,
             title: selectedProduct.title,
             price: selectedProduct.price,
             quantity: 1,
-            orderId: orderResult.order._id,
-            orderNumber: orderResult.order.orderNumber
+            packageDetails: cartData.packageDetails,
+            selectedSlots: cartData.selectedSlots,
+            instructorData: cartData.instructorData
           });
 
-          // Redirect directly to payment gateway with order ID
-          console.log('🔄 Redirecting to payment gateway with order:', orderResult.order._id);
-          
+          console.log('🛒 [driving-lessons] Successfully added to cart context');
+
           alert(
-            `Order created successfully!\n\n` +
-            `Order Number: ${orderResult.order.orderNumber}\n` +
+            `Package added to cart successfully!\n\n` +
             `Package: ${selectedProduct.title}\n` +
             `Selected Hours: ${selectedHours} hours\n` +
             `Pickup: ${pickupLocation}\n` +
             `Dropoff: ${dropoffLocation}\n` +
             `Amount: $${selectedProduct.price}\n\n` +
-            `Redirecting to payment gateway...\n` +
-            `Your selected time slots are now PENDING.`
+            `✅ Added to cart!\n` +
+            `Your selected time slots are now PENDING.\n\n` +
+            `Please check your cart (🛒) to complete payment.\n` +
+            `Order will be created when you checkout.`
           );
 
-          // Redirect to payment gateway after 2 seconds
+          // Refresh the schedule to show updated slot statuses
           setTimeout(async () => {
-            try {
-              console.log('🚀 Fetching payment gateway URL...');
-              const paymentResponse = await fetch(`/api/payments/redirect?userId=${userId}&orderId=${orderResult.order._id}`);
-              
-              if (!paymentResponse.ok) {
-                throw new Error(`Payment gateway error: ${paymentResponse.status}`);
-              }
-              
-              const paymentData = await paymentResponse.json();
-              console.log('💳 Payment gateway response:', paymentData);
-              
-              if (paymentData.redirectUrl) {
-                console.log('🚀 Redirecting to ConvergePay:', paymentData.redirectUrl);
-                window.location.href = paymentData.redirectUrl;
-              } else {
-                throw new Error('No redirectUrl received from payment gateway');
-              }
-            } catch (error) {
-              console.error('❌ Error accessing payment gateway:', error);
-              alert(`Error accessing payment gateway: ${error.message || 'Please try again.'}`);
-            }
-          }, 2000);
+            console.log("🔄 Refreshing schedule to show pending slots...");
+            await fetchInstructors();
+            setForceUpdate(prev => prev + 1);
+          }, 1000);
 
         } catch (error) {
-          console.error('❌ Error in online payment process:', error);
-          alert(`Error processing payment: ${error.message || 'Please try again.'}`);
+          console.error('❌ Error adding to cart:', error);
+          alert(`Error adding to cart: ${error.message || 'Please try again.'}`);
           return; // Don't continue with the rest of the function
         }
       } else {
