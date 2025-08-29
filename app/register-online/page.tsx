@@ -7,6 +7,7 @@ import "@/globals.css";
 import Modal from "@/components/Modal";
 import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
+import TicketClassBookingModal from "./components/TicketClassBookingModal";
 import { useSearchParams } from "next/navigation";
 import useRegisterOnlineSSE from "@/hooks/useRegisterOnlineSSE";
 
@@ -78,6 +79,13 @@ function RegisterOnlineContent() {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestedTicketClass, setRequestedTicketClass] = useState<TicketClass | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  
+  // Estados para el modal de reserva
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'instructor'>('online');
+  const [isOnlinePaymentLoading, setIsOnlinePaymentLoading] = useState(false);
+  const [isProcessingBooking, setIsProcessingBooking] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [selectedClassPrice, setSelectedClassPrice] = useState<number | null>(null);
 
   const { user } = useAuth();
   const userId = user?._id || "";
@@ -97,6 +105,175 @@ function RegisterOnlineContent() {
 
   // Helper functions
   const pad = (n: number) => n.toString().padStart(2, '0');
+  
+  // Función para manejar la confirmación de reserva
+  const handleConfirm = async () => {
+    if (!userId || !selectedTicketClass) {
+      setShowAuthWarning(true);
+      setIsBookingModalOpen(false);
+      return;
+    }
+    
+    if (paymentMethod === 'online') {
+      // PAGO ONLINE: Crear orden primero, luego agregar al carrito
+      setIsOnlinePaymentLoading(true);
+      try {
+        console.log('🔄 Creating order for ticket class...');
+        
+        // Obtener información de la clase para el precio
+        const classInfo = selectedTicketClass.classInfo;
+        if (!classInfo) {
+          throw new Error('Class information not found');
+        }
+        
+        // Buscar la clase en drivingclasses para obtener el precio
+        const classResponse = await fetch(`/api/drivingclasses/${classInfo._id}`);
+        if (!classResponse.ok) {
+          throw new Error('Failed to fetch class information');
+        }
+        const classData = await classResponse.json();
+        const classPrice = classData.price || 50; // Precio por defecto
+        
+        // Step 1: Create order with all appointment details
+        const orderData = {
+          userId,
+          orderType: 'ticket_class',
+          appointments: [{
+            slotId: selectedTicketClass._id, // Use _id as slotId
+            ticketClassId: selectedTicketClass._id,
+            classId: classInfo._id,
+            date: selectedTicketClass.date,
+            start: selectedTicketClass.hour,
+            end: selectedTicketClass.endHour,
+            classType: 'ticket_class',
+            amount: classPrice
+          }],
+          items: [{
+            id: classInfo._id,
+            title: classInfo.title,
+            price: classPrice,
+            quantity: 1
+          }],
+          total: classPrice,
+          paymentMethod: 'online'
+        };
+
+        const orderRes = await fetch('/api/orders/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData),
+        });
+
+        if (!orderRes.ok) {
+          const errorData = await orderRes.json();
+          throw new Error(errorData.error || 'Failed to create order');
+        }
+
+        const orderResult = await orderRes.json();
+        console.log('✅ Order created successfully:', orderResult.order.orderNumber);
+
+        // Step 2: Update ticket class with student enrollment
+        const ticketClassUpdateRes = await fetch(`/api/ticketclasses/enroll`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketClassId: selectedTicketClass._id,
+            studentId: userId,
+            orderId: orderResult.order._id,
+            orderNumber: orderResult.order.orderNumber
+          }),
+        });
+        
+        if (ticketClassUpdateRes.ok) {
+          setIsBookingModalOpen(false);
+          setSelectedTicketClass(null);
+          setIsOnlinePaymentLoading(false);
+          
+          // Redirect directly to payment gateway with order ID
+          console.log('🔄 Redirecting to payment gateway with order:', orderResult.order._id);
+          
+          // Show brief confirmation message
+          setConfirmationMessage(
+            `Order created successfully!\n\n` +
+            `Order Number: ${orderResult.order.orderNumber}\n` +
+            `Class: ${classInfo.title}\n` +
+            `Date: ${selectedTicketClass.date}\n` +
+            `Time: ${selectedTicketClass.hour} - ${selectedTicketClass.endHour}\n` +
+            `Redirecting to payment gateway...\n\n` +
+            `Amount: $${classPrice}`
+          );
+          setShowConfirmation(true);
+          
+          // Redirect to payment gateway after 2 seconds
+          setTimeout(async () => {
+            try {
+              console.log('🚀 Fetching payment gateway URL...');
+              const paymentResponse = await fetch(`/api/payments/redirect?userId=${userId}&orderId=${orderResult.order._id}`);
+              
+              if (!paymentResponse.ok) {
+                throw new Error(`Payment gateway error: ${paymentResponse.status}`);
+              }
+              
+              const paymentData = await paymentResponse.json();
+              console.log('💳 Payment gateway response:', paymentData);
+              
+              if (paymentData.redirectUrl) {
+                console.log('🚀 Redirecting to ConvergePay:', paymentData.redirectUrl);
+                window.location.href = paymentData.redirectUrl;
+              } else {
+                throw new Error('No redirectUrl received from payment gateway');
+              }
+            } catch (error) {
+              console.error('❌ Error accessing payment gateway:', error);
+              alert(`Error accessing payment gateway: ${error.message || 'Please try again.'}`);
+            }
+          }, 2000);
+          
+        } else {
+          const updateErrorData = await ticketClassUpdateRes.json();
+          console.error('❌ Error updating ticket class:', updateErrorData);
+          alert(`Order created but failed to enroll in class: ${updateErrorData.error || 'Please try again.'}`);
+        }
+      } catch (error) {
+        console.error('❌ Error in online payment process:', error);
+        setIsOnlinePaymentLoading(false);
+        alert(`Error processing payment: ${error.message || 'Please try again.'}`);
+      }
+      return;
+    }
+    
+    // PAGO LOCAL: Reservar clase como pending y mostrar modal de contacto
+    setIsProcessingBooking(true);
+    try {
+      const res = await fetch('/api/ticketclasses/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: userId,
+          ticketClassId: selectedTicketClass._id,
+          classId: selectedTicketClass.classInfo?._id,
+          date: selectedTicketClass.date,
+          start: selectedTicketClass.hour,
+          end: selectedTicketClass.endHour,
+          paymentMethod: 'instructor'
+        }),
+      });
+      
+      if (res.ok) {
+        setIsBookingModalOpen(false);
+        setSelectedTicketClass(null);
+        setIsProcessingBooking(false);
+        setShowContactModal(true);
+      } else {
+        setIsProcessingBooking(false);
+        const errorData = await res.json();
+        alert(`Could not reserve the class: ${errorData.error || 'Please try again.'}`);
+      }
+    } catch {
+      setIsProcessingBooking(false);
+      alert('Error reserving class. Please try again.');
+    }
+  };
 
   const handleDateChange = (value: Date | Date[] | null) => {
     if (!value || Array.isArray(value)) return;
@@ -484,14 +661,35 @@ function RegisterOnlineContent() {
                             key={date.toDateString()}
                             className="border border-gray-300 p-1 cursor-pointer min-w-[80px] w-[80px] bg-green-100 hover:bg-green-200"
                             rowSpan={rowSpan}
-                            onClick={() => {
-                              if (!userId) {
-                                setShowAuthWarning(true);
-                                return;
-                              }
-                              // Instead of opening modal, send request directly
-                              handleRequestClass(overlappingClass as TicketClass);
-                            }}
+                                                          onClick={async () => {
+                                if (!userId) {
+                                  setShowAuthWarning(true);
+                                  return;
+                                }
+                                
+                                // Get class price before opening modal
+                                try {
+                                  const classInfo = overlappingClass.classInfo;
+                                  if (classInfo) {
+                                    const classResponse = await fetch(`/api/drivingclasses/${classInfo._id}`);
+                                    if (classResponse.ok) {
+                                      const classData = await classResponse.json();
+                                      setSelectedClassPrice(classData.price || 50);
+                                    } else {
+                                      setSelectedClassPrice(50); // Default price
+                                    }
+                                  } else {
+                                    setSelectedClassPrice(50); // Default price
+                                  }
+                                } catch (error) {
+                                  console.error('Error fetching class price:', error);
+                                  setSelectedClassPrice(50); // Default price
+                                }
+                                
+                                // Open booking modal for payment selection
+                                setSelectedTicketClass(overlappingClass as TicketClass);
+                                setIsBookingModalOpen(true);
+                              }}
                           >
                             <div className="text-xs text-black">
                               Available
@@ -1026,6 +1224,58 @@ function RegisterOnlineContent() {
           </div>
         </div>
       )}
+      
+      {/* Ticket Class Booking Modal */}
+      <TicketClassBookingModal
+        isOpen={isBookingModalOpen}
+        onClose={() => {
+          setIsBookingModalOpen(false);
+          setSelectedClassPrice(null);
+        }}
+        selectedTicketClass={selectedTicketClass}
+        classPrice={selectedClassPrice}
+        paymentMethod={paymentMethod}
+        setPaymentMethod={setPaymentMethod}
+        isOnlinePaymentLoading={isOnlinePaymentLoading}
+        isProcessingBooking={isProcessingBooking}
+        onConfirm={handleConfirm}
+      />
+      
+      {/* Modal de contacto para pago local */}
+      <Modal isOpen={showContactModal} onClose={() => setShowContactModal(false)}>
+        <div className="p-6 text-center">
+          <div className="mb-4">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+              <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold mb-4 text-green-600">Class Reserved Successfully!</h2>
+            <div className="bg-blue-50 p-4 rounded-lg mb-4 text-left">
+              <p className="text-sm text-gray-600 mb-2">Your class has been reserved:</p>
+              <p><strong>Status:</strong> <span className="text-orange-600">Pending Payment</span></p>
+              <p><strong>Next Step:</strong> Contact us to complete your payment</p>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <h3 className="text-lg font-semibold text-yellow-800 mb-2">📞 Contact Information</h3>
+              <p className="text-yellow-700 text-lg font-bold">Call us at: (561) 330-7007</p>
+              <p className="text-yellow-600 text-sm mt-2">
+                Please call to complete your payment and confirm your class enrollment.
+              </p>
+            </div>
+            <p className="text-gray-600 text-sm">
+              Your spot will be held temporarily. Please contact us within 24 hours to complete the payment, 
+              or the spot may become available to other students.
+            </p>
+          </div>
+          <button
+            className="bg-green-500 text-white px-8 py-3 rounded hover:bg-green-600 font-semibold"
+            onClick={() => setShowContactModal(false)}
+          >
+            Got it!
+          </button>
+        </div>
+      </Modal>
       
       <LoginModal
         open={showLogin}

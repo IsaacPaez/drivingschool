@@ -3,12 +3,13 @@ import mongoose, { Schema, models, model } from 'mongoose';
 // Schema for individual slots/appointments in the order
 const OrderSlotSchema = new Schema({
   slotId: { type: String, required: true },
-  instructorId: { type: String, required: true },
-  instructorName: { type: String, required: true },
+  instructorId: { type: String, required: false }, // Optional for ticket_class
+  instructorName: { type: String, required: false }, // Optional for ticket_class
+  ticketClassId: { type: String, required: false }, // For ticket_class orders
   date: { type: String, required: true },
   start: { type: String, required: true },
   end: { type: String, required: true },
-  classType: { type: String, required: true }, // 'driving_test', 'driving_lesson'
+  classType: { type: String, required: true }, // 'driving_test', 'driving_lesson', 'ticket_class'
   amount: { type: Number, required: true },
   status: { type: String, default: 'pending' }, // 'pending', 'confirmed', 'cancelled'
 });
