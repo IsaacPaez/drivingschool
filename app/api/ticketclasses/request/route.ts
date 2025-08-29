@@ -7,19 +7,22 @@ export async function POST(req: NextRequest) {
     await connectDB();
     
     const body = await req.json();
-    console.log("🎓 Enrolling student in ticket class:", body);
+    console.log("📝 Creating ticket class request:", body);
 
     const { 
-      ticketClassId, 
       studentId, 
-      orderId, 
-      orderNumber 
+      ticketClassId, 
+      classId, 
+      date, 
+      start, 
+      end, 
+      paymentMethod 
     } = body;
 
     // Validation
-    if (!ticketClassId || !studentId) {
+    if (!studentId || !ticketClassId) {
       return NextResponse.json(
-        { error: "Missing required fields: ticketClassId or studentId" },
+        { error: "Missing required fields: studentId or ticketClassId" },
         { status: 400 }
       );
     }
@@ -47,6 +50,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if student already has a pending request
+    const hasPendingRequest = ticketClass.studentRequests?.some(
+      (request: any) => request.studentId === studentId && request.status === 'pending'
+    );
+
+    if (hasPendingRequest) {
+      return NextResponse.json(
+        { error: "Student already has a pending request for this class" },
+        { status: 400 }
+      );
+    }
+
     // Check if there are available spots
     if (ticketClass.availableSpots <= 0) {
       return NextResponse.json(
@@ -55,50 +70,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Add student to the class
-    const studentEnrollment = {
+    // Create student request
+    const studentRequest = {
       studentId: studentId,
-      orderId: orderId || null,
-      orderNumber: orderNumber || null,
-      enrolledAt: new Date(),
-      status: 'enrolled'
+      requestDate: new Date(),
+      status: 'pending',
+      paymentMethod: paymentMethod || 'instructor',
+      classDetails: {
+        classId: classId,
+        date: date,
+        start: start,
+        end: end
+      }
     };
 
-    // Update the ticket class
+    // Update the ticket class with the request
     const updateResult = await TicketClass.updateOne(
       { _id: ticketClassId },
       {
-        $push: { students: studentEnrollment },
-        $inc: { availableSpots: -1 },
-        $set: { 
-          updatedAt: new Date(),
-          status: ticketClass.availableSpots - 1 <= 0 ? 'full' : 'available'
-        }
+        $push: { studentRequests: studentRequest },
+        $set: { updatedAt: new Date() }
       }
     );
 
     if (updateResult.modifiedCount === 0) {
       return NextResponse.json(
-        { error: "Failed to update ticket class" },
+        { error: "Failed to create request" },
         { status: 500 }
       );
     }
 
-    console.log("✅ Student enrolled successfully in ticket class:", ticketClassId);
-    console.log("📊 Updated available spots:", ticketClass.availableSpots - 1);
+    console.log("✅ Ticket class request created successfully:", ticketClassId);
+    console.log("📊 Student request added:", studentRequest);
 
     return NextResponse.json({
       success: true,
-      message: "Student enrolled successfully",
+      message: "Request created successfully",
       ticketClassId: ticketClassId,
       studentId: studentId,
-      availableSpots: ticketClass.availableSpots - 1
+      requestId: studentRequest.requestDate.getTime().toString(),
+      status: 'pending'
     });
 
   } catch (error) {
-    console.error("❌ Error enrolling student in ticket class:", error);
+    console.error("❌ Error creating ticket class request:", error);
     return NextResponse.json(
-      { error: "Failed to enroll student", details: error.message },
+      { error: "Failed to create request", details: error.message },
       { status: 500 }
     );
   }

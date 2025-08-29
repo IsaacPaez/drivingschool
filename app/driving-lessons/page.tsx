@@ -8,7 +8,7 @@ import LoginModal from "@/components/LoginModal";
 
 // Import our new components
 import PackageSelector from "./components/PackageSelector";
-import ScheduleTable from "./components/ScheduleTable";
+import ScheduleTableImproved from "./components/ScheduleTableImproved";
 import BookingModal from "./components/BookingModal";
 import RequestModal from "./components/RequestModal";
 import ConfirmationModal from "./components/ConfirmationModal";
@@ -298,26 +298,87 @@ function DrivingLessonsContent() {
       // Immediately update selected slots to pending in the UI
       updateSlotsTopending();
 
-      // If online payment, add to cart
+      // If online payment, add to cart and mark slots as pending (NO create order yet)
       if (paymentMethod === 'online') {
-        await addToCart({
-          id: selectedProduct._id,
-          title: selectedProduct.title,
-          price: selectedProduct.price,
-          quantity: 1
-        });
+        try {
+          console.log('🛒 Adding driving lesson package to cart...');
+          
+          // Step 1: Add to cart with package and slot details using specific endpoint
+          const cartData = {
+            userId: userId,
+            packageDetails: {
+              productId: selectedProduct._id,
+              packageTitle: selectedProduct.title,
+              packagePrice: selectedProduct.price,
+              totalHours: selectedProduct.duration || 0,
+              selectedHours: selectedHours,
+              pickupLocation: pickupLocation,
+              dropoffLocation: dropoffLocation,
+            },
+            selectedSlots: Array.from(selectedSlots),
+            instructorData: instructors
+          };
 
-        alert(
-          `Schedule request submitted successfully!\n\n` +
-          `Package: ${selectedProduct.title}\n` +
-          `Selected Hours: ${selectedHours} hours\n` +
-          `Pickup: ${pickupLocation}\n` +
-          `Dropoff: ${dropoffLocation}\n` +
-          `Payment: Online (Added to Cart)\n\n` +
-          `Your selected time slots are now PENDING.\n` +
-          `Complete payment in your cart to confirm booking.\n` +
-          `Our team will contact you at (561) 330-7007 to coordinate the schedule.`
-        );
+          const cartResponse = await fetch('/api/cart/add-driving-lesson-package', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cartData),
+          });
+
+          if (!cartResponse.ok) {
+            const errorData = await cartResponse.json();
+            throw new Error(errorData.error || 'Failed to add to cart');
+          }
+
+          const cartResult = await cartResponse.json();
+          console.log('✅ Added to cart and slots marked as pending successfully');
+
+          // Add to local cart context
+          console.log('🛒 [driving-lessons] Adding to cart context:', {
+            id: selectedProduct._id,
+            title: selectedProduct.title,
+            price: selectedProduct.price,
+            packageDetails: cartData.packageDetails,
+            selectedSlots: cartData.selectedSlots
+          });
+
+          await addToCart({
+            id: selectedProduct._id,
+            title: selectedProduct.title,
+            price: selectedProduct.price,
+            quantity: 1,
+            packageDetails: cartData.packageDetails,
+            selectedSlots: cartData.selectedSlots,
+            instructorData: cartData.instructorData
+          });
+
+          console.log('🛒 [driving-lessons] Successfully added to cart context');
+
+          alert(
+            `Package added to cart successfully!\n\n` +
+            `Package: ${selectedProduct.title}\n` +
+            `Selected Hours: ${selectedHours} hours\n` +
+            `Pickup: ${pickupLocation}\n` +
+            `Dropoff: ${dropoffLocation}\n` +
+            `Amount: $${selectedProduct.price}\n\n` +
+            `✅ Added to cart!\n` +
+            `Your selected time slots are now PENDING.\n\n` +
+            `Please check your cart (🛒) to complete payment.\n` +
+            `Order will be created when you checkout.`
+          );
+
+          // Refresh the schedule to show updated slot statuses
+          setTimeout(async () => {
+            console.log("🔄 Refreshing schedule to show pending slots...");
+            await fetchInstructors();
+            setForceUpdate(prev => prev + 1);
+          }, 1000);
+
+        } catch (error) {
+          console.error('❌ Error adding to cart:', error);
+          alert(`Error adding to cart: ${error.message || 'Please try again.'}`);
+          return; // Don't continue with the rest of the function
+        }
       } else {
         alert(
           `Schedule request submitted successfully!\n\n` +
@@ -413,8 +474,8 @@ function DrivingLessonsContent() {
           selectedHours={selectedHours}
         />
 
-        {/* Right Side - Schedule Table */}
-        <ScheduleTable
+        {/* Right Side - Schedule Table Improved */}
+        <ScheduleTableImproved
           selectedProduct={selectedProduct}
           weekOffset={weekOffset}
           onWeekOffsetChange={setWeekOffset}

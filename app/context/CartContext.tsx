@@ -14,6 +14,19 @@ interface CartItem {
   title: string;
   price: number;
   quantity: number;
+  orderId?: string;
+  orderNumber?: string;
+  packageDetails?: {
+    productId: string;
+    packageTitle: string;
+    packagePrice: number;
+    totalHours: number;
+    selectedHours: number;
+    pickupLocation: string;
+    dropoffLocation: string;
+  };
+  selectedSlots?: string[];
+  instructorData?: any[];
 }
 
 interface CartContextType {
@@ -46,6 +59,25 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       }
     }
   }, []);
+
+  // Sync cart with database when user is available
+  useEffect(() => {
+    if (user?._id) {
+      console.log('🔄 [CartContext] Syncing cart with database for user:', user._id);
+      // Check cart status from database
+      fetch(`/api/cart/status?userId=${user._id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.cartItems.length > 0) {
+            console.log('🔄 [CartContext] Found items in database, syncing with local state');
+            setCart(data.cartItems);
+          }
+        })
+        .catch(err => {
+          console.warn('[CartContext] Failed to sync with database:', err);
+        });
+    }
+  }, [user]);
 
   // 🔄 SSE Connection for real-time cart updates
   useEffect(() => {
@@ -172,26 +204,81 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const addToCart = async (item: CartItem) => {
+    console.log('🛒 [CartContext] Adding item to cart:', item);
     let newCart: CartItem[] = [];
     setCart((prevCart) => {
       if (prevCart.find((cartItem) => cartItem.id === item.id)) {
+        console.log('🛒 [CartContext] Item already in cart, skipping');
         newCart = prevCart;
         return prevCart;
       }
       newCart = [...prevCart, { ...item, quantity: 1 }];
+      console.log('🛒 [CartContext] New cart state:', newCart);
       return newCart;
     });
-    // Use a short timeout to allow state to update before saving
-    setTimeout(() => saveCartToDB(newCart), 50);
+    
+    // For driving lesson packages, don't save to DB here since the endpoint already does it
+    if (!item.selectedSlots) {
+      // Use a short timeout to allow state to update before saving
+      setTimeout(() => saveCartToDB(newCart), 50);
+    } else {
+      console.log('🛒 [CartContext] Driving lesson package - skipping DB save (already done by endpoint)');
+    }
   };
   
   const removeFromCart = async (id: string) => {
-    let updatedCart: CartItem[] = [];
-    setCart((prevCart) => {
-      updatedCart = prevCart.filter((item) => item.id !== id);
-      return updatedCart;
-    });
-    setTimeout(() => saveCartToDB(updatedCart), 50);
+    if (!user?._id) return;
+
+    // Find the item to remove first to check if it has selectedSlots
+    const itemToRemove = cart.find(item => item.id === id);
+    
+    if (itemToRemove && itemToRemove.selectedSlots && itemToRemove.selectedSlots.length > 0) {
+      // This is a driving lesson package - free slots first
+      console.log('🗑️ Removing driving lesson package and freeing slots...');
+      
+      try {
+        const response = await fetch("/api/cart/remove-driving-lesson-package", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            userId: user._id, 
+            itemId: id, 
+            selectedSlots: itemToRemove.selectedSlots 
+          }),
+        });
+
+        if (response.ok) {
+          let updatedCart: CartItem[] = [];
+          setCart((prevCart) => {
+            updatedCart = prevCart.filter((item) => item.id !== id);
+            return updatedCart;
+          });
+          setTimeout(() => saveCartToDB(updatedCart), 50);
+          console.log("✅ Driving lesson package removed and slots freed");
+          
+          // Trigger a page refresh to show updated slot statuses
+          setTimeout(() => {
+            console.log("🔄 Triggering page refresh to show freed slots...");
+            window.location.reload();
+          }, 1000);
+        } else {
+          const errorData = await response.json();
+          console.error("❌ Failed to remove driving lesson package:", errorData.error);
+          alert(`Error removing package: ${errorData.error}`);
+        }
+      } catch (error) {
+        console.error("❌ Error removing driving lesson package:", error);
+        alert('Error removing package from cart');
+      }
+    } else {
+      // Regular cart item - just remove from cart
+      let updatedCart: CartItem[] = [];
+      setCart((prevCart) => {
+        updatedCart = prevCart.filter((item) => item.id !== id);
+        return updatedCart;
+      });
+      setTimeout(() => saveCartToDB(updatedCart), 50);
+    }
   };
 
   const clearCart = () => {
