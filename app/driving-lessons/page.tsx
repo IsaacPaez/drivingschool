@@ -8,7 +8,7 @@ import LoginModal from "@/components/LoginModal";
 
 // Import our new components
 import PackageSelector from "./components/PackageSelector";
-import ScheduleTable from "./components/ScheduleTable";
+import ScheduleTableImproved from "./components/ScheduleTableImproved";
 import BookingModal from "./components/BookingModal";
 import RequestModal from "./components/RequestModal";
 import ConfirmationModal from "./components/ConfirmationModal";
@@ -413,8 +413,8 @@ function DrivingLessonsContent() {
           selectedHours={selectedHours}
         />
 
-        {/* Right Side - Schedule Table */}
-        <ScheduleTable
+        {/* Right Side - Schedule Table Improved */}
+        <ScheduleTableImproved
           selectedProduct={selectedProduct}
           weekOffset={weekOffset}
           onWeekOffsetChange={setWeekOffset}
