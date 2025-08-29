@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import Instructor from "@/models/Instructor.tsx";
+import Instructor from "@/models/Instructor";
 
 export async function GET(req: NextRequest) {
   try {

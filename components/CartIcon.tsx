@@ -151,7 +151,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                 const [date, start, end] = slotKey.split('-');
                 
                 // Find instructor for this slot
-                for (const instructor of packageItem.instructorData) {
+                for (const instructor of packageItem.instructorData || []) {
                   const lesson = instructor.schedule_driving_lesson?.find((l: any) => {
                     const lessonKey = `${l.date}-${l.start}-${l.end}`;
                     return lessonKey === slotKey;
