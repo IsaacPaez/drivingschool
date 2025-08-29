@@ -576,10 +576,50 @@ export default function BookNowPage() {
       if (!selectedSlot?.instructorId || !selectedSlot) return;
       
       if (paymentMethod === 'online') {
-        // PAGO ONLINE: Agregar al carrito y poner slot en pending
+        // PAGO ONLINE: Crear orden primero, luego agregar al carrito
         setIsOnlinePaymentLoading(true);
         try {
-          const res = await fetch('/api/cart/add-driving-test', {
+          console.log('🔄 Creating order for driving test...');
+          
+          // Step 1: Create order with all appointment details
+          const orderData = {
+            userId,
+            orderType: 'driving_test',
+            appointments: [{
+              instructorId: selectedSlot.instructorId,
+              instructorName: selectedInstructor?.name || 'Unknown Instructor',
+              date: selectedSlot.date,
+              start: selectedSlot.start,
+              end: selectedSlot.end,
+              classType: 'driving_test',
+              amount: selectedSlot.amount || 50
+            }],
+            items: [{
+              id: 'driving_test',
+              title: 'Driving Test',
+              price: selectedSlot.amount || 50,
+              quantity: 1
+            }],
+            total: selectedSlot.amount || 50,
+            paymentMethod: 'online'
+          };
+
+          const orderRes = await fetch('/api/orders/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData),
+          });
+
+          if (!orderRes.ok) {
+            const errorData = await orderRes.json();
+            throw new Error(errorData.error || 'Failed to create order');
+          }
+
+          const orderResult = await orderRes.json();
+          console.log('✅ Order created successfully:', orderResult.order.orderNumber);
+
+          // Step 2: Add to cart with order reference
+          const cartRes = await fetch('/api/cart/add-driving-test', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -589,24 +629,63 @@ export default function BookNowPage() {
               start: selectedSlot.start,
               end: selectedSlot.end,
               classType: 'driving test',
-              amount: selectedSlot.amount || 50
+              amount: selectedSlot.amount || 50,
+              orderId: orderResult.order._id,
+              orderNumber: orderResult.order.orderNumber
             }),
           });
           
-          if (res.ok) {
+          if (cartRes.ok) {
             setIsBookingModalOpen(false);
             setSelectedSlot(null);
             setIsOnlinePaymentLoading(false);
-            setConfirmationMessage('Driving test added to cart successfully! The slot is reserved as pending. Please complete your payment in the cart.');
+            
+            // Redirect directly to payment gateway with order ID
+            console.log('🔄 Redirecting to payment gateway with order:', orderResult.order._id);
+            
+            // Show brief confirmation message
+            setConfirmationMessage(
+              `Order created successfully!\n\n` +
+              `Order Number: ${orderResult.order.orderNumber}\n` +
+              `Redirecting to payment gateway...\n\n` +
+              `Amount: $${selectedSlot.amount || 50}`
+            );
             setShowConfirmation(true);
+            
+            // Redirect to payment gateway after 2 seconds
+            setTimeout(async () => {
+              try {
+                console.log('🚀 Fetching payment gateway URL...');
+                const paymentResponse = await fetch(`/api/payments/redirect?userId=${userId}&orderId=${orderResult.order._id}`);
+                
+                if (!paymentResponse.ok) {
+                  throw new Error(`Payment gateway error: ${paymentResponse.status}`);
+                }
+                
+                const paymentData = await paymentResponse.json();
+                console.log('💳 Payment gateway response:', paymentData);
+                
+                if (paymentData.redirectUrl) {
+                  console.log('🚀 Redirecting to ConvergePay:', paymentData.redirectUrl);
+                  window.location.href = paymentData.redirectUrl;
+                } else {
+                  throw new Error('No redirectUrl received from payment gateway');
+                }
+              } catch (error) {
+                console.error('❌ Error accessing payment gateway:', error);
+                alert(`Error accessing payment gateway: ${error.message || 'Please try again.'}`);
+              }
+            }, 2000);
+            
           } else {
-            setIsOnlinePaymentLoading(false);
-            const errorData = await res.json();
-            alert(`Could not add to cart: ${errorData.error || 'Please try again.'}`);
+            const cartErrorData = await cartRes.json();
+            console.error('❌ Error adding to cart:', cartErrorData);
+            alert(`Order created but failed to add to cart: ${cartErrorData.error || 'Please try again.'}`);
           }
-        } catch {
+        } catch (error) {
+          console.error('❌ Error in online payment process:', error);
           setIsOnlinePaymentLoading(false);
-          alert('Error adding to cart. Please try again.');
+          alert(`Error processing payment: ${error.message || 'Please try again.'}`);
         }
         return;
       }

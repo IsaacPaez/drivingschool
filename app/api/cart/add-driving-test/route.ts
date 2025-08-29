@@ -17,7 +17,9 @@ export async function POST(req: NextRequest) {
       classType,
       amount,
       pickupLocation,
-      dropoffLocation
+      dropoffLocation,
+      orderId,
+      orderNumber
     } = await req.json();
 
     console.log('🛒 Adding driving test to cart:', {
@@ -110,6 +112,8 @@ export async function POST(req: NextRequest) {
       amount: amount || 50,
       pickupLocation: pickupLocation || "",
       dropoffLocation: dropoffLocation || "",
+      orderId: orderId || null,
+      orderNumber: orderNumber || null,
       addedAt: new Date()
     };
 
@@ -146,6 +150,15 @@ export async function POST(req: NextRequest) {
     slot.booked = false; // Aún no está completamente reservado hasta que se pague
     slot.pickupLocation = pickupLocation || "";
     slot.dropoffLocation = dropoffLocation || "";
+    
+    // Add order information if provided
+    if (orderId) {
+      slot.orderId = orderId;
+    }
+    if (orderNumber) {
+      slot.orderNumber = orderNumber;
+    }
+    
     await instructor.save();
 
     console.log('✅ Driving test added to cart successfully');
