@@ -24,6 +24,25 @@ export async function POST(req: NextRequest) {
       orderIdFromApp: orderId 
     });
 
+    // También buscar todas las transacciones para este orderId para debugging
+    const allTransactions = await Transaction.find({ 
+      orderIdFromApp: orderId 
+    });
+    
+    if (allTransactions.length > 1) {
+      console.log("⚠️ Multiple transactions found for orderId:", orderId);
+      console.log("📊 Transaction count:", allTransactions.length);
+      allTransactions.forEach((t, index) => {
+        console.log(`Transaction ${index + 1}:`, {
+          _id: t._id,
+          orderId: t.orderId,
+          status: t.status,
+          resultMessage: t.resultMessage,
+          createdAt: t.createdAt
+        });
+      });
+    }
+
     if (!transaction) {
       console.log("⚠️ No transaction found for orderId:", orderId);
       return NextResponse.json({
@@ -43,6 +62,28 @@ export async function POST(req: NextRequest) {
     if (transaction.status === "APPROVED" || transaction.resultMessage === "APPROVAL") {
       console.log("✅ Transaction is APPROVED, updating order status");
       
+      // Buscar la orden primero para verificar su estado actual
+      const order = await Order.findById(orderId);
+      if (!order) {
+        console.log("❌ Order not found:", orderId);
+        return NextResponse.json({
+          success: false,
+          message: "Order not found",
+          transactionStatus: transaction.status
+        });
+      }
+
+      // Solo actualizar si no está ya completada
+      if (order.paymentStatus === "completed" && order.estado === "completed") {
+        console.log("✅ Order already completed, no update needed");
+        return NextResponse.json({
+          success: true,
+          message: "Order already completed",
+          transactionStatus: transaction.status,
+          orderStatus: "completed"
+        });
+      }
+      
       // Actualizar la orden a "completed" y "approved"
       const updateResult = await Order.updateOne(
         { _id: orderId },
@@ -57,6 +98,36 @@ export async function POST(req: NextRequest) {
 
       if (updateResult.modifiedCount > 0) {
         console.log("✅ Order status updated to completed");
+        
+        // También actualizar el estado de las citas si existen
+        if (order.appointments && order.appointments.length > 0) {
+          try {
+            // Para driving_test, actualizar el slot del instructor
+            if (order.orderType === "driving_test") {
+              for (const appointment of order.appointments) {
+                if (appointment.instructorId) {
+                  // Actualizar el slot del instructor a "confirmed"
+                  // Esto se puede implementar si es necesario
+                  console.log("📅 Appointment confirmed for instructor:", appointment.instructorId);
+                }
+              }
+            }
+            
+            // Para ticket_class, actualizar el estado en la colección ticketclasses
+            if (order.orderType === "ticket_class") {
+              for (const appointment of order.appointments) {
+                if (appointment.ticketClassId) {
+                  // Actualizar el estado en ticketclasses si es necesario
+                  console.log("📅 Ticket class appointment confirmed:", appointment.ticketClassId);
+                }
+              }
+            }
+          } catch (error) {
+            console.error("⚠️ Error updating appointment status:", error);
+            // No fallar si hay error en actualizar citas
+          }
+        }
+        
         return NextResponse.json({
           success: true,
           message: "Order updated to completed",
@@ -64,10 +135,10 @@ export async function POST(req: NextRequest) {
           orderStatus: "completed"
         });
       } else {
-        console.log("⚠️ Order not found or already updated");
+        console.log("⚠️ Failed to update order");
         return NextResponse.json({
           success: false,
-          message: "Order not found or already updated",
+          message: "Failed to update order",
           transactionStatus: transaction.status
         });
       }
