@@ -11,6 +11,7 @@ function PaymentSuccessContent() {
   const [countdown, setCountdown] = useState(5);
   const [transactionStatus, setTransactionStatus] = useState<string>("checking");
   const [orderStatus, setOrderStatus] = useState<string>("pending");
+  const [orderDetails, setOrderDetails] = useState<any>(null);
 
   useEffect(() => {
     // Solo ejecutar una vez
@@ -43,6 +44,17 @@ function PaymentSuccessContent() {
               setTransactionStatus("approved");
               setOrderStatus("completed");
               console.log("✅ Order updated to completed based on approved transaction");
+              
+              // Get order details for display
+              try {
+                const orderResponse = await fetch(`/api/orders/details?orderId=${orderId}`);
+                if (orderResponse.ok) {
+                  const orderData = await orderResponse.json();
+                  setOrderDetails(orderData.order);
+                }
+              } catch (error) {
+                console.error("Error fetching order details:", error);
+              }
             } else {
               setTransactionStatus("pending");
               setOrderStatus("pending");
@@ -86,32 +98,37 @@ function PaymentSuccessContent() {
     switch (transactionStatus) {
       case "approved":
         return (
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
-            <svg className="w-16 h-16 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2l4-4" />
-            </svg>
+          <div className="relative">
+            <div className="w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center mb-8 shadow-2xl">
+              <svg className="w-20 h-20 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2l4-4" />
+              </svg>
+            </div>
+            {/* Success rings animation */}
+            <div className="absolute inset-0 w-32 h-32 border-4 border-green-300 rounded-full animate-ping opacity-75"></div>
+            <div className="absolute inset-0 w-32 h-32 border-4 border-green-400 rounded-full animate-ping opacity-50" style={{animationDelay: '0.5s'}}></div>
           </div>
         );
       case "pending":
         return (
-          <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-6">
-            <svg className="w-16 h-16 text-yellow-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <div className="w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mb-8 shadow-2xl">
+            <svg className="w-20 h-20 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         );
       case "error":
         return (
-          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6">
-            <svg className="w-16 h-16 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <div className="w-32 h-32 bg-gradient-to-br from-red-400 to-pink-600 rounded-full flex items-center justify-center mb-8 shadow-2xl">
+            <svg className="w-20 h-20 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         );
       default:
         return (
-          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+          <div className="w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center mb-8 shadow-2xl">
+            <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-white"></div>
           </div>
         );
     }
@@ -121,35 +138,39 @@ function PaymentSuccessContent() {
     switch (transactionStatus) {
       case "approved":
         return {
-          title: "¡Pago Aprobado!",
-          subtitle: "Tu transacción ha sido confirmada exitosamente",
-          description: "Tu orden ha sido marcada como completada y recibirás un recibo por email.",
+          title: "Payment Successful! 🎉",
+          subtitle: "Your transaction has been confirmed",
+          description: "Your order has been marked as completed and you will receive a receipt by email.",
           statusClass: "text-green-600",
-          bgClass: "bg-green-50 border-green-200"
+          bgClass: "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200",
+          countdownClass: "text-green-700"
         };
       case "pending":
         return {
-          title: "Pago en Proceso",
-          subtitle: "Tu pago está siendo procesado",
-          description: "Estamos verificando tu transacción. Esto puede tomar unos minutos.",
+          title: "Payment Processing ⏳",
+          subtitle: "Your payment is being processed",
+          description: "We are verifying your transaction. This may take a few minutes.",
           statusClass: "text-yellow-600",
-          bgClass: "bg-yellow-50 border-yellow-200"
+          bgClass: "bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200",
+          countdownClass: "text-yellow-700"
         };
       case "error":
         return {
-          title: "Error en Verificación",
-          subtitle: "No pudimos verificar tu transacción",
-          description: "Por favor contacta a soporte si tienes alguna pregunta.",
+          title: "Verification Error ❌",
+          subtitle: "We couldn't verify your transaction",
+          description: "Please contact support if you have any questions.",
           statusClass: "text-red-600",
-          bgClass: "bg-red-50 border-red-200"
+          bgClass: "bg-gradient-to-r from-red-50 to-pink-50 border-red-200",
+          countdownClass: "text-red-700"
         };
       default:
         return {
-          title: "Verificando Pago...",
-          subtitle: "Estamos procesando tu información",
-          description: "Por favor espera mientras verificamos tu transacción.",
+          title: "Verifying Payment... 🔍",
+          subtitle: "We are processing your information",
+          description: "Please wait while we verify your transaction.",
           statusClass: "text-blue-600",
-          bgClass: "bg-blue-50 border-blue-200"
+          bgClass: "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200",
+          countdownClass: "text-blue-700"
         };
     }
   };
@@ -157,53 +178,76 @@ function PaymentSuccessContent() {
   const statusInfo = getStatusMessage();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-lg w-full flex flex-col items-center text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-purple-300 rounded-full opacity-20 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-green-200 to-blue-300 rounded-full opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-purple-200 to-pink-300 rounded-full opacity-10 animate-pulse" style={{animationDelay: '4s'}}></div>
+      </div>
+
+      <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-12 max-w-2xl w-full flex flex-col items-center text-center relative z-10 border border-white/20">
         {getStatusIcon()}
         
-        <h1 className={`text-4xl font-bold mb-3 ${statusInfo.statusClass}`}>
+        <h1 className={`text-5xl font-bold mb-4 ${statusInfo.statusClass} tracking-tight`}>
           {statusInfo.title}
         </h1>
         
-        <p className="text-xl text-gray-600 mb-2">
+        <p className="text-2xl text-gray-600 mb-3 font-medium">
           {statusInfo.subtitle}
         </p>
         
-        <p className="text-gray-500 mb-8 leading-relaxed">
+        <p className="text-gray-500 mb-8 leading-relaxed text-lg max-w-md">
           {statusInfo.description}
         </p>
+
+        {/* Order Details Card */}
+        {orderDetails && transactionStatus === "approved" && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 mb-8 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-blue-800 mb-4">Order Details</h3>
+            <div className="space-y-2 text-left">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Order Number:</span>
+                <span className="font-semibold text-blue-900">{orderDetails.orderNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Total Amount:</span>
+                <span className="font-bold text-green-600">${orderDetails.total}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Status:</span>
+                <span className="font-semibold text-green-600">✅ Completed</span>
+              </div>
+            </div>
+          </div>
+        )}
         
-        <div className={`${statusInfo.bgClass} border rounded-xl p-4 mb-8 w-full`}>
-          <div className="flex items-center justify-center space-x-3">
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-            <span className="text-lg font-semibold text-gray-700">
-              Redirigiendo en {countdown} segundos...
+        <div className={`${statusInfo.bgClass} border rounded-2xl p-6 mb-8 w-full max-w-md`}>
+          <div className="flex items-center justify-center space-x-4">
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+            <span className={`text-xl font-semibold ${statusInfo.countdownClass}`}>
+              Redirecting in {countdown} seconds...
             </span>
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
           </div>
         </div>
         
-        <div className="flex space-x-4 w-full">
+        <div className="flex space-x-4 w-full max-w-md">
           <button 
             onClick={() => router.replace("/")}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
+            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
           >
-            Ir a Home
+            🏠 Go to Home
           </button>
           
           <button 
             onClick={() => window.location.reload()}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 px-6 rounded-xl transition-all duration-300"
+            className="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 font-bold py-4 px-6 rounded-2xl transition-all duration-300 border border-gray-300 hover:shadow-lg"
           >
-            Verificar Nuevamente
+            🔄 Verify Again
           </button>
         </div>
       </div>
-      
-      {/* Floating elements for modern design */}
-      <div className="fixed top-20 left-20 w-32 h-32 bg-gradient-to-br from-blue-200 to-purple-200 rounded-full opacity-20 animate-pulse"></div>
-      <div className="fixed bottom-20 right-20 w-24 h-24 bg-gradient-to-br from-green-200 to-blue-200 rounded-full opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
-      <div className="fixed top-1/2 left-10 w-16 h-16 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
     </div>
   );
 }
@@ -211,20 +255,22 @@ function PaymentSuccessContent() {
 export default function PaymentSuccess() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-lg w-full flex flex-col items-center text-center">
-          <div className="w-24 h-24 bg-gradient-to-r from-blue-200 to-purple-200 rounded-full flex items-center justify-center mb-6">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
-          </div>
-          <h1 className="text-3xl font-bold text-blue-600 mb-3">Verificando Pago...</h1>
-          <p className="text-xl text-gray-600 mb-2">Estamos procesando tu información</p>
-          <p className="text-gray-500">Por favor espera mientras verificamos tu transacción.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-purple-300 rounded-full opacity-20 animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-green-200 to-blue-300 rounded-full opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-purple-200 to-pink-300 rounded-full opacity-10 animate-pulse" style={{animationDelay: '4s'}}></div>
         </div>
-        
-        {/* Floating elements for modern design */}
-        <div className="fixed top-20 left-20 w-32 h-32 bg-gradient-to-br from-blue-200 to-purple-200 rounded-full opacity-20 animate-pulse"></div>
-        <div className="fixed bottom-20 right-20 w-24 h-24 bg-gradient-to-br from-green-200 to-blue-200 rounded-full opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
-        <div className="fixed top-1/2 left-10 w-16 h-16 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
+
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-12 max-w-2xl w-full flex flex-col items-center text-center relative z-10 border border-white/20">
+          <div className="w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center mb-8 shadow-2xl">
+            <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-white"></div>
+          </div>
+          <h1 className="text-5xl font-bold text-blue-600 mb-4 tracking-tight">Verifying Payment... 🔍</h1>
+          <p className="text-2xl text-gray-600 mb-3 font-medium">We are processing your information</p>
+          <p className="text-gray-500 text-lg max-w-md">Please wait while we verify your transaction.</p>
+        </div>
       </div>
     }>
       <PaymentSuccessContent />
