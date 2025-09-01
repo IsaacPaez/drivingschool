@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
 import { connectDB } from "@/lib/mongodb";
 import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
 import { Providers } from "./providers";
@@ -10,6 +8,7 @@ import ConditionalTrackingProvider from '@/components/ConditionalTrackingProvide
 import { AuthProvider } from "@/components/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import GlobalErrorHandler from "./components/GlobalErrorHandler";
+import LayoutWrapper from "./components/LayoutWrapper";
 
 // ✅ Generamos la metadata sin usar `fetch()`
 export async function generateMetadata(): Promise<Metadata> {
@@ -49,12 +48,10 @@ export default function RootLayout({
           <AuthProvider>
             <BodyWithDynamicBg>
               <Providers>
-                <Header />
                 <ConditionalTrackingProvider />
-                <main className="min-h-screen relative">
+                <LayoutWrapper>
                   {children}
-                </main>
-                <Footer />
+                </LayoutWrapper>
               </Providers>
             </BodyWithDynamicBg>
           </AuthProvider>
