@@ -312,10 +312,10 @@ export default function BookNowPage() {
   const renderScheduleTable = () => {
 
     if (!selectedInstructor || !selectedInstructor.schedule) {
-      if (isLoadingSchedule && selectedInstructorId) {
+    if (isLoadingSchedule && selectedInstructorId) {
         // Show skeleton table while loading
-        return (
-          <div className="overflow-x-auto w-full mt-6">
+      return (
+        <div className="overflow-x-auto w-full mt-6">
             <table className="w-full border-collapse border border-gray-300 text-sm">
               <thead>
                 <tr className="bg-gray-100 text-center">
@@ -353,10 +353,10 @@ export default function BookNowPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        );
-      }
-      
+        </div>
+      );
+    }
+
       return (
         <div className="text-center mt-6">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -568,17 +568,17 @@ export default function BookNowPage() {
   // Modal de reserva con confirmación
   const renderBookingModal = () => {
     const handleConfirm = async () => {
-      if (!userId) {
-        setShowAuthWarning(true);
-        setIsBookingModalOpen(false);
-        return;
-      }
-      if (!selectedSlot?.instructorId || !selectedSlot) return;
-      
-      if (paymentMethod === 'online') {
+              if (!userId) {
+                setShowAuthWarning(true);
+                setIsBookingModalOpen(false);
+                return;
+              }
+              if (!selectedSlot?.instructorId || !selectedSlot) return;
+              
+              if (paymentMethod === 'online') {
         // PAGO ONLINE: Crear orden primero, luego agregar al carrito
-        setIsOnlinePaymentLoading(true);
-        try {
+                setIsOnlinePaymentLoading(true);
+                try {
           console.log('🔄 Creating order for driving test...');
           
           // Step 1: Create order with all appointment details
@@ -620,25 +620,25 @@ export default function BookNowPage() {
 
           // Step 2: Add to cart with order reference
           const cartRes = await fetch('/api/cart/add-driving-test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId,
-              instructorId: selectedSlot.instructorId,
-              date: selectedSlot.date,
-              start: selectedSlot.start,
-              end: selectedSlot.end,
-              classType: 'driving test',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId,
+                      instructorId: selectedSlot.instructorId,
+                      date: selectedSlot.date,
+                      start: selectedSlot.start,
+                      end: selectedSlot.end,
+                      classType: 'driving test',
               amount: selectedSlot.amount || 50,
               orderId: orderResult.order._id,
               orderNumber: orderResult.order.orderNumber
-            }),
-          });
-          
+                    }),
+                  });
+                  
           if (cartRes.ok) {
-            setIsBookingModalOpen(false);
-            setSelectedSlot(null);
-            setIsOnlinePaymentLoading(false);
+                    setIsBookingModalOpen(false);
+                    setSelectedSlot(null);
+                    setIsOnlinePaymentLoading(false);
             
             // Redirect directly to payment gateway with order ID
             console.log('🔄 Redirecting to payment gateway with order:', orderResult.order._id);
@@ -650,7 +650,7 @@ export default function BookNowPage() {
               `Redirecting to payment gateway...\n\n` +
               `Amount: $${selectedSlot.amount || 50}`
             );
-            setShowConfirmation(true);
+                    setShowConfirmation(true);
             
             // Redirect to payment gateway after 2 seconds
             setTimeout(async () => {
@@ -673,7 +673,7 @@ export default function BookNowPage() {
                 if (paymentData.redirectUrl) {
                   console.log('🚀 Redirecting to ConvergePay:', paymentData.redirectUrl);
                   window.location.href = paymentData.redirectUrl;
-                } else {
+                  } else {
                   throw new Error('No redirectUrl received from payment gateway');
                 }
               } catch (error) {
@@ -689,44 +689,44 @@ export default function BookNowPage() {
           }
         } catch (error) {
           console.error('❌ Error in online payment process:', error);
-          setIsOnlinePaymentLoading(false);
+                  setIsOnlinePaymentLoading(false);
           alert(`Error processing payment: ${error.message || 'Please try again.'}`);
-        }
-        return;
-      }
-      
-      // PAGO LOCAL: Reservar slot como pending y mostrar modal de contacto
-      setIsProcessingBooking(true);
-      try {
-        const res = await fetch('/api/booking/reserve-pending', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            studentId: userId,
-            instructorId: selectedSlot.instructorId,
-            date: selectedSlot.date,
-            start: selectedSlot.start,
-            end: selectedSlot.end,
-            classType: 'driving test',
-            amount: selectedSlot.amount || 50,
-            paymentMethod: 'instructor'
-          }),
-        });
-        
-        if (res.ok) {
-          setIsBookingModalOpen(false);
-          setSelectedSlot(null);
-          setIsProcessingBooking(false);
-          setShowContactModal(true);
-        } else {
-          setIsProcessingBooking(false);
-          const errorData = await res.json();
-          alert(`Could not reserve the slot: ${errorData.error || 'Please try again.'}`);
-        }
-      } catch {
-        setIsProcessingBooking(false);
-        alert('Error reserving appointment. Please try again.');
-      }
+                }
+                return;
+              }
+              
+              // PAGO LOCAL: Reservar slot como pending y mostrar modal de contacto
+              setIsProcessingBooking(true);
+              try {
+                const res = await fetch('/api/booking/reserve-pending', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    studentId: userId,
+                    instructorId: selectedSlot.instructorId,
+                    date: selectedSlot.date,
+                    start: selectedSlot.start,
+                    end: selectedSlot.end,
+                    classType: 'driving test',
+                    amount: selectedSlot.amount || 50,
+                    paymentMethod: 'instructor'
+                  }),
+                });
+                
+                if (res.ok) {
+                  setIsBookingModalOpen(false);
+                  setSelectedSlot(null);
+                  setIsProcessingBooking(false);
+                  setShowContactModal(true);
+                } else {
+                  setIsProcessingBooking(false);
+                  const errorData = await res.json();
+                  alert(`Could not reserve the slot: ${errorData.error || 'Please try again.'}`);
+                }
+              } catch {
+                setIsProcessingBooking(false);
+                alert('Error reserving appointment. Please try again.');
+              }
     };
 
     return (
@@ -1014,15 +1014,15 @@ export default function BookNowPage() {
                 {/* Schedule Title - Moved to the right */}
                 <div className="flex justify-center">
                   <div className="ml-16">
-                    <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 mt-12">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 mt-12">
                       <span className="text-blue-700">
                         {selectedInstructor ? selectedInstructor.name : 'Loading...'}&apos;s 
                       </span>
-                      <span className="text-[#10B981]">Driving Test Schedule</span>
-                    </h2>
-                    <p className="text-center text-gray-600 mb-6 text-sm">
-                      Showing only driving test appointments. Green slots are available for booking.
-                    </p>
+                  <span className="text-[#10B981]">Driving Test Schedule</span>
+                </h2>
+                <p className="text-center text-gray-600 mb-6 text-sm">
+                  Showing only driving test appointments. Green slots are available for booking.
+                </p>
                   </div>
                 </div>
                 

@@ -234,9 +234,16 @@ export async function GET(req: NextRequest) {
       }
     } else if (orderToUse) {
       finalOrderId = orderToUse._id.toString();
+      // Si ya existe la orden, usar su total
+      total = orderToUse.total || 0;
     } else {
       // orderId existe por control de flujo anterior, afirmamos tipo
       finalOrderId = orderId as string;
+      // Buscar la orden para obtener el total
+      const existingOrder = await Order.findById(orderId);
+      if (existingOrder) {
+        total = existingOrder.total || 0;
+      }
     }
 
     payload = {
@@ -427,9 +434,16 @@ export async function POST(req: NextRequest) {
       }
     } else if (orderToUse) {
       finalOrderId = orderToUse._id.toString();
+      // Si ya existe la orden, usar su total
+      total = orderToUse.total || 0;
     } else {
       // orderId existe por control de flujo anterior, afirmamos tipo
       finalOrderId = orderId as string;
+      // Buscar la orden para obtener el total
+      const existingOrder = await Order.findById(orderId);
+      if (existingOrder) {
+        total = existingOrder.total || 0;
+      }
     }
 
     const payload = {
