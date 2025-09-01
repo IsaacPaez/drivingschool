@@ -311,3 +311,196 @@ export async function GET(req: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  //console.log("=== INICIO /api/payments/redirect (POST) ===");
+  try {
+    // 1. Espera a que EC2 esté encendida
+    //console.log("Llamando a startAndWaitEC2 con ID:", process.env.EC2_INSTANCE_ID);
+    const ec2Result = await startAndWaitEC2(process.env.EC2_INSTANCE_ID!);
+    //console.log("Resultado de startAndWaitEC2:", ec2Result);
+    const ok = ec2Result.success;
+    const publicIp = ec2Result.publicIp;
+    if (!ok) {
+      return NextResponse.json({ 
+        error: "ec2", 
+        message: "No se pudo encender la instancia EC2",
+        details: ec2Result.error || "Unknown error"
+      }, { status: 500 });
+    }
+
+    // 2. Espera a que el backend esté listo
+    const backendReady = await waitForBackendReady(`${EC2_URL}/health`);
+    if (!backendReady) {
+      return NextResponse.json({ 
+        error: "backend", 
+        message: "Backend no está listo",
+        details: "El servidor de pagos no está respondiendo"
+      }, { status: 503 });
+    }
+
+    // 3. Obtener parámetros de la URL
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+    const orderId = searchParams.get('orderId');
+
+    if (!userId || !orderId) {
+      return NextResponse.json({ 
+        error: "params", 
+        message: "Missing required parameters",
+        details: "userId and orderId are required"
+      }, { status: 400 });
+    }
+
+    // 4. Conectar a la base de datos
+    await connectDB();
+
+    // 5. Buscar usuario
+    const user = await User.findById(userId);
+    if (!user) {
+      return NextResponse.json({ 
+        error: "user", 
+        message: "User not found",
+        details: `User with ID ${userId} not found`
+      }, { status: 404 });
+    }
+
+    // 6. Buscar orden existente o crear nueva
+    let orderToUse = await Order.findById(orderId);
+    let finalOrderId: string;
+    let items: any[] = [];
+    let total = 0;
+
+    if (!orderToUse) {
+      // Buscar en el carrito del usuario
+      let cartItems: any[] = [];
+      
+      if (user.cart && user.cart.length > 0) {
+        cartItems = user.cart;
+      } else {
+        const cartDoc = await Cart.findOne({ userId });
+        if (cartDoc && cartDoc.items) {
+          cartItems = cartDoc.items;
+        }
+      }
+
+      if (cartItems.length === 0) {
+        return NextResponse.json({ 
+          error: "cart", 
+          message: "Cart is empty",
+          details: "No items found in cart"
+        }, { status: 400 });
+      }
+
+      // Procesar items del carrito
+      items = cartItems.map(item => ({
+        name: item.title || item.name || "Driving Service",
+        quantity: item.quantity || 1,
+        price: item.price || 0,
+        description: item.description || item.packageDetails || "Driving lesson package"
+      }));
+
+      total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      // Crear nueva orden
+      const nextOrderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 100)}`;
+      const createdOrder = await Order.create({
+        userId,
+        items,
+        total: Number(total.toFixed(2)),
+        estado: 'pending',
+        createdAt: new Date(),
+        orderNumber: nextOrderNumber,
+      });
+      console.log("[API][redirect] Orden creada:", createdOrder._id);
+      finalOrderId = createdOrder._id.toString();
+      
+      // Limpiar carrito del usuario (para driving-lessons)
+      if (user.cart && user.cart.length > 0) {
+        user.cart = [];
+        await user.save();
+        console.log("[API][redirect] Carrito del usuario vaciado");
+      } else {
+        // Limpiar colección Cart (para otros productos)
+        const deleteResult = await Cart.deleteOne({ userId });
+        console.log("[API][redirect] Carrito de colección vaciado:", deleteResult);
+      }
+    } else if (orderToUse) {
+      finalOrderId = orderToUse._id.toString();
+    } else {
+      // orderId existe por control de flujo anterior, afirmamos tipo
+      finalOrderId = orderId as string;
+    }
+
+    const payload = {
+      amount: Number(total.toFixed(2)),
+      firstName: user.firstName || "John",
+      lastName: user.lastName || "Doe",
+      email: user.email || "",
+      phone: user.phoneNumber || "",
+      streetAddress: user.streetAddress || "",
+      city: user.city || "",
+      state: user.state || "",
+      zipCode: user.zipCode || "",
+      dni: user.dni || "",
+      items,
+      // IDs en múltiples formas para mayor compatibilidad
+      userId: userId,
+      orderId: finalOrderId,
+      user_id: userId,
+      order_id: finalOrderId,
+      customUserId: userId,
+      customOrderId: finalOrderId,
+      userIdentifier: userId,
+      orderIdentifier: finalOrderId,
+
+      // Datos codificados como respaldo
+      encodedData: `uid:${userId}|oid:${finalOrderId}`,
+      backupData: `${userId}:${finalOrderId}`,
+
+      // Metadata adicional
+      metadata: {
+        userId: userId,
+        orderId: finalOrderId,
+        timestamp: Date.now(),
+        source: "frontend-checkout"
+      },
+
+      // 🔑 CUSTOMER_CODE para ConvergePay (8 dígitos máximo)
+      customer_code: createCustomerCode(userId as string, finalOrderId),
+      customerCode: createCustomerCode(userId as string, finalOrderId), // alias alternativo
+
+      // Estas URLs no se usan directamente para Converge, pero viajan al EC2
+      cancelUrl: `${BASE_URL}/payment-retry?userId=${userId}&orderId=${finalOrderId}`,
+      successUrl: `${BASE_URL}/payment-success?userId=${userId}&orderId=${finalOrderId}`
+    };
+    //console.log("[API][redirect] Payload para EC2:", payload);
+
+    // Construir también parámetros redundantes para cuando el EC2 necesite redirigir
+    const baseParams = new URLSearchParams({
+      userId: userId as string,
+      orderId: finalOrderId,
+      user_id: userId as string,
+      order_id: finalOrderId,
+      uid: userId as string,
+      oid: finalOrderId,
+      data: `${userId as string}:${finalOrderId}`
+    });
+
+    // Usar función con reintento automático
+    const redirectUrl = await getRedirectUrlFromEC2(payload);
+    //console.log("[API][redirect] URL de redirección válida:", redirectUrl);
+    return NextResponse.json({ redirectUrl });
+
+  } catch (error) {
+     console.error("[API][redirect] ❌ Error no manejado:", error);
+    if (error instanceof Error) {
+       console.error("[API][redirect] ❌ Error stack:", error.stack);
+    }
+    return NextResponse.json({ 
+      error: "payment", 
+      message: "There was an error processing the payment.", 
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
+  }
+}
