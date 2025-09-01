@@ -656,7 +656,12 @@ export default function BookNowPage() {
             setTimeout(async () => {
               try {
                 console.log('🚀 Fetching payment gateway URL...');
-                const paymentResponse = await fetch(`/api/payments/redirect?userId=${userId}&orderId=${orderResult.order._id}`);
+                const paymentResponse = await fetch(`/api/payments/redirect?userId=${userId}&orderId=${orderResult.order._id}`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                });
                 
                 if (!paymentResponse.ok) {
                   throw new Error(`Payment gateway error: ${paymentResponse.status}`);
