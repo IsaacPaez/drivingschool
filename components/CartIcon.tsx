@@ -168,9 +168,14 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             // Prepare appointments data from selected slots with slot IDs
             const appointments: any[] = [];
             
+            console.log('🔍 Package item slotDetails:', packageItem.slotDetails);
+            console.log('🔍 Package item selectedSlots:', packageItem.selectedSlots);
+            
             if (packageItem.selectedSlots && packageItem.slotDetails) {
               // Use slotDetails which contains the specific slot IDs
+              console.log('✅ Using slotDetails for appointments');
               packageItem.slotDetails.forEach((slotDetail: any) => {
+                console.log('🎯 Processing slotDetail:', slotDetail);
                 appointments.push({
                   slotId: slotDetail.slotId, // This is the crucial ID for payment processing
                   instructorId: slotDetail.instructorId,
@@ -218,7 +223,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             // Create order
             const orderData = {
               userId: user._id,
-              orderType: 'driving_lesson_package',
+              orderType: 'driving_lesson', // Changed from 'driving_lesson_package' to 'driving_lesson'
               appointments: appointments,
               packageDetails: packageItem.packageDetails,
               items: [{
