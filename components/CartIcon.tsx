@@ -165,10 +165,25 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
         
         for (const packageItem of packagesWithoutOrders) {
           try {
-            // Prepare appointments data from selected slots  
+            // Prepare appointments data from selected slots with slot IDs
             const appointments: any[] = [];
             
-            if (packageItem.selectedSlots && packageItem.instructorData) {
+            if (packageItem.selectedSlots && packageItem.slotDetails) {
+              // Use slotDetails which contains the specific slot IDs
+              packageItem.slotDetails.forEach((slotDetail: any) => {
+                appointments.push({
+                  slotId: slotDetail.slotId, // This is the crucial ID for payment processing
+                  instructorId: slotDetail.instructorId,
+                  instructorName: slotDetail.instructorName,
+                  date: slotDetail.date,
+                  start: slotDetail.start,
+                  end: slotDetail.end,
+                  classType: 'driving_lesson',
+                  amount: packageItem.packageDetails!.packagePrice / (packageItem.packageDetails!.totalHours || 1)
+                });
+              });
+            } else if (packageItem.selectedSlots && packageItem.instructorData) {
+              // Fallback to old method if slotDetails is not available
               packageItem.selectedSlots.forEach(slotKey => {
                 const [date, start, end] = slotKey.split('-');
                 
@@ -180,6 +195,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                   });
                   if (lesson) {
                     appointments.push({
+                      slotId: lesson._id, // Use the lesson's _id as slotId
                       instructorId: instructor._id,
                       instructorName: instructor.name,
                       date: lesson.date,
