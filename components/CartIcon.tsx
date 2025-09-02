@@ -221,8 +221,9 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             if (appointments.length === 0) {
               console.warn(`❌ No appointments found for package ${packageItem.title}, FORCING creation from selectedSlots`);
               
-              // Force create appointments from selectedSlots
-              packageItem.selectedSlots.forEach((slotKey: string) => {
+              // Force create appointments from selectedSlots - FIXED TYPESCRIPT ERROR
+              if (packageItem.selectedSlots && packageItem.selectedSlots.length > 0) {
+                packageItem.selectedSlots.forEach((slotKey: string) => {
                 const parts = slotKey.split('-');
                 if (parts.length >= 5) {
                   const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
@@ -259,6 +260,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                   });
                 }
               });
+              }
               
               console.log(`🔄 FORCED creation of ${appointments.length} appointments`);
             }
