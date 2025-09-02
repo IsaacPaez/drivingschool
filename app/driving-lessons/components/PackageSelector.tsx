@@ -89,7 +89,7 @@ export default function PackageSelector({
             return (
               <div
                 key={instructor._id}
-                className={`border rounded-lg p-2 text-center bg-white shadow-sm cursor-pointer transition-all hover:shadow-md flex-shrink-0 w-[80px] ${
+                className={`border rounded-lg p-2 text-center bg-white shadow-sm cursor-pointer transition-all duration-1000 ease-in-out hover:shadow-md flex-shrink-0 w-[80px] ${
                   isSelected 
                     ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
                     : 'border-gray-300 hover:border-blue-300'
@@ -139,7 +139,7 @@ export default function PackageSelector({
         {products.map((product) => (
           <div
             key={product._id}
-            className={`shadow-lg rounded-xl p-3 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full ${
+            className={`shadow-lg rounded-xl p-3 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all duration-1000 ease-in-out w-full ${
               selectedProduct?._id === product._id 
                 ? "border-4 border-blue-500 bg-blue-100" 
                 : "bg-white"

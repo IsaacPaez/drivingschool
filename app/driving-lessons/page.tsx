@@ -360,10 +360,10 @@ function DrivingLessonsContent() {
             selectedSlots: cartData.selectedSlots
           });
 
-          await addToCart({
-            id: selectedProduct._id,
-            title: selectedProduct.title,
-            price: selectedProduct.price,
+        await addToCart({
+          id: selectedProduct._id,
+          title: selectedProduct.title,
+          price: selectedProduct.price,
             quantity: 1,
             packageDetails: cartData.packageDetails,
             selectedSlots: cartData.selectedSlots,

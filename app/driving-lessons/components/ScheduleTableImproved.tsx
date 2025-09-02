@@ -303,15 +303,7 @@ export default function ScheduleTableImproved({
 
       {/* Schedule Table - Using Book-Now exact structure */}
       <div className="overflow-x-auto w-full mt-6 relative">
-        {/* Loading indicator when SSE is connecting */}
-        {instructors.length > 0 && !instructors.every(instructor => isConnectedForInstructor(instructor._id)) && (
-          <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center z-10">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-blue-600 text-sm font-medium">Connecting to live updates...</span>
-            </div>
-          </div>
-        )}
+
         
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
@@ -514,38 +506,7 @@ export default function ScheduleTableImproved({
           </tbody>
         </table>
         
-        {/* SSE Connection Status Indicators */}
-        {(() => {
-          const hasErrors = instructors.some(instructor => getErrorForInstructor(instructor._id));
-          const allConnected = instructors.length > 0 && instructors.every(instructor => isConnectedForInstructor(instructor._id));
-          const someConnected = instructors.some(instructor => isConnectedForInstructor(instructor._id));
-          
-          if (hasErrors) {
-            return (
-              <div className="absolute top-2 right-2 bg-red-100 border border-red-300 rounded px-3 py-1 z-20">
-                <p className="text-red-600 text-xs">Connection error</p>
-              </div>
-            );
-          }
-          
-          if (allConnected) {
-            return (
-              <div className="absolute top-2 right-2 bg-green-100 border border-green-300 rounded px-3 py-1 z-20">
-                <p className="text-green-600 text-xs">Live updates</p>
-              </div>
-            );
-          }
-          
-          if (someConnected) {
-            return (
-              <div className="absolute top-2 right-2 bg-yellow-100 border border-yellow-300 rounded px-3 py-1 z-20">
-                <p className="text-yellow-600 text-xs">Connecting...</p>
-              </div>
-            );
-          }
-          
-          return null;
-        })()}
+
       </div>
 
       
