@@ -2,8 +2,8 @@
 
 import React from "react";
 import Calendar from "react-calendar";
+import Image from "next/image";
 import "react-calendar/dist/Calendar.css";
-import InstructorSelector from "./InstructorSelector";
 
 type CalendarValue = Date | null | (Date | null)[];
 
@@ -35,7 +35,7 @@ interface PackageSelectorProps {
   onRequestSchedule: () => void;
   selectedHours: number;
   instructors: Instructor[];
-  selectedInstructor: Instructor | null;
+  selectedInstructorForSchedule: Instructor | null;
   onInstructorSelect: (instructor: Instructor | null) => void;
 }
 
@@ -48,7 +48,7 @@ export default function PackageSelector({
   onRequestSchedule,
   selectedHours,
   instructors,
-  selectedInstructor,
+  selectedInstructorForSchedule,
   onInstructorSelect
 }: PackageSelectorProps) {
   return (
@@ -70,12 +70,58 @@ export default function PackageSelector({
         />
       </div>
 
-      {/* Instructor Selector */}
-      <InstructorSelector
-        instructors={instructors}
-        selectedInstructor={selectedInstructor}
-        onInstructorSelect={onInstructorSelect}
-      />
+      {/* Available Instructors - Horizontal Scroll with Max 3 per Row */}
+      <div className="mb-6 w-full">
+        <h3 className="text-lg font-bold text-center mb-3 text-black">Select Instructor</h3>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          {instructors.map((instructor) => {
+            const availableCount = instructor.schedule_driving_lesson?.filter(
+              lesson => lesson.status === "available"
+            ).length || 0;
+            const isSelected = selectedInstructorForSchedule?._id === instructor._id;
+
+            return (
+              <div
+                key={instructor._id}
+                className={`border rounded-lg p-2 text-center bg-white shadow-sm cursor-pointer transition-all hover:shadow-md flex-shrink-0 w-[80px] ${
+                  isSelected 
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                    : 'border-gray-300 hover:border-blue-300'
+                }`}
+                onClick={() => onInstructorSelect(isSelected ? null : instructor)}
+              >
+                <Image
+                  src={instructor.photo || '/default-instructor.png'}
+                  alt={instructor.name}
+                  width={28}
+                  height={28}
+                  className="w-7 h-7 rounded-full mx-auto mb-1 object-cover"
+                />
+                <h4 className="font-semibold text-xs text-black truncate mb-1">{instructor.name}</h4>
+                <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                  {availableCount} available
+                </span>
+                {isSelected && (
+                  <div className="mt-1">
+                    <span className="inline-block bg-blue-500 text-white text-xs px-1 py-0.5 rounded">
+                      ✓
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Show count when many instructors */}
+        {instructors.length > 3 && (
+          <div className="text-center mt-2">
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              {instructors.length} instructors available
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Available Driving Packages Title */}
       <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">

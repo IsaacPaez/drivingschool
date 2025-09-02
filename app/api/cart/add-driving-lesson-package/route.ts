@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Instructor from "@/models/Instructor";
+import { broadcastUpdate } from "@/lib/drivingLessonsSSE";
 
 export async function POST(req: NextRequest) {
   try {
@@ -117,6 +118,51 @@ export async function POST(req: NextRequest) {
 
     await Promise.all(slotUpdatePromises);
     console.log('✅ All slots marked as pending in instructors');
+
+    // Step 1.5: Send SSE updates to connected clients
+    console.log('📡 Sending SSE updates to connected clients...');
+    const instructorUpdates = new Map<string, string[]>();
+    
+    // Group slot IDs by instructor
+    selectedSlots.forEach((slotKey: string) => {
+      const parts = slotKey.split('-');
+      const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+      const start = parts[3];
+      const end = parts[4];
+      
+      for (const instructor of instructorData) {
+        const lesson = instructor.schedule_driving_lesson?.find((l: any) => {
+          const lessonKey = `${l.date}-${l.start}-${l.end}`;
+          return lessonKey === slotKey;
+        });
+        
+        if (lesson) {
+          const slotId = lesson._id || lesson.id || '';
+          if (!instructorUpdates.has(instructor._id)) {
+            instructorUpdates.set(instructor._id, []);
+          }
+          instructorUpdates.get(instructor._id)!.push(slotId.toString());
+          break;
+        }
+      }
+    });
+
+    // Send SSE updates for each instructor
+    for (const [instructorId, slotIds] of instructorUpdates) {
+      try {
+        console.log(`📡 Broadcasting SSE update for instructor ${instructorId}:`, { slotIds, newStatus: 'pending' });
+        broadcastUpdate(instructorId, {
+          type: 'slots-updated',
+          instructorId,
+          slotIds,
+          newStatus: 'pending',
+          studentId: userId,
+          studentName: user.name || 'Pending Student'
+        });
+      } catch (error) {
+        console.error(`❌ Error broadcasting SSE update for instructor ${instructorId}:`, error);
+      }
+    }
 
     // Step 2: Add to user's cart
     const cartItem = {

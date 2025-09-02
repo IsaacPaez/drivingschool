@@ -10,7 +10,7 @@ interface LayoutWrapperProps {
 
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
-  const isPaymentSuccess = pathname.includes("/payment-success");
+  const isPaymentSuccess = pathname?.includes("/payment-success") || false;
 
   return (
     <>

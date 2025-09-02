@@ -506,7 +506,7 @@ function DrivingLessonsContent() {
           onRequestSchedule={handleRequestSchedule}
           selectedHours={selectedHours}
           instructors={instructors}
-          selectedInstructor={selectedInstructorForSchedule}
+          selectedInstructorForSchedule={selectedInstructorForSchedule}
           onInstructorSelect={setSelectedInstructorForSchedule}
         />
 
