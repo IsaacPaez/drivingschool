@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import Cart from "@/models/Cart";
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,29 +18,41 @@ export async function GET(req: NextRequest) {
 
     console.log("🔍 Checking cart status for user:", userId);
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+    const cart = await Cart.findOne({ userId });
+    
+    if (!cart) {
+      console.log("✅ No cart found for user, returning empty cart");
+      return NextResponse.json({
+        success: true,
+        cartItems: [],
+        cartCount: 0
+      });
     }
 
-    console.log("✅ User found, cart items:", user.cart?.length || 0);
-    if (user.cart && user.cart.length > 0) {
-      console.log("📋 Cart contents:", user.cart.map(item => ({
-        id: item.id,
-        title: item.title,
-        price: item.price,
-        hasPackageDetails: !!item.packageDetails,
-        hasSelectedSlots: !!item.selectedSlots
-      })));
+    // Filter out corrupted items (items with undefined id, title, or price)
+    const validItems = cart.items.filter(item => 
+      item.id && 
+      item.title && 
+      typeof item.price === 'number' && 
+      item.price > 0
+    );
+
+    console.log("✅ Cart found, total items:", cart.items.length);
+    console.log("✅ Valid items after filtering:", validItems.length);
+    
+    if (validItems.length !== cart.items.length) {
+      console.log("🧹 Found corrupted items, cleaning cart...");
+      // Update cart with only valid items
+      await Cart.findOneAndUpdate(
+        { userId },
+        { items: validItems, updatedAt: new Date() }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      cartItems: user.cart || [],
-      cartCount: user.cart?.length || 0
+      cartItems: validItems,
+      cartCount: validItems.length
     });
 
   } catch (error) {

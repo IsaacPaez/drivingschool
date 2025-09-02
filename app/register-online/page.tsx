@@ -745,31 +745,34 @@ function RegisterOnlineContent() {
     );
   };
 
-  return (
-    <section className="bg-white pt-32 pb-8 px-2 sm:px-6 flex flex-col items-center w-full">
-      {initialLoading && (
-        <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
-          <div className="text-center p-12 max-w-lg mx-auto">
-            <div className="inline-block animate-spin rounded-full h-20 w-20 border-4 border-gray-100 border-t-[#10B981] mb-8 shadow-lg"></div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Loading Register Online</h3>
-            <p className="text-gray-600 text-lg leading-relaxed mb-8">
-              Please wait while we load all packages and classes for your registration...
-            </p>
-            <div className="flex justify-center">
-              <div className="flex space-x-2">
-                <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md"></div>
-                <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.2s'}}></div>
-              </div>
+  // Loading inicial de pantalla completa
+  if (initialLoading) {
+    return (
+      <section className="bg-white min-h-screen flex flex-col items-center justify-center w-full">
+        <div className="text-center p-12 max-w-lg mx-auto">
+          <div className="inline-block animate-spin rounded-full h-20 w-20 border-4 border-gray-100 border-t-[#10B981] mb-8 shadow-lg"></div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">Loading Register Online</h3>
+          <p className="text-gray-600 text-lg leading-relaxed mb-8">
+            Please wait while we load all packages and classes for your registration...
+          </p>
+          <div className="flex justify-center">
+            <div className="flex space-x-2">
+              <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md"></div>
+              <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.2s'}}></div>
             </div>
           </div>
         </div>
-      )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="bg-white pt-32 pb-8 px-2 sm:px-6 flex flex-col items-center w-full">
       
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-6 items-start">
         
         {/* Left Side - Calendar and Class Types */}
-        {!initialLoading && (
           <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
             
             {/* Calendar Title */}
@@ -847,29 +850,9 @@ function RegisterOnlineContent() {
         )}
 
         {/* Right Side - Schedule Table */}
-        <div className={`${initialLoading ? 'w-full' : 'w-full lg:w-2/3'} mt-6 lg:mt-0 flex justify-center`}>
-          {/* Initial Loading */}
-          {initialLoading && (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-2xl shadow-2xl border-2 border-gray-50" style={{minHeight: '600px'}}>
-              <div className="text-center p-12 max-w-lg mx-auto">
-                <div className="inline-block animate-spin rounded-full h-20 w-20 border-4 border-gray-100 border-t-[#10B981] mb-8 shadow-lg"></div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Loading Register Online</h3>
-                <p className="text-gray-600 text-lg leading-relaxed mb-8">
-                  Please wait while we load all packages and classes for your registration...
-                </p>
-                <div className="flex justify-center">
-                  <div className="flex space-x-2">
-                    <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md"></div>
-                    <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.2s'}}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
+        <div className="w-full lg:w-2/3 mt-6 lg:mt-0 flex justify-center">
           {/* Always show schedule - with or without classes */}
-          {!initialLoading && selectedClassId && (
+          {selectedClassId && (
             <div className="w-full max-w-4xl">
               <div className="flex justify-center">
                 <div className="ml-16">

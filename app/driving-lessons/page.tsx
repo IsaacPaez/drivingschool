@@ -73,6 +73,7 @@ function DrivingLessonsContent() {
   const [selectedHours, setSelectedHours] = useState(0);
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -147,6 +148,8 @@ function DrivingLessonsContent() {
         }
       } catch (error) {
         console.error('Error al obtener productos:', error);
+      } finally {
+        setInitialLoading(false);
       }
     };
 
@@ -458,6 +461,28 @@ function DrivingLessonsContent() {
     
     setIsBookingModalOpen(true);
   };
+
+  // Loading inicial de pantalla completa
+  if (initialLoading) {
+    return (
+      <section className="bg-white min-h-screen flex flex-col items-center justify-center w-full">
+        <div className="text-center p-12 max-w-lg mx-auto">
+          <div className="inline-block animate-spin rounded-full h-20 w-20 border-4 border-gray-100 border-t-[#10B981] mb-8 shadow-lg"></div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">Loading Driving Lessons</h3>
+          <p className="text-gray-600 text-lg leading-relaxed mb-8">
+            Please wait while we load all packages and instructors for your driving lessons...
+          </p>
+          <div className="flex justify-center">
+            <div className="flex space-x-2">
+              <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md"></div>
+              <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-3 h-3 bg-[#10B981] rounded-full animate-bounce shadow-md" style={{animationDelay: '0.2s'}}></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-white pt-32 pb-8 px-2 sm:px-6 flex flex-col items-center w-full">

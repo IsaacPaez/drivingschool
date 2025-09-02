@@ -110,6 +110,28 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
   useEffect(() => {
     console.log('🛒 [CartIcon] Cart state changed:', cart);
   }, [cart]);
+
+  // Force cart sync when component mounts (only once)
+  useEffect(() => {
+    if (user?._id) {
+      console.log('🔄 [CartIcon] Force syncing cart with database...');
+      fetch(`/api/cart/status?userId=${user._id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            console.log('🔄 [CartIcon] Database cart items:', data.cartItems);
+            if (data.cartItems.length === 0) {
+              // If database is empty, clear local cart
+              localStorage.removeItem("cart");
+              window.location.reload();
+            }
+          }
+        })
+        .catch(err => {
+          console.warn('[CartIcon] Failed to sync with database:', err);
+        });
+    }
+  }, []); // NO DEPENDENCIES - only run once on mount
   const handleCheckout = async () => {
     if (!user) {
       setShowAuthWarning(true);
@@ -325,13 +347,45 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             {/* Total y botón para vaciar carrito */}
             {cart.length > 0 && (
               <div className="flex justify-between items-center mb-4">
-                <span className="text-lg font-bold dark:text-black">Total: ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2)}</span>
-                <button
-                  onClick={() => { localStorage.removeItem("cart"); window.location.reload(); }}
-                  className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-700 transition text-sm"
-                >
-                  Empty Cart
-                </button>
+                <span className="text-lg font-bold dark:text-black">
+                  Total: ${isNaN(cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)) ? '0.00' : cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0).toFixed(2)}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (user?._id) {
+                        try {
+                          const response = await fetch("/api/cart/force-clean", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ userId: user._id }),
+                          });
+                          
+                          if (response.ok) {
+                            console.log("✅ Cart force cleaned successfully");
+                          }
+                        } catch (error) {
+                          console.error("Error force cleaning cart:", error);
+                        }
+                      }
+                      localStorage.removeItem("cart");
+                      window.location.reload();
+                    }}
+                    className="px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-700 transition text-sm"
+                  >
+                    Clean Corrupted
+                  </button>
+                  <button
+                    onClick={() => { 
+                      localStorage.removeItem("cart"); 
+                      localStorage.clear(); // Clear all localStorage
+                      window.location.reload(); 
+                    }}
+                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-700 transition text-sm"
+                  >
+                    Emergency Clear
+                  </button>
+                </div>
               </div>
             )}
 

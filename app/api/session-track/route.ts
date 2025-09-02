@@ -36,7 +36,22 @@ function getClientIp(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const body = await req.json();
+    
+    // Check if request has body
+    const text = await req.text();
+    if (!text || text.trim() === '') {
+      console.log('⚠️ Empty request body in session-track');
+      return NextResponse.json({ success: false, error: 'Empty request body' }, { status: 400 });
+    }
+    
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (parseError) {
+      console.error('❌ Invalid JSON in session-track:', parseError);
+      return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    }
+    
     const { sessionId, userId, geolocation, page, timestamp } = body;
     if (!sessionId || !userId || !page) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });

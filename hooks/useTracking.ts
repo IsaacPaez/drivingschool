@@ -64,7 +64,8 @@ export const useTracking = () => {
     };
     try {
       if (endSession && navigator.sendBeacon) {
-        const success = navigator.sendBeacon('/api/session-track', JSON.stringify(payload));
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        const success = navigator.sendBeacon('/api/session-track', blob);
         if (!success) {
           console.warn('Failed to send session data via beacon, falling back to fetch');
           await fetch('/api/session-track', {

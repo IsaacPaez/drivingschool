@@ -58,4 +58,34 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch cart", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
+}
+
+export async function DELETE(req: NextRequest) {
+  await connectDB();
+  
+  let requestBody;
+  try {
+    const text = await req.text();
+    if (!text || text.trim() === '') {
+      return NextResponse.json({ error: "Empty request body" }, { status: 400 });
+    }
+    requestBody = JSON.parse(text);
+  } catch (error) {
+    return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+  }
+  
+  const { userId } = requestBody;
+  
+  if (!userId) {
+    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+  }
+  
+  try {
+    const result = await Cart.findOneAndDelete({ userId });
+    console.log(`🗑️ [API][cart] Cart cleared for user: ${userId}`);
+    return NextResponse.json({ success: true, message: "Cart cleared successfully" });
+  } catch (error) {
+    console.log("[API][cart] Failed to clear cart:", error);
+    return NextResponse.json({ error: "Failed to clear cart", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
+  }
 } 
