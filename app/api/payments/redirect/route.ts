@@ -148,9 +148,53 @@ export async function GET(req: NextRequest) {
       
       if (user && user.cart && user.cart.length > 0) {
         console.log("[API][redirect] Carrito encontrado en usuario:", user.cart.length, "items");
-        items = user.cart;
-        total = user.cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
-        console.log("[API][redirect] Total del carrito:", total);
+        
+        // Filtrar solo items válidos para el pago (que tengan price como número)
+        const validItems = user.cart.filter(item => 
+          item && 
+          typeof item.price === 'number' && 
+          !isNaN(item.price) && 
+          item.price > 0 &&
+          item.id &&
+          item.title
+        );
+        
+        console.log("[API][redirect] Items válidos para pago:", validItems.length);
+        console.log("[API][redirect] Items inválidos filtrados:", user.cart.length - validItems.length);
+        
+        if (validItems.length === 0) {
+          console.log("[API][redirect] No hay items válidos en el carrito para procesar pago");
+          return NextResponse.json({ 
+            error: "cart", 
+            message: "No valid items found in cart for payment processing." 
+          }, { status: 400 });
+        }
+        
+        // Asegurar que todos los items tengan la estructura correcta
+        items = validItems.map(item => ({
+          id: item.id,
+          title: item.title,
+          price: Number(item.price),
+          quantity: Number(item.quantity || 1),
+          ...item // Mantener otros campos como packageDetails, selectedSlots, etc.
+        }));
+        
+        total = items.reduce((sum, item) => {
+          const itemTotal = item.price * item.quantity;
+          console.log(`[API][redirect] Item: ${item.title}, Price: ${item.price}, Quantity: ${item.quantity}, Total: ${itemTotal}`);
+          return sum + itemTotal;
+        }, 0);
+        
+        console.log("[API][redirect] Total del carrito calculado:", total);
+        
+        // Validar que el total sea un número válido
+        if (isNaN(total) || total <= 0) {
+          console.log("[API][redirect] ❌ Total inválido calculado:", total);
+          return NextResponse.json({ 
+            error: "calculation", 
+            message: "Invalid total calculated from cart items." 
+          }, { status: 400 });
+        }
       } else {
         console.log("[API][redirect] Carrito del usuario vacío o null. user.cart:", user?.cart);
         

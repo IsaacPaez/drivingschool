@@ -11,12 +11,17 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
       onClick={onClose}
     >
       <div 
-        className="relative bg-white text-black w-full max-w-4xl min-w-[400px] rounded-2xl shadow-2xl border border-[#e0e0e0] max-h-[90vh] flex flex-col mx-4"
-        style={{overflow: 'visible'}}
+        className="relative bg-white text-black rounded-2xl shadow-2xl border border-gray-200 max-h-[90vh] flex flex-col mx-4"
+        style={{
+          minWidth: '450px', 
+          maxWidth: '550px', 
+          width: '90vw',
+          overflow: 'auto'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Botón de cierre mejorado */}

@@ -110,6 +110,28 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
   useEffect(() => {
     console.log('🛒 [CartIcon] Cart state changed:', cart);
   }, [cart]);
+
+  // Force cart sync when component mounts (only once)
+  useEffect(() => {
+    if (user?._id) {
+      console.log('🔄 [CartIcon] Force syncing cart with database...');
+      fetch(`/api/cart/status?userId=${user._id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            console.log('🔄 [CartIcon] Database cart items:', data.cartItems);
+            if (data.cartItems.length === 0) {
+              // If database is empty, clear local cart
+              localStorage.removeItem("cart");
+              window.location.reload();
+            }
+          }
+        })
+        .catch(err => {
+          console.warn('[CartIcon] Failed to sync with database:', err);
+        });
+    }
+  }, []); // NO DEPENDENCIES - only run once on mount
   const handleCheckout = async () => {
     if (!user) {
       setShowAuthWarning(true);
@@ -325,13 +347,9 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             {/* Total y botón para vaciar carrito */}
             {cart.length > 0 && (
               <div className="flex justify-between items-center mb-4">
-                <span className="text-lg font-bold dark:text-black">Total: ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2)}</span>
-                <button
-                  onClick={() => { localStorage.removeItem("cart"); window.location.reload(); }}
-                  className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-700 transition text-sm"
-                >
-                  Empty Cart
-                </button>
+                <span className="text-lg font-bold dark:text-black">
+                  Total: ${isNaN(cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)) ? '0.00' : cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0).toFixed(2)}
+                </span>
               </div>
             )}
 
@@ -348,21 +366,25 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                       className="py-3 px-2 min-w-0"
                     >
                       {/* Item Title and Price */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="flex-1 truncate text-left dark:text-black font-semibold">
-                          {item.title}
-                        </span>
-                        <span className="ml-2 flex-shrink-0 text-right font-bold dark:text-black text-lg">
-                          ${item.price}
-                        </span>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 text-base mb-1">
+                            {item.title}
+                          </h3>
+                          <p className="text-lg font-bold text-green-600">
+                            ${item.price}
+                          </p>
+                        </div>
                         <button
                           onClick={() => !cartLoading && removeFromCart(item.id)}
-                          className={`ml-2 flex-shrink-0 text-red-500 text-lg hover:text-red-700 transition ${cartLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`flex-shrink-0 w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-200 ${cartLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                           disabled={cartLoading}
                           aria-label="Remove from cart"
-                          style={{ minWidth: 32, minHeight: 32 }}
+                          title="Remove item from cart"
                         >
-                          ❌
+                          <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
                       </div>
 
@@ -370,7 +392,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                       {item.orderNumber && (
                         <div className="bg-blue-50 p-3 rounded-lg mb-2">
                           <div className="text-sm text-blue-800 font-medium">
-                            📋 Order: {item.orderNumber}
+                            Order: {item.orderNumber}
                           </div>
                           {item.orderId && (
                             <div className="text-xs text-blue-600">
@@ -387,34 +409,82 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
 
                       {/* Package Details (for driving lessons without order yet) */}
                       {!item.orderId && item.packageDetails && item.selectedSlots && (
-                        <div className="bg-yellow-50 p-3 rounded-lg">
-                          <div className="text-sm text-yellow-800 font-medium mb-2">
-                            📦 Package Details (Order will be created at checkout)
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 shadow-sm">
+                          <div className="flex items-center mb-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-semibold text-blue-900">
+                                Driving Lesson Package
+                              </h4>
+                              <p className="text-xs text-blue-600">
+                                Order will be created at checkout
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-xs text-yellow-700 mb-2">
-                            📍 Pickup: {item.packageDetails.pickupLocation}
-                            <br />
-                            📍 Dropoff: {item.packageDetails.dropoffLocation}
-                            <br />
-                            ⏱️ Total Hours: {item.packageDetails.totalHours} hrs | Selected: {item.packageDetails.selectedHours} hrs
-                          </div>
-                          <div className="text-xs text-yellow-700 mb-1">
-                            📋 Selected Time Slots ({item.selectedSlots.length}):
-                          </div>
-                          {item.selectedSlots.map((slot: string, index: number) => {
-                            const [date, start, end] = slot.split('-');
-                            return (
-                              <div key={index} className="text-xs text-yellow-600 mb-1 pl-2 border-l-2 border-yellow-200">
-                                📅 {date} • ⏰ {start}-{end}
-                                <br />
-                                <span className="inline-block px-1 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-700">
-                                  PENDING (Not paid yet)
-                                </span>
+                          
+                          <div className="space-y-2 mb-3">
+                            <div className="flex items-start">
+                              <svg className="w-4 h-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <div className="text-xs text-blue-700">
+                                <span className="font-medium">Pickup:</span> {item.packageDetails.pickupLocation}
                               </div>
-                            );
-                          })}
-                          <div className="text-xs text-yellow-600 mt-2 pt-2 border-t border-yellow-200">
-                            ⚠️ Slots are reserved temporarily. Complete checkout to confirm.
+                            </div>
+                            <div className="flex items-start">
+                              <svg className="w-4 h-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <div className="text-xs text-blue-700">
+                                <span className="font-medium">Dropoff:</span> {item.packageDetails.dropoffLocation}
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <svg className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div className="text-xs text-blue-700">
+                                <span className="font-medium">Hours:</span> {item.packageDetails.totalHours} total | {item.packageDetails.selectedHours} selected
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <h5 className="text-xs font-semibold text-blue-800 mb-2">
+                              Selected Time Slots ({item.selectedSlots.length})
+                            </h5>
+                            <div className="space-y-1">
+                              {item.selectedSlots.map((slot: string, index: number) => {
+                                const [date, start, end] = slot.split('-');
+                                return (
+                                  <div key={index} className="flex items-center justify-between bg-white p-2 rounded border border-blue-100">
+                                    <div className="flex items-center">
+                                      <svg className="w-3 h-3 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      <span className="text-xs text-blue-800 font-medium">{date}</span>
+                                      <span className="text-xs text-blue-600 mx-2">•</span>
+                                      <span className="text-xs text-blue-700">{start}-{end}</span>
+                                    </div>
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                      PENDING
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          
+                          <div className="bg-blue-100 p-2 rounded border-l-4 border-blue-400">
+                            <p className="text-xs text-blue-800">
+                              <span className="font-medium">Note:</span> Slots are reserved temporarily. Complete checkout to confirm your booking.
+                            </p>
                           </div>
                         </div>
                       )}
@@ -423,10 +493,25 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                 </ul>
                 <button
                   onClick={handleCheckout}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white mt-6 py-3 rounded-lg disabled:opacity-50 transition"
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white mt-6 py-3 rounded-lg disabled:opacity-50 transition-all duration-200 font-semibold text-base shadow-lg hover:shadow-xl flex items-center justify-center"
                   disabled={loading}
                 >
-                  {loading ? "Processing..." : "Checkout"}
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Proceed to Checkout
+                    </>
+                  )}
                 </button>
               </>
             )}

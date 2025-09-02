@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Modal from "@/components/Modal";
+import { useAllDrivingLessonsSSE } from "@/hooks/useAllDrivingLessonsSSE";
 
 interface Instructor {
   _id: string;
@@ -54,6 +56,8 @@ interface ScheduleTableProps {
   onSelectedHoursChange?: (hours: number) => void;
   selectedSlots: Set<string>;
   onSelectedSlotsChange: (slots: Set<string>) => void;
+  selectedInstructorForSchedule: Instructor | null;
+  onInstructorSelect: (instructor: Instructor | null) => void;
 }
 
 export default function ScheduleTableImproved({
@@ -66,8 +70,39 @@ export default function ScheduleTableImproved({
   onTimeSlotSelect,
   onSelectedHoursChange,
   selectedSlots,
-  onSelectedSlotsChange
+  onSelectedSlotsChange,
+  selectedInstructorForSchedule,
+  onInstructorSelect
 }: ScheduleTableProps) {
+  
+  // Use SSE hook for real-time schedule updates for all instructors
+  const instructorIds = React.useMemo(() => 
+    instructors.map(instructor => instructor._id), 
+    [instructors]
+  );
+  const { 
+    getScheduleForInstructor, 
+    getErrorForInstructor, 
+    isConnectedForInstructor,
+    getAllSchedules 
+  } = useAllDrivingLessonsSSE(instructorIds);
+  
+  const [showMultipleInstructorsModal, setShowMultipleInstructorsModal] = useState(false);
+  const [multipleInstructorsData, setMultipleInstructorsData] = useState<{
+    instructors: { instructor: Instructor; lesson: ScheduleEntry }[];
+    date: string;
+    time: string;
+  } | null>(null);
+  
+  // Function to handle multiple instructors click
+  const handleMultipleInstructorsClick = (
+    instructors: { instructor: Instructor; lesson: ScheduleEntry }[],
+    date: string,
+    time: string
+  ) => {
+    setMultipleInstructorsData({ instructors, date, time });
+    setShowMultipleInstructorsModal(true);
+  };
   
   // Helper functions
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -120,12 +155,27 @@ export default function ScheduleTableImproved({
   const calculateSelectedHours = React.useCallback((): number => {
     let totalMinutes = 0;
     selectedSlots.forEach(slotKey => {
-      // Search across all instructors for the lesson
+      // Search across all instructors for the lesson (both SSE and static data)
       for (const instructor of instructors) {
-        const lesson = instructor.schedule_driving_lesson?.find(l => {
-          const lessonKey = `${l.date}-${l.start}-${l.end}`;
-          return lessonKey === slotKey && l.status === "available";
-        });
+        // First try SSE data
+        const sseSchedule = getScheduleForInstructor(instructor._id);
+        let lesson: any = null;
+        
+        if (sseSchedule && Array.isArray(sseSchedule)) {
+          lesson = sseSchedule.find((l: any) => {
+            const lessonKey = `${l.date}-${l.start}-${l.end}`;
+            return lessonKey === slotKey && l.status === "available";
+          }) || null;
+        }
+        
+        // Fallback to static data if SSE data not found
+        if (!lesson && instructor.schedule_driving_lesson) {
+          lesson = instructor.schedule_driving_lesson.find(l => {
+            const lessonKey = `${l.date}-${l.start}-${l.end}`;
+            return lessonKey === slotKey && l.status === "available";
+          });
+        }
+        
         if (lesson) {
           const startMin = timeToMinutes(lesson.start);
           const endMin = timeToMinutes(lesson.end);
@@ -136,14 +186,40 @@ export default function ScheduleTableImproved({
     });
     
     return Math.round(totalMinutes / 60 * 100) / 100;
-  }, [instructors, selectedSlots, timeToMinutes]);
+  }, [instructors, selectedSlots, timeToMinutes, getScheduleForInstructor]);
 
   // Function to create grouped schedule like Book-Now
   const createGroupedSchedule = () => {
     const grouped: { [instructorId: string]: { instructor: Instructor, schedule: { date: string; slots: ScheduleEntry[] }[] } } = {};
     
-    instructors.forEach(instructor => {
-      if (instructor.schedule_driving_lesson) {
+    // Use SSE data if available, otherwise fall back to static instructor data
+    const instructorsToShow = selectedInstructorForSchedule 
+      ? [selectedInstructorForSchedule]
+      : instructors;
+
+    instructorsToShow.forEach(instructor => {
+      // Try to get SSE data first
+      const sseSchedule = getScheduleForInstructor(instructor._id);
+      
+      if (sseSchedule && Array.isArray(sseSchedule) && sseSchedule.length > 0) {
+        // Process SSE data similar to Book-Now
+        const scheduleByDate: { [date: string]: ScheduleEntry[] } = {};
+        
+        sseSchedule.forEach((lesson: any) => {
+          if (!scheduleByDate[lesson.date]) {
+            scheduleByDate[lesson.date] = [];
+          }
+          scheduleByDate[lesson.date].push(lesson);
+        });
+        
+        const schedule = Object.entries(scheduleByDate).map(([date, slots]) => ({ date, slots }));
+        grouped[instructor._id] = { 
+          instructor, 
+          schedule 
+        };
+        console.log(`📅 Using SSE data for instructor ${instructor.name}:`, schedule.length, 'days with slots');
+      } else if (instructor.schedule_driving_lesson) {
+        // Fallback to static data
         const scheduleByDate: { [date: string]: ScheduleEntry[] } = {};
         
         instructor.schedule_driving_lesson.forEach(lesson => {
@@ -155,6 +231,9 @@ export default function ScheduleTableImproved({
         
         const schedule = Object.entries(scheduleByDate).map(([date, slots]) => ({ date, slots }));
         grouped[instructor._id] = { instructor, schedule };
+        console.log(`📅 Using static data for instructor ${instructor.name}:`, schedule.length, 'days with slots');
+      } else {
+        console.log(`⚠️ No schedule data found for instructor ${instructor.name}`);
       }
     });
     
@@ -162,6 +241,15 @@ export default function ScheduleTableImproved({
   };
   
   const groupedSchedule = createGroupedSchedule();
+  
+  // Debug: Log SSE data
+  React.useEffect(() => {
+    console.log("🔍 Debug - SSE data for all instructors:");
+    instructors.forEach(instructor => {
+      const sseData = getScheduleForInstructor(instructor._id);
+      console.log(`  ${instructor.name} (${instructor._id}):`, sseData?.length || 0, 'slots');
+    });
+  }, [instructors, getScheduleForInstructor]);
 
   // Notify parent component when selected hours change
   React.useEffect(() => {
@@ -186,14 +274,19 @@ export default function ScheduleTableImproved({
   return (
     <div className="w-full lg:w-2/3 mt-6 lg:mt-0">
       <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 mt-12">
-        <span className="text-[#10B981]">Horarios Disponibles</span>
+        <span className="text-[#10B981]">Available Schedules</span>
       </h2>
       <p className="text-center text-gray-600 mb-6 text-sm">
-        Showing driving lesson appointments. Green slots are available for booking.
+        {selectedInstructorForSchedule 
+          ? `Showing ${selectedInstructorForSchedule.name}'s schedule. Green slots are available for booking.`
+          : 'Showing all instructors. Green slots are available for booking.'
+        }
       </p>
       
-      {/* Week Navigation */}
-      <div className="flex flex-row justify-center items-center mb-8 gap-2 sm:gap-4">
+
+
+      {/* Week Navigation - Moved below instructors */}
+      <div className="flex flex-row justify-center items-center mb-6 gap-2 sm:gap-4">
         <button
           onClick={() => onWeekOffsetChange(weekOffset - 1)}
           className="px-3 py-1.5 text-xs sm:text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600 font-semibold shadow transition-all duration-200"
@@ -208,39 +301,18 @@ export default function ScheduleTableImproved({
         </button>
       </div>
 
-      {/* Available Instructors */}
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-center mb-3 text-black">Available Instructors</h3>
-        <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
-          {instructors.map((instructor) => {
-            const availableCount = instructor.schedule_driving_lesson?.filter(
-              lesson => lesson.status === "available"
-            ).length || 0;
-
-            return (
-              <div
-                key={instructor._id}
-                className="border rounded-lg p-3 text-center bg-white shadow-sm"
-              >
-                <Image
-                  src={instructor.photo || '/default-instructor.png'}
-                  alt={instructor.name}
-                  width={48}
-                  height={48}
-                  className="w-12 h-12 rounded-full mx-auto mb-2 object-cover"
-                />
-                <h4 className="font-semibold text-sm text-black">{instructor.name}</h4>
-                <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                  {availableCount} available
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Schedule Table - Using Book-Now exact structure */}
-      <div className="overflow-x-auto w-full mt-6">
+      <div className="overflow-x-auto w-full mt-6 relative">
+        {/* Loading indicator when SSE is connecting */}
+        {instructors.length > 0 && !instructors.every(instructor => isConnectedForInstructor(instructor._id)) && (
+          <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center z-10">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-blue-600 text-sm font-medium">Connecting to live updates...</span>
+            </div>
+          </div>
+        )}
+        
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-gray-100 text-center">
@@ -293,9 +365,10 @@ export default function ScheduleTableImproved({
                           const slotStartMin = timeToMinutes(slot.start);
                           const slotEndMin = timeToMinutes(slot.end);
                           const blockStartMin = timeToMinutes(block.start);
+                          const blockEndMin = timeToMinutes(block.end);
                           
-                          // Check if this block is covered by this slot
-                          if (blockStartMin >= slotStartMin && blockStartMin < slotEndMin) {
+                          // Check if this block overlaps with this slot
+                          if (blockStartMin < slotEndMin && blockEndMin > slotStartMin) {
                             slotsAtTime.push({ instructor, lesson: slot });
                           }
                         });
@@ -307,77 +380,127 @@ export default function ScheduleTableImproved({
                       return !(
                         lesson.status === 'cancelled' || 
                         (lesson.studentId && 
-                         (lesson.status === 'booked' || lesson.status === 'scheduled' || lesson.status === 'pending') &&
-                         (!userId || lesson.studentId.toString() !== userId))
+                         (lesson.status === 'booked' || lesson.status === 'scheduled') &&
+                         (!userId || lesson.studentId.toString() !== userId)) ||
+                        (lesson.status === 'pending' && lesson.studentId && (!userId || lesson.studentId.toString() !== userId))
                       );
                     });
                     
-                    // Find the slot that starts at this exact block (for rowSpan)
-                    const slotStartingHere = slotsAtTime.find(({ lesson }) => 
-                      isRowStartForSlot(dateString, lesson)
-                    );
-                    
-                    if (slotStartingHere) {
-                      const { instructor, lesson: slot } = slotStartingHere;
-                      
-                      // Calculate rowSpan (same logic as Book-Now)
-                      const slotStartMin = timeToMinutes(slot.start);
-                      const slotEndMin = timeToMinutes(slot.end);
-                      const slotDurationMin = slotEndMin - slotStartMin;
-                      const rowSpan = Math.ceil(slotDurationMin / 30);
-                      
-                      // Slot available for booking
-                      if ((slot.status === 'available' || slot.status === 'free') && !slot.paid) {
-                        const isSelected = isSlotSelected(slot);
-                        return (
-                          <td 
-                            key={date.toDateString()} 
-                            rowSpan={rowSpan}
-                            className={`border border-gray-300 py-1 font-bold cursor-pointer min-w-[80px] w-[80px] ${
-                              isSelected 
-                                ? 'bg-green-600 text-white hover:bg-green-700' 
-                                : 'bg-green-200 text-black hover:bg-green-300'
-                            }`}
-                            onClick={() => toggleSlotSelection(slot)}
-                          >
-                            <div className="text-xs">{instructor.name}</div>
-                            <div className="text-xs">{isSelected ? 'Selected' : 'Available'}</div>
-                          </td>
-                        );
-                      }
-                      // Slot pending del usuario actual
-                      if (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId) {
-                        return (
-                          <td 
-                            key={date.toDateString()} 
-                            rowSpan={rowSpan}
-                            className="border border-gray-300 py-1 bg-orange-200 text-orange-800 font-bold min-w-[80px] w-[80px]"
-                          >
-                            <div className="text-xs">{instructor.name}</div>
-                            <div className="text-xs">Your Pending</div>
-                          </td>
-                        );
-                      }
-                      // Slot booked del usuario actual
-                      if ((slot.status === 'scheduled' || slot.status === 'booked' || slot.paid) && slot.studentId && userId && slot.studentId.toString() === userId) {
-                        return (
-                          <td 
-                            key={date.toDateString()} 
-                            rowSpan={rowSpan}
-                            className="border border-gray-300 py-1 bg-blue-500 text-white font-bold min-w-[80px] w-[80px]"
-                          >
-                            <div className="text-xs">{instructor.name}</div>
-                            <div className="text-xs">Your Booking</div>
-                          </td>
-                        );
-                      }
-                      // Empty slot or other states - show "-"
-                      return (
-                        <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px]">-</td>
+                    // Handle multiple instructors in the same time block
+                    if (slotsAtTime.length > 0) {
+                      // Find the slot that starts at this exact block (for rowSpan)
+                      const slotStartingHere = slotsAtTime.find(({ lesson }) => 
+                        isRowStartForSlot(dateString, lesson)
                       );
-                    } else if (slotsAtTime.length > 0) {
-                      // This block is covered by a slot that started in a previous row
-                      return <React.Fragment key={date.toDateString()}></React.Fragment>;
+                      
+                      if (slotStartingHere) {
+                        const { instructor, lesson: slot } = slotStartingHere;
+                        
+                        // Calculate rowSpan (same logic as Book-Now)
+                        const slotStartMin = timeToMinutes(slot.start);
+                        const slotEndMin = timeToMinutes(slot.end);
+                        const slotDurationMin = slotEndMin - slotStartMin;
+                        const rowSpan = Math.ceil(slotDurationMin / 30);
+                        
+                        // Check if there are multiple instructors in this time block
+                        const multipleInstructors = slotsAtTime.length > 1;
+                        
+                        // Slot available for booking
+                        if ((slot.status === 'available' || slot.status === 'free') && !slot.paid) {
+                          const isSelected = isSlotSelected(slot);
+                          
+                          if (multipleInstructors) {
+                            // Special design for multiple instructors - split the cell
+                            return (
+                              <td 
+                                key={date.toDateString()} 
+                                rowSpan={rowSpan}
+                                className="border border-gray-300 py-1 font-bold cursor-pointer min-w-[80px] w-[80px] relative overflow-hidden"
+                                onClick={() => handleMultipleInstructorsClick(slotsAtTime, dateString, `${block.start}-${block.end}`)}
+                                title={`Multiple instructors available: ${slotsAtTime.map(s => s.instructor.name).join(', ')}`}
+                              >
+                                {/* Split design - top half and bottom half */}
+                                <div className="absolute inset-0 flex flex-col">
+                                  <div className="flex-1 bg-green-200 hover:bg-green-300 flex items-center justify-center">
+                                    <div className="text-xs text-center">
+                                      <div className="font-bold">Driving Lesson</div>
+                                      <div className="text-xs">{slot.start} - {slot.end}</div>
+                                      <div className="text-xs">Available</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 bg-blue-200 hover:bg-blue-300 flex items-center justify-center border-t border-gray-300">
+                                    <div className="text-xs text-center">
+                                      <div className="font-bold">
+                                        {slotsAtTime.length > 5 ? `+${slotsAtTime.length - 1} more` : `+${slotsAtTime.length - 1} more`}
+                                      </div>
+                                      <div className="text-xs">
+                                        {slotsAtTime.length > 5 ? 'Many available' : 'Click to see all'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            );
+                          } else {
+                            // Single instructor - normal design
+                            return (
+                              <td 
+                                key={date.toDateString()} 
+                                rowSpan={rowSpan}
+                                className={`border border-gray-300 py-1 font-bold cursor-pointer min-w-[80px] w-[80px] ${
+                                  isSelected 
+                                    ? 'bg-green-600 text-white hover:bg-green-700' 
+                                    : 'bg-green-200 text-black hover:bg-green-300'
+                                }`}
+                                onClick={() => toggleSlotSelection(slot)}
+                              >
+                                <div className="text-xs font-semibold">Driving Lesson</div>
+                                <div className="text-xs">
+                                  {slot.start} - {slot.end}
+                                </div>
+                                <div className="text-xs">
+                                  {isSelected ? 'Selected' : 'Available'}
+                                </div>
+                              </td>
+                            );
+                          }
+                        }
+                        // Slot pending del usuario actual - Solo si es realmente del usuario actual
+                        if (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId && slot.studentName && slot.studentName.trim() !== '') {
+                          return (
+                            <td 
+                              key={date.toDateString()} 
+                              rowSpan={rowSpan}
+                              className="border border-gray-300 py-1 bg-orange-200 text-orange-800 font-bold min-w-[80px] w-[80px]"
+                            >
+                              <div className="text-xs font-semibold">Driving Lesson</div>
+                              <div className="text-xs">{slot.start} - {slot.end}</div>
+                              <div className="text-xs">Your Pending</div>
+                            </td>
+                          );
+                        }
+                        // Slot booked del usuario actual
+                        if ((slot.status === 'scheduled' || slot.status === 'booked' || slot.paid) && slot.studentId && userId && slot.studentId.toString() === userId) {
+                          return (
+                            <td 
+                              key={date.toDateString()} 
+                              rowSpan={rowSpan}
+                              className="border border-gray-300 py-1 bg-blue-500 text-white font-bold min-w-[80px] w-[80px]"
+                            >
+                              <div className="text-xs font-semibold">Driving Lesson</div>
+                              <div className="text-xs">{slot.start} - {slot.end}</div>
+                              <div className="text-xs">Your Booking</div>
+                            </td>
+                          );
+                        }
+                        // Empty slot or other states - show "-"
+                        return (
+                          <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px]">-</td>
+                        );
+                      } else {
+                        // This block is covered by a slot that started in a previous row
+                        return <React.Fragment key={date.toDateString()}></React.Fragment>;
+                      }
                     }
                     
                     // Always show something - if no slot, show '-'
@@ -390,80 +513,116 @@ export default function ScheduleTableImproved({
             }).filter(row => row !== null)}
           </tbody>
         </table>
+        
+        {/* SSE Connection Status Indicators */}
+        {(() => {
+          const hasErrors = instructors.some(instructor => getErrorForInstructor(instructor._id));
+          const allConnected = instructors.length > 0 && instructors.every(instructor => isConnectedForInstructor(instructor._id));
+          const someConnected = instructors.some(instructor => isConnectedForInstructor(instructor._id));
+          
+          if (hasErrors) {
+            return (
+              <div className="absolute top-2 right-2 bg-red-100 border border-red-300 rounded px-3 py-1 z-20">
+                <p className="text-red-600 text-xs">Connection error</p>
+              </div>
+            );
+          }
+          
+          if (allConnected) {
+            return (
+              <div className="absolute top-2 right-2 bg-green-100 border border-green-300 rounded px-3 py-1 z-20">
+                <p className="text-green-600 text-xs">Live updates</p>
+              </div>
+            );
+          }
+          
+          if (someConnected) {
+            return (
+              <div className="absolute top-2 right-2 bg-yellow-100 border border-yellow-300 rounded px-3 py-1 z-20">
+                <p className="text-yellow-600 text-xs">Connecting...</p>
+              </div>
+            );
+          }
+          
+          return null;
+        })()}
       </div>
 
-      {/* Selected Hours Summary and Book Button */}
-      {selectedSlots.size > 0 && selectedProduct && (
-        <div className="mt-6 text-center bg-blue-50 rounded-lg p-6">
+      
+      {/* Modal for multiple instructors */}
+      <Modal
+        isOpen={showMultipleInstructorsModal}
+        onClose={() => setShowMultipleInstructorsModal(false)}
+      >
+        <div className="p-4 max-w-md mx-auto">
           <div className="mb-4">
-            <p className="text-blue-800 font-semibold text-lg">
-              Selected: {calculateSelectedHours()} hours of {selectedProduct.duration || 0} hours needed
+            <h3 className="text-lg font-semibold text-gray-800">
+              Select Instructor ({multipleInstructorsData?.instructors.length || 0} available)
+            </h3>
+            <p className="text-sm text-gray-600">
+              {multipleInstructorsData?.date} at {multipleInstructorsData?.time}
             </p>
-            {calculateSelectedHours() === (selectedProduct.duration || 0) && (
-              <p className="text-green-600 font-medium mt-2">
-                ✓ Perfect! You have selected the exact hours needed for your package.
+            {multipleInstructorsData && multipleInstructorsData.instructors.length > 10 && (
+              <p className="text-xs text-blue-600 mt-1">
+                💡 Scroll down to see all {multipleInstructorsData.instructors.length} instructors
               </p>
             )}
           </div>
           
-          {calculateSelectedHours() === (selectedProduct.duration || 0) ? (
-            <button
-              onClick={() => {
-                // Convert selected slots to the format expected by onTimeSlotSelect
-                const selectedLessons: ScheduleEntry[] = [];
-                const instructorsInvolved: Instructor[] = [];
-                
-                selectedSlots.forEach(slotKey => {
-                  // Search across all instructors for the lesson
-                  for (const instructor of instructors) {
-                    const lesson = instructor.schedule_driving_lesson?.find(l => {
-                      const lessonKey = `${l.date}-${l.start}-${l.end}`;
-                      return lessonKey === slotKey && l.status === "available";
-                    });
-                    if (lesson) {
-                      selectedLessons.push(lesson);
-                      if (!instructorsInvolved.some(i => i._id === instructor._id)) {
-                        instructorsInvolved.push(instructor);
-                      }
-                      break;
-                    }
-                  }
-                });
-                
-                if (selectedLessons.length > 0) {
-                  const firstLesson = selectedLessons[0];
-                  const timeSlot: SelectedTimeSlot = {
-                    date: firstLesson.date,
-                    start: firstLesson.start,
-                    end: firstLesson.end,
-                    instructors: instructorsInvolved
-                  };
-                  onTimeSlotSelect(timeSlot, firstLesson);
-                }
-              }}
-              className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg shadow-lg"
-            >
-              Book Selected Hours ({selectedSlots.size} slots)
-            </button>
-          ) : (
-            <button
-              disabled
-              className="bg-gray-400 text-white px-8 py-3 rounded-lg font-semibold cursor-not-allowed text-lg"
-            >
-              Select {selectedProduct.duration || 0} hours to continue
-            </button>
+          <div className="max-h-96 overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {multipleInstructorsData?.instructors.map(({ instructor, lesson }, index) => (
+              <div
+                key={instructor._id}
+                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                onClick={() => {
+                  const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
+                  onSelectedSlotsChange(new Set([slotKey]));
+                  setShowMultipleInstructorsModal(false);
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    {instructor.photo ? (
+                      <Image
+                        src={instructor.photo}
+                        alt={instructor.name}
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-gray-600">
+                        {instructor.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-gray-800 truncate">{instructor.name}</div>
+                    <div className="text-sm text-gray-500">Available</div>
+                  </div>
+                </div>
+                <div className="text-sm text-green-600 font-medium flex-shrink-0">Select</div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Show count if many instructors */}
+          {multipleInstructorsData && multipleInstructorsData.instructors.length > 5 && (
+            <div className="mt-3 text-center text-sm text-gray-500">
+              Showing {multipleInstructorsData.instructors.length} available instructors
+            </div>
           )}
           
-          <div className="mt-4">
+          <div className="mt-6 flex justify-end">
             <button
-              onClick={() => onSelectedSlotsChange(new Set())}
-              className="text-red-600 hover:text-red-800 font-medium"
+              onClick={() => setShowMultipleInstructorsModal(false)}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
             >
-              Clear All Selections
+              Cancel
             </button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -60,7 +60,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  // Sync cart with database when user is available
+  // Sync cart with database when user is available (only once)
   useEffect(() => {
     if (user?._id) {
       console.log('🔄 [CartContext] Syncing cart with database for user:', user._id);
@@ -68,20 +68,32 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       fetch(`/api/cart/status?userId=${user._id}`)
         .then(res => res.json())
         .then(data => {
-          if (data.success && data.cartItems.length > 0) {
-            console.log('🔄 [CartContext] Found items in database, syncing with local state');
-            setCart(data.cartItems);
+          if (data.success) {
+            console.log('🔄 [CartContext] Database cart items:', data.cartItems);
+            if (data.cartItems.length > 0) {
+              console.log('🔄 [CartContext] Found items in database, syncing with local state');
+              setCart(data.cartItems);
+            } else {
+              // If database is empty, clear local cart too
+              console.log('🔄 [CartContext] Database is empty, clearing local cart');
+              setCart([]);
+              localStorage.removeItem("cart");
+            }
           }
         })
         .catch(err => {
           console.warn('[CartContext] Failed to sync with database:', err);
         });
     }
-  }, [user]);
+  }, []); // NO DEPENDENCIES - only run once on mount
 
-  // 🔄 SSE Connection for real-time cart updates
+  // 🔄 SSE Connection for real-time cart updates - TEMPORARILY DISABLED
   useEffect(() => {
     if (!user?._id) return;
+    
+    // TEMPORARILY DISABLE SSE TO STOP INFINITE LOOP
+    console.log('🔄 SSE temporarily disabled to stop infinite loop');
+    return;
 
     let eventSource: EventSource | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
@@ -100,6 +112,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           eventSource = null;
         }
 
+        if (!user?._id) {
+          console.log('🛒 No user ID available for cart SSE connection');
+          return;
+        }
+        
         console.log('🛒 Connecting to cart SSE for user:', user._id);
         eventSource = new EventSource(`/api/cart/updates?userId=${user._id}`);
     
@@ -256,11 +273,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           setTimeout(() => saveCartToDB(updatedCart), 50);
           console.log("✅ Driving lesson package removed and slots freed");
           
-          // Trigger a page refresh to show updated slot statuses
-          setTimeout(() => {
-            console.log("🔄 Triggering page refresh to show freed slots...");
-            window.location.reload();
-          }, 1000);
+          // SSE will automatically update the schedule - no need to refresh page
+          console.log("📡 SSE will automatically update the schedule with freed slots");
         } else {
           const errorData = await response.json();
           console.error("❌ Failed to remove driving lesson package:", errorData.error);
@@ -281,9 +295,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const clearCart = () => {
+  const clearCart = async () => {
+    console.log('🗑️ [CartContext] Clearing cart completely...');
     setCart([]);
-    setTimeout(() => saveCartToDB([]), 50);
+    localStorage.removeItem("cart");
+    
+    // Also clear from database
+    if (user?._id) {
+      try {
+        await fetch("/api/cart", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user._id }),
+        });
+        console.log('✅ [CartContext] Cart cleared from database');
+      } catch (err) {
+        console.warn('[CartContext] Failed to clear cart from database:', err);
+      }
+    }
   };
   
   const reloadCartFromDB = () => {
