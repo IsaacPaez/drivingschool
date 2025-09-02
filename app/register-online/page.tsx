@@ -666,7 +666,7 @@ function RegisterOnlineContent() {
                             key={date.toDateString()}
                             className="border border-gray-300 p-1 cursor-pointer min-w-[80px] w-[80px] bg-green-100 hover:bg-green-200"
                             rowSpan={rowSpan}
-                                                          onClick={async () => {
+                            onClick={async () => {
                                 if (!userId) {
                                   setShowAuthWarning(true);
                                   return;
@@ -773,6 +773,7 @@ function RegisterOnlineContent() {
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-6 items-start">
         
         {/* Left Side - Calendar and Class Types */}
+        {classList.length > 0 && (
           <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
             
             {/* Calendar Title */}

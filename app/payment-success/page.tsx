@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function PaymentSuccess() {
+function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hasInitialized = useRef(false);
@@ -247,5 +247,25 @@ export default function PaymentSuccess() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100 p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
+            </div>
+            <h1 className="text-3xl font-bold mb-2 text-blue-600">Loading...</h1>
+            <p className="text-lg text-gray-600 mb-4 font-medium">Processing your information</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

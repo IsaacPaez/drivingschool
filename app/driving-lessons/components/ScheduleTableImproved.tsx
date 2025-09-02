@@ -159,13 +159,13 @@ export default function ScheduleTableImproved({
       for (const instructor of instructors) {
         // First try SSE data
         const sseSchedule = getScheduleForInstructor(instructor._id);
-        let lesson = null;
+        let lesson: any = null;
         
         if (sseSchedule && Array.isArray(sseSchedule)) {
           lesson = sseSchedule.find((l: any) => {
             const lessonKey = `${l.date}-${l.start}-${l.end}`;
             return lessonKey === slotKey && l.status === "available";
-          });
+          }) || null;
         }
         
         // Fallback to static data if SSE data not found
@@ -553,12 +553,11 @@ export default function ScheduleTableImproved({
       <Modal
         isOpen={showMultipleInstructorsModal}
         onClose={() => setShowMultipleInstructorsModal(false)}
-        title={`Select Instructor (${multipleInstructorsData?.instructors.length || 0} available)`}
       >
         <div className="p-4 max-w-md mx-auto">
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-gray-800">
-              Multiple instructors available
+              Select Instructor ({multipleInstructorsData?.instructors.length || 0} available)
             </h3>
             <p className="text-sm text-gray-600">
               {multipleInstructorsData?.date} at {multipleInstructorsData?.time}
@@ -576,7 +575,8 @@ export default function ScheduleTableImproved({
                 key={instructor._id}
                 className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => {
-                  onSelectedSlotsChange(new Set([lesson._id]));
+                  const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
+                  onSelectedSlotsChange(new Set([slotKey]));
                   setShowMultipleInstructorsModal(false);
                 }}
               >

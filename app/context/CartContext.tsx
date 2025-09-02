@@ -112,6 +112,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           eventSource = null;
         }
 
+        if (!user?._id) {
+          console.log('🛒 No user ID available for cart SSE connection');
+          return;
+        }
+        
         console.log('🛒 Connecting to cart SSE for user:', user._id);
         eventSource = new EventSource(`/api/cart/updates?userId=${user._id}`);
     
