@@ -60,6 +60,7 @@ function DrivingLessonsContent() {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
+  const [selectedInstructorForSchedule, setSelectedInstructorForSchedule] = useState<Instructor | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<ScheduleEntry | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<SelectedTimeSlot | null>(null);
@@ -116,7 +117,7 @@ function DrivingLessonsContent() {
     setSelectedDate(value);
   };
 
-  // Fetch productos (paquetes) al cargar
+  // Fetch products (packages) on load
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -124,9 +125,9 @@ function DrivingLessonsContent() {
         if (res.ok) {
           const data = await res.json();
           setProducts(data);
-          console.log('📦 Productos obtenidos:', data);
+          console.log('📦 Products obtained:', data);
           
-          // Verificar si hay un paquete preseleccionado desde localStorage
+          // Check if there's a preselected package from localStorage
           const selectedPackageData = localStorage.getItem('selectedPackage');
           if (selectedPackageData) {
             try {
@@ -134,9 +135,9 @@ function DrivingLessonsContent() {
               const foundProduct = data.find((p: Product) => p._id === packageInfo.id);
               if (foundProduct) {
                 setSelectedProduct(foundProduct);
-                console.log('📦 Paquete preseleccionado:', foundProduct.title);
+                console.log('📦 Preselected package:', foundProduct.title);
               }
-              // Limpiar localStorage después de usar
+              // Clear localStorage after use
               localStorage.removeItem('selectedPackage');
             } catch (error) {
               console.error('Error parsing selected package from localStorage:', error);
@@ -144,10 +145,10 @@ function DrivingLessonsContent() {
             }
           }
         } else {
-          console.error('Error al obtener productos:', res.status);
+          console.error('Error getting products:', res.status);
         }
       } catch (error) {
-        console.error('Error al obtener productos:', error);
+        console.error('Error getting products:', error);
       } finally {
         setInitialLoading(false);
       }
@@ -156,7 +157,7 @@ function DrivingLessonsContent() {
     fetchProducts();
   }, []);
 
-  // Fetch instructores de driving lessons al cargar
+  // Fetch driving lesson instructors on load
   const fetchInstructors = async () => {
     console.log("🔄 Fetching instructors...");
     try {
@@ -167,11 +168,11 @@ function DrivingLessonsContent() {
           'Pragma': 'no-cache'
         }
       });
-      console.log("📡 Respuesta del fetch:", res.status, res.ok);
+      console.log("📡 Fetch response:", res.status, res.ok);
       
       if (res.ok) {
         const data = await res.json();
-        console.log('👨‍🏫 Instructores con horarios obtenidos:', data.length, 'instructors');
+        console.log('👨‍🏫 Instructors with schedules obtained:', data.length, 'instructors');
         
         // Add timestamp to force re-render
         const updatedData = data.map((instructor: Instructor) => ({
@@ -180,28 +181,35 @@ function DrivingLessonsContent() {
         }));
         
         setInstructors(updatedData);
-        console.log('✅ Instructores actualizados exitosamente con timestamp');
+        console.log('✅ Instructors updated successfully with timestamp');
+        
+        // Select a random instructor automatically if none is selected
+        if (!selectedInstructorForSchedule && updatedData.length > 0) {
+          const randomIndex = Math.floor(Math.random() * updatedData.length);
+          setSelectedInstructorForSchedule(updatedData[randomIndex]);
+          console.log('🎯 Random instructor selected:', updatedData[randomIndex].name);
+        }
       } else {
-        console.error('❌ Error al obtener instructores:', res.status);
+        console.error('❌ Error getting instructors:', res.status);
       }
     } catch (error) {
-      console.error('❌ Error al obtener instructores:', error);
+      console.error('❌ Error getting instructors:', error);
     }
   };
 
   useEffect(() => {
-    console.log("🔄 useEffect ejecutándose - fetching instructors");
+    console.log("🔄 useEffect running - fetching instructors");
     fetchInstructors();
   }, []);
 
-  // useEffect para monitorear cambios en el estado de instructors
+  // useEffect to monitor changes in instructors state
   useEffect(() => {
-    console.log("🔍 Estado de instructors cambió:", instructors);
-    console.log("🔍 Cantidad de instructors en estado:", instructors.length);
+    console.log("🔍 Instructors state changed:", instructors);
+    console.log("🔍 Number of instructors in state:", instructors.length);
   }, [instructors]);
 
   const generateCalendlyURL = (product: Product, instructor: Instructor, slot?: ScheduleEntry) => {
-    const baseUrl = "https://calendly.com/your-driving-school"; // Cambiar por tu URL real de Calendly
+    const baseUrl = "https://calendly.com/your-driving-school"; // Change to your real Calendly URL
     
     const params = new URLSearchParams({
       package_name: product.title,
@@ -216,7 +224,7 @@ function DrivingLessonsContent() {
       lesson_type: 'driving_lesson_package'
     });
 
-    // Agregar información del horario si está disponible
+    // Add schedule information if available
     if (slot) {
       params.append('selected_date', slot.date);
       params.append('selected_start_time', slot.start);
@@ -247,7 +255,7 @@ function DrivingLessonsContent() {
       }, 2000);
 
     } catch (error) {
-      console.error('Error procesando reserva:', error);
+      console.error('Error processing reservation:', error);
       setConfirmationMessage('Error processing your request. Please try again.');
       setShowConfirmation(true);
     }
@@ -497,6 +505,9 @@ function DrivingLessonsContent() {
           onProductSelect={handleProductSelect}
           onRequestSchedule={handleRequestSchedule}
           selectedHours={selectedHours}
+          instructors={instructors}
+          selectedInstructor={selectedInstructorForSchedule}
+          onInstructorSelect={setSelectedInstructorForSchedule}
         />
 
         {/* Right Side - Schedule Table Improved */}
@@ -511,6 +522,8 @@ function DrivingLessonsContent() {
           onSelectedHoursChange={setSelectedHours}
           selectedSlots={selectedSlots}
           onSelectedSlotsChange={setSelectedSlots}
+          selectedInstructorForSchedule={selectedInstructorForSchedule}
+          onInstructorSelect={setSelectedInstructorForSchedule}
           key={`schedule-${forceUpdate}`}
         />
       </div>

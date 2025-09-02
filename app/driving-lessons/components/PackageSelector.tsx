@@ -3,6 +3,7 @@
 import React from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
+import InstructorSelector from "./InstructorSelector";
 
 type CalendarValue = Date | null | (Date | null)[];
 
@@ -17,6 +18,14 @@ interface Product {
   media?: string[];
 }
 
+interface Instructor {
+  _id: string;
+  name: string;
+  photo?: string;
+  email?: string;
+  schedule_driving_lesson?: any[];
+}
+
 interface PackageSelectorProps {
   selectedDate: Date | null;
   onDateChange: (value: CalendarValue) => void;
@@ -25,6 +34,9 @@ interface PackageSelectorProps {
   onProductSelect: (product: Product) => void;
   onRequestSchedule: () => void;
   selectedHours: number;
+  instructors: Instructor[];
+  selectedInstructor: Instructor | null;
+  onInstructorSelect: (instructor: Instructor | null) => void;
 }
 
 export default function PackageSelector({
@@ -34,7 +46,10 @@ export default function PackageSelector({
   selectedProduct,
   onProductSelect,
   onRequestSchedule,
-  selectedHours
+  selectedHours,
+  instructors,
+  selectedInstructor,
+  onInstructorSelect
 }: PackageSelectorProps) {
   return (
     <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
@@ -54,6 +69,13 @@ export default function PackageSelector({
           minDate={new Date()}
         />
       </div>
+
+      {/* Instructor Selector */}
+      <InstructorSelector
+        instructors={instructors}
+        selectedInstructor={selectedInstructor}
+        onInstructorSelect={onInstructorSelect}
+      />
 
       {/* Available Driving Packages Title */}
       <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">
