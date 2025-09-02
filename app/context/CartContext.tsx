@@ -27,6 +27,15 @@ interface CartItem {
   };
   selectedSlots?: string[];
   instructorData?: any[];
+  slotDetails?: Array<{
+    slotKey: string;
+    instructorId: string;
+    instructorName: string;
+    slotId: string;
+    date: string;
+    start: string;
+    end: string;
+  }>;
 }
 
 interface CartContextType {
