@@ -170,8 +170,10 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             
             console.log('🔍 Package item slotDetails:', packageItem.slotDetails);
             console.log('🔍 Package item selectedSlots:', packageItem.selectedSlots);
+            console.log('🔍 Package item instructorData:', packageItem.instructorData);
             
-            if (packageItem.selectedSlots && packageItem.slotDetails) {
+            // FORCE: Always create appointments, even if slotDetails is missing
+            if (packageItem.selectedSlots && packageItem.slotDetails && packageItem.slotDetails.length > 0) {
               // Use slotDetails which contains the specific slot IDs
               console.log('✅ Using slotDetails for appointments');
               packageItem.slotDetails.forEach((slotDetail: any) => {
@@ -215,12 +217,59 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
               });
             }
 
+            // FORCE: If no appointments were created, create them from selectedSlots
             if (appointments.length === 0) {
-              console.warn(`❌ No appointments found for package ${packageItem.title}`);
+              console.warn(`❌ No appointments found for package ${packageItem.title}, FORCING creation from selectedSlots`);
+              
+              // Force create appointments from selectedSlots
+              packageItem.selectedSlots.forEach((slotKey: string) => {
+                const parts = slotKey.split('-');
+                if (parts.length >= 5) {
+                  const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+                  const start = parts[3];
+                  const end = parts[4];
+                  
+                  // Find instructor for this slot
+                  let instructorId = '';
+                  let instructorName = 'Unknown Instructor';
+                  
+                  if (packageItem.instructorData && packageItem.instructorData.length > 0) {
+                    for (const instructor of packageItem.instructorData) {
+                      const lesson = instructor.schedule_driving_lesson?.find((l: any) => {
+                        const lessonKey = `${l.date}-${l.start}-${l.end}`;
+                        return lessonKey === slotKey;
+                      });
+                      if (lesson) {
+                        instructorId = instructor._id;
+                        instructorName = instructor.name;
+                        break;
+                      }
+                    }
+                  }
+                  
+                  appointments.push({
+                    slotId: `forced_${slotKey}_${Date.now()}`, // Force a slotId
+                    instructorId: instructorId || 'unknown',
+                    instructorName: instructorName,
+                    date: date,
+                    start: start,
+                    end: end,
+                    classType: 'driving_lesson',
+                    amount: packageItem.packageDetails!.packagePrice / (packageItem.packageDetails!.totalHours || 1)
+                  });
+                }
+              });
+              
+              console.log(`🔄 FORCED creation of ${appointments.length} appointments`);
+            }
+            
+            if (appointments.length === 0) {
+              console.error(`❌ STILL NO APPOINTMENTS after forcing! Package: ${packageItem.title}`);
               continue;
             }
 
             // Create order
+            console.log('🎯 FINAL APPOINTMENTS TO SEND:', appointments);
             const orderData = {
               userId: user._id,
               orderType: 'driving_lesson', // Changed from 'driving_lesson_package' to 'driving_lesson'
@@ -235,6 +284,8 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
               total: packageItem.price,
               paymentMethod: 'online'
             };
+            
+            console.log('🎯 ORDER DATA TO SEND:', orderData);
 
             const orderRes = await fetch('/api/orders/create', {
               method: 'POST',
