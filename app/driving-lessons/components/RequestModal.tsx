@@ -93,7 +93,7 @@ export default function RequestModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6 md:p-8 text-black w-full max-w-4xl mx-auto" style={{minWidth: '400px', maxWidth: '900px', width: '90vw', paddingTop: '3rem'}}>
-        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-blue-600 text-center">Request Schedule for Selected Hours</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-gray-800 text-center">Schedule Request</h2>
         
         {selectedProduct && (
           <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">

@@ -5,6 +5,7 @@ import "@/globals.css";
 import { useAuth } from "@/components/AuthContext";
 import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
+import { useAllDrivingLessonsSSE } from "../../hooks/useAllDrivingLessonsSSE";
 
 // Import our new components
 import PackageSelector from "./components/PackageSelector";
@@ -79,6 +80,18 @@ function DrivingLessonsContent() {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const userId = user?._id || "";
+
+  // Use SSE hook for real-time schedule updates for all instructors
+  const instructorIds = React.useMemo(() => 
+    instructors.map(instructor => instructor._id), 
+    [instructors]
+  );
+  const { 
+    getScheduleForInstructor, 
+    getErrorForInstructor, 
+    isConnectedForInstructor,
+    getAllSchedules 
+  } = useAllDrivingLessonsSSE(instructorIds);
 
   // Function to immediately update selected slots to pending status locally
   const updateSlotsTopending = () => {
@@ -157,11 +170,11 @@ function DrivingLessonsContent() {
     fetchProducts();
   }, []);
 
-  // Fetch driving lesson instructors on load
+  // Fetch driving lesson instructors on load (basic info only, schedules come via SSE)
   const fetchInstructors = async () => {
     console.log("🔄 Fetching instructors...");
     try {
-      const res = await fetch('/api/instructors?type=driving-lessons&includeSchedule=true', {
+      const res = await fetch('/api/instructors?type=driving-lessons', {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
@@ -172,22 +185,16 @@ function DrivingLessonsContent() {
       
       if (res.ok) {
         const data = await res.json();
-        console.log('👨‍🏫 Instructors with schedules obtained:', data.length, 'instructors');
+        console.log('👨‍🏫 Instructors obtained:', data.length, 'instructors');
         
-        // Add timestamp to force re-render
-        const updatedData = data.map((instructor: Instructor) => ({
-          ...instructor,
-          lastUpdated: Date.now()
-        }));
-        
-        setInstructors(updatedData);
-        console.log('✅ Instructors updated successfully with timestamp');
+        setInstructors(data);
+        console.log('✅ Instructors updated successfully');
         
         // Select a random instructor automatically if none is selected
-        if (!selectedInstructorForSchedule && updatedData.length > 0) {
-          const randomIndex = Math.floor(Math.random() * updatedData.length);
-          setSelectedInstructorForSchedule(updatedData[randomIndex]);
-          console.log('🎯 Random instructor selected:', updatedData[randomIndex].name);
+        if (!selectedInstructorForSchedule && data.length > 0) {
+          const randomIndex = Math.floor(Math.random() * data.length);
+          setSelectedInstructorForSchedule(data[randomIndex]);
+          console.log('🎯 Random instructor selected:', data[randomIndex].name);
         }
       } else {
         console.error('❌ Error getting instructors:', res.status);
@@ -365,25 +372,11 @@ function DrivingLessonsContent() {
 
           console.log('🛒 [driving-lessons] Successfully added to cart context');
 
-          alert(
-            `Package added to cart successfully!\n\n` +
-            `Package: ${selectedProduct.title}\n` +
-            `Selected Hours: ${selectedHours} hours\n` +
-            `Pickup: ${pickupLocation}\n` +
-            `Dropoff: ${dropoffLocation}\n` +
-            `Amount: $${selectedProduct.price}\n\n` +
-            `✅ Added to cart!\n` +
-            `Your selected time slots are now PENDING.\n\n` +
-            `Please check your cart (🛒) to complete payment.\n` +
-            `Order will be created when you checkout.`
-          );
+          // Package added to cart silently - no alert needed
+          console.log('✅ Package added to cart successfully without showing alert');
 
-          // Refresh the schedule to show updated slot statuses
-          setTimeout(async () => {
-            console.log("🔄 Refreshing schedule to show pending slots...");
-            await fetchInstructors();
-            setForceUpdate(prev => prev + 1);
-          }, 1000);
+          // SSE will automatically update the schedule, no manual refresh needed
+          console.log("✅ Schedule will be updated automatically via SSE");
 
         } catch (error) {
           console.error('❌ Error adding to cart:', error);
@@ -391,16 +384,8 @@ function DrivingLessonsContent() {
           return; // Don't continue with the rest of the function
         }
       } else {
-        alert(
-          `Schedule request submitted successfully!\n\n` +
-          `Package: ${selectedProduct.title}\n` +
-          `Selected Hours: ${selectedHours} hours\n` +
-          `Pickup: ${pickupLocation}\n` +
-          `Dropoff: ${dropoffLocation}\n` +
-          `Payment: Physical Location\n\n` +
-          `Your selected time slots are now PENDING.\n` +
-          `Our team will contact you at (561) 330-7007 to coordinate the schedule and arrange payment.`
-        );
+        // Schedule request submitted silently - no alert needed
+        console.log('✅ Schedule request submitted successfully without showing alert');
       }
 
       // Close the modal
@@ -410,22 +395,8 @@ function DrivingLessonsContent() {
       setSelectedSlots(new Set());
       setSelectedHours(0);
 
-      // Refresh instructors multiple times to ensure update
-      const refreshSchedule = async () => {
-        console.log("🔄 Refreshing schedule after request...");
-        await fetchInstructors();
-        setForceUpdate(prev => prev + 1);
-        
-        // Force a second refresh after 2 more seconds to ensure DB update
-        setTimeout(async () => {
-          console.log("🔄 Second refresh to ensure DB sync...");
-          await fetchInstructors();
-          setForceUpdate(prev => prev + 1);
-        }, 2000);
-      };
-
-      // Initial refresh after 500ms
-      setTimeout(refreshSchedule, 500);
+      // SSE will automatically update the schedule, no manual refresh needed
+      console.log("✅ Schedule will be updated automatically via SSE");
       
     } catch (error) {
       console.error('Error creating schedule request:', error);
@@ -508,6 +479,7 @@ function DrivingLessonsContent() {
           instructors={instructors}
           selectedInstructorForSchedule={selectedInstructorForSchedule}
           onInstructorSelect={setSelectedInstructorForSchedule}
+          getScheduleForInstructor={getScheduleForInstructor}
         />
 
         {/* Right Side - Schedule Table Improved */}

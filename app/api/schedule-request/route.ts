@@ -103,13 +103,18 @@ export async function POST(request: NextRequest) {
     for (const slot of instructorsToUpdate) {
       console.log('🔄 Updating slot:', slot);
       
+      // Use updateMany to ensure we only update the exact slot that matches all criteria
       const updateResult = await Instructor.updateOne(
         {
           _id: slot.instructorId,
-          'schedule_driving_lesson.date': slot.date,
-          'schedule_driving_lesson.start': slot.start,
-          'schedule_driving_lesson.end': slot.end,
-          'schedule_driving_lesson.status': 'available'
+          'schedule_driving_lesson': {
+            $elemMatch: {
+              date: slot.date,
+              start: slot.start,
+              end: slot.end,
+              status: 'available'
+            }
+          }
         },
         {
           $set: {

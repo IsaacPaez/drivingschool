@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Instructor from "@/models/Instructor";
-import { broadcastUpdate } from "@/lib/drivingLessonsSSE";
 
+// Fixed: Removed invalid import that was causing build errors
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -57,59 +57,64 @@ export async function POST(req: NextRequest) {
         console.log(`🔍 Split parts:`, parts);
         console.log(`🔍 Processing slot: ${slotKey} -> date: ${date}, start: ${start}, end: ${end}`);
        
-               // Find which instructor has this slot
-        let instructorId = null;
-        for (const instructor of instructorData) {
-          console.log(`🔍 Checking instructor ${instructor.name} for slot ${slotKey}`);
-          console.log(`🔍 Looking for: date=${date}, start=${start}, end=${end}`);
-          
-          const lesson = instructor.schedule_driving_lesson?.find((l: any) => {
-            const lessonKey = `${l.date}-${l.start}-${l.end}`;
-            const matches = lessonKey === slotKey;
-            console.log(`🔍 Comparing: "${lessonKey}" === "${slotKey}" -> ${matches}`);
-            return matches;
-          });
-          
-          if (lesson) {
-            instructorId = instructor._id;
-            console.log(`✅ Found instructor ${instructor.name} (${instructorId}) for slot ${slotKey}`);
-            console.log(`✅ Lesson details:`, lesson);
-            break;
-          } else {
-            console.log(`❌ No lesson found in instructor ${instructor.name} for slot ${slotKey}`);
+                       // Find which instructor has this slot in the database (available or pending)
+        const instructor = await Instructor.findOne({
+          'schedule_driving_lesson': {
+            $elemMatch: {
+              date: date,
+              start: start,
+              end: end,
+              status: { $in: ['available', 'pending'] }
+            }
           }
+        });
+
+        if (!instructor) {
+          console.warn(`❌ No instructor found for slot: ${slotKey}`);
+          return null;
         }
 
-      if (!instructorId) {
-        console.warn(`❌ No instructor found for slot: ${slotKey}`);
-        return null;
-      }
+        const instructorId = instructor._id;
+        console.log(`✅ Found instructor ${instructor.name} (${instructorId}) for slot ${slotKey}`);
 
       console.log(`🔄 Updating slot ${slotKey} for instructor ${instructorId}`);
 
               // Update the specific slot to pending (regardless of current status)
-        const updateQuery = {
-          _id: instructorId,
-          'schedule_driving_lesson.date': date,
-          'schedule_driving_lesson.start': start,
-          'schedule_driving_lesson.end': end
-        };
-        
-        const updateData = {
-          $set: {
-            'schedule_driving_lesson.$.status': 'pending',
-            'schedule_driving_lesson.$.studentId': userId,
-            'schedule_driving_lesson.$.studentName': user.name || 'Pending Student',
-            'schedule_driving_lesson.$.reservedAt': new Date(),
-            'schedule_driving_lesson.$.pickupLocation': packageDetails.pickupLocation,
-            'schedule_driving_lesson.$.dropoffLocation': packageDetails.dropoffLocation
+        const updateResult = await Instructor.updateOne(
+          {
+            _id: instructorId,
+            'schedule_driving_lesson': {
+              $elemMatch: {
+                date: date,
+                start: start,
+                end: end,
+                status: { $in: ['available', 'pending'] }
+              }
+            }
+          },
+          {
+            $set: {
+              'schedule_driving_lesson.$.status': 'pending',
+              'schedule_driving_lesson.$.studentId': userId,
+              'schedule_driving_lesson.$.studentName': user.name || 'Pending Student',
+              'schedule_driving_lesson.$.reservedAt': new Date(),
+              'schedule_driving_lesson.$.pickupLocation': packageDetails.pickupLocation,
+              'schedule_driving_lesson.$.dropoffLocation': packageDetails.dropoffLocation
+            }
           }
-        };
+        );
         
-        console.log(`🔄 MongoDB Update Query:`, JSON.stringify(updateQuery, null, 2));
-        console.log(`🔄 MongoDB Update Data:`, JSON.stringify(updateData, null, 2));
-        
-        const updateResult = await Instructor.updateOne(updateQuery, updateData);
+        console.log(`🔄 MongoDB Update Query:`, JSON.stringify({
+          _id: instructorId,
+          'schedule_driving_lesson': {
+            $elemMatch: {
+              date: date,
+              start: start,
+              end: end,
+              status: { $in: ['available', 'pending'] }
+            }
+          }
+        }, null, 2));
 
       console.log(`✅ Slot ${slotKey} update result:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
       console.log(`📊 Update details: matchedCount: ${updateResult.matchedCount}, modifiedCount: ${updateResult.modifiedCount}`);
@@ -119,50 +124,8 @@ export async function POST(req: NextRequest) {
     await Promise.all(slotUpdatePromises);
     console.log('✅ All slots marked as pending in instructors');
 
-    // Step 1.5: Send SSE updates to connected clients
-    console.log('📡 Sending SSE updates to connected clients...');
-    const instructorUpdates = new Map<string, string[]>();
-    
-    // Group slot IDs by instructor
-    selectedSlots.forEach((slotKey: string) => {
-      const parts = slotKey.split('-');
-      const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
-      const start = parts[3];
-      const end = parts[4];
-      
-      for (const instructor of instructorData) {
-        const lesson = instructor.schedule_driving_lesson?.find((l: any) => {
-          const lessonKey = `${l.date}-${l.start}-${l.end}`;
-          return lessonKey === slotKey;
-        });
-        
-        if (lesson) {
-          const slotId = lesson._id || lesson.id || '';
-          if (!instructorUpdates.has(instructor._id)) {
-            instructorUpdates.set(instructor._id, []);
-          }
-          instructorUpdates.get(instructor._id)!.push(slotId.toString());
-          break;
-        }
-      }
-    });
-
-    // Send SSE updates for each instructor
-    for (const [instructorId, slotIds] of instructorUpdates) {
-      try {
-        console.log(`📡 Broadcasting SSE update for instructor ${instructorId}:`, { slotIds, newStatus: 'pending' });
-        broadcastUpdate(instructorId, {
-          type: 'slots-updated',
-          instructorId,
-          slotIds,
-          newStatus: 'pending',
-          studentId: userId,
-          studentName: user.name || 'Pending Student'
-        });
-      } catch (error) {
-        console.error(`❌ Error broadcasting SSE update for instructor ${instructorId}:`, error);
-      }
-    }
+    // SSE updates are handled automatically by MongoDB Change Streams
+    console.log('📡 SSE updates will be sent automatically via MongoDB Change Streams');
 
     // Step 2: Add to user's cart
     const cartItem = {

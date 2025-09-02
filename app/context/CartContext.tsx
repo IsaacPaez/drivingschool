@@ -268,11 +268,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           setTimeout(() => saveCartToDB(updatedCart), 50);
           console.log("✅ Driving lesson package removed and slots freed");
           
-          // Trigger a page refresh to show updated slot statuses
-          setTimeout(() => {
-            console.log("🔄 Triggering page refresh to show freed slots...");
-            window.location.reload();
-          }, 1000);
+          // SSE will automatically update the schedule - no need to refresh page
+          console.log("📡 SSE will automatically update the schedule with freed slots");
         } else {
           const errorData = await response.json();
           console.error("❌ Failed to remove driving lesson package:", errorData.error);

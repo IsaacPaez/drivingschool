@@ -54,15 +54,29 @@ export async function GET(req: NextRequest) {
     const fullSchedule = instructor.get('schedule_driving_lesson', { lean: true }) || [];
     console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${fullSchedule.length} schedule_driving_lesson slots`);
     
+    if (fullSchedule.length > 0) {
+      console.log("📅 Sample driving lesson slots:", fullSchedule.slice(0, 3).map(s => ({ 
+        date: s.date, 
+        start: s.start, 
+        end: s.end, 
+        status: s.status,
+        classType: s.classType 
+      })));
+    }
+    
     sendEvent({ type: "initial", schedule: fullSchedule });
   } catch (error) {
-    console.error("Error fetching initial schedule:", error);
+    console.error("Error fetching initial driving lessons schedule:", error);
     sendEvent({ type: "error", message: "Failed to fetch initial data" });
   }
 
   // Setup Change Stream with error handling
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let changeStream: any = null;
+  let updateTimeout: NodeJS.Timeout | null = null;
+  let lastUpdateTime = 0;
+  const UPDATE_THROTTLE_MS = 1000; // Only send updates every 1 second max
+  
   try {
     changeStream = mongoose.connection.collection('instructors').watch([
       { $match: { 'documentKey._id': new mongoose.Types.ObjectId(instructorId) } }
@@ -70,18 +84,43 @@ export async function GET(req: NextRequest) {
 
     changeStream.on('change', async () => {
       try {
-        console.log(`🔄 Change detected for instructor ${instructorId}`);
-        const instructor = await Instructor.findById(instructorId);
-        if (instructor) {
-          // Get schedule_driving_lesson slots
-          const updatedSchedule = instructor.get('schedule_driving_lesson', { lean: true }) || [];
-          
-          console.log(`🔄 Updated schedule for ${instructorId}: ${updatedSchedule.length} driving lesson slots`);
-          sendEvent({ type: "update", schedule: updatedSchedule });
+        const now = Date.now();
+        
+        // Clear existing timeout
+        if (updateTimeout) {
+          clearTimeout(updateTimeout);
+        }
+        
+        // If enough time has passed since last update, send immediately
+        if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+          await sendUpdate();
+        } else {
+          // Otherwise, debounce the update
+          updateTimeout = setTimeout(async () => {
+            await sendUpdate();
+          }, UPDATE_THROTTLE_MS - (now - lastUpdateTime));
+        }
+        
+        async function sendUpdate() {
+          try {
+            console.log(`🔄 Change detected for instructor ${instructorId} - sending update`);
+            const instructor = await Instructor.findById(instructorId);
+            if (instructor) {
+              // Get schedule_driving_lesson slots
+              const updatedSchedule = instructor.get('schedule_driving_lesson', { lean: true }) || [];
+              
+              console.log(`🔄 Updated driving lessons schedule for ${instructorId}: ${updatedSchedule.length} driving lesson slots`);
+              sendEvent({ type: "update", schedule: updatedSchedule });
+              lastUpdateTime = Date.now();
+            }
+          } catch(err) {
+            console.error("Error fetching updated driving lessons schedule for broadcast:", err);
+            sendEvent({ type: "error", message: "Failed to fetch updated data" });
+          }
         }
       } catch(err) {
-        console.error("Error fetching updated schedule for broadcast:", err);
-        sendEvent({ type: "error", message: "Failed to fetch updated data" });
+        console.error("Error in change stream handler:", err);
+        sendEvent({ type: "error", message: "Failed to process change" });
       }
     });
 
@@ -95,31 +134,24 @@ export async function GET(req: NextRequest) {
     sendEvent({ type: "error", message: "Failed to setup real-time updates" });
   }
 
-  // Keep the connection alive
-  const heartbeat = setInterval(() => {
-    try {
-      writer.write(encoder.encode(`: heartbeat\n\n`));
-    } catch {
-      clearInterval(heartbeat);
-    }
-  }, 30000);
-
-  // Close cleanup
+  // Handle client disconnect
   req.signal.addEventListener('abort', () => {
     if (changeStream) {
       changeStream.close();
     }
-    clearInterval(heartbeat);
-    writer.close();
+    if (updateTimeout) {
+      clearTimeout(updateTimeout);
+    }
+    writer.close().catch((err) => {
+      console.warn("Error closing SSE writer:", err);
+    });
   });
-
+  
   return new Response(stream.readable, {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control',
     },
   });
 }

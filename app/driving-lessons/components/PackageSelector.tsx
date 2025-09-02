@@ -37,6 +37,7 @@ interface PackageSelectorProps {
   instructors: Instructor[];
   selectedInstructorForSchedule: Instructor | null;
   onInstructorSelect: (instructor: Instructor | null) => void;
+  getScheduleForInstructor: (instructorId: string) => any[];
 }
 
 export default function PackageSelector({
@@ -49,7 +50,8 @@ export default function PackageSelector({
   selectedHours,
   instructors,
   selectedInstructorForSchedule,
-  onInstructorSelect
+  onInstructorSelect,
+  getScheduleForInstructor
 }: PackageSelectorProps) {
   return (
     <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
@@ -75,7 +77,11 @@ export default function PackageSelector({
         <h3 className="text-lg font-bold text-center mb-3 text-black">Select Instructor</h3>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           {instructors.map((instructor) => {
-            const availableCount = instructor.schedule_driving_lesson?.filter(
+            // Use SSE data first, fallback to static data
+            const sseSchedule = getScheduleForInstructor(instructor._id);
+            const scheduleToUse = sseSchedule && sseSchedule.length > 0 ? sseSchedule : instructor.schedule_driving_lesson;
+            
+            const availableCount = scheduleToUse?.filter(
               lesson => lesson.status === "available"
             ).length || 0;
             const isSelected = selectedInstructorForSchedule?._id === instructor._id;

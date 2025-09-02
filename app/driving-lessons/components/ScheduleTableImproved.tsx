@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Modal from "@/components/Modal";
+import { useAllDrivingLessonsSSE } from "@/hooks/useAllDrivingLessonsSSE";
 
 interface Instructor {
   _id: string;
@@ -73,6 +74,19 @@ export default function ScheduleTableImproved({
   selectedInstructorForSchedule,
   onInstructorSelect
 }: ScheduleTableProps) {
+  
+  // Use SSE hook for real-time schedule updates for all instructors
+  const instructorIds = React.useMemo(() => 
+    instructors.map(instructor => instructor._id), 
+    [instructors]
+  );
+  const { 
+    getScheduleForInstructor, 
+    getErrorForInstructor, 
+    isConnectedForInstructor,
+    getAllSchedules 
+  } = useAllDrivingLessonsSSE(instructorIds);
+  
   const [showMultipleInstructorsModal, setShowMultipleInstructorsModal] = useState(false);
   const [multipleInstructorsData, setMultipleInstructorsData] = useState<{
     instructors: { instructor: Instructor; lesson: ScheduleEntry }[];
@@ -141,12 +155,27 @@ export default function ScheduleTableImproved({
   const calculateSelectedHours = React.useCallback((): number => {
     let totalMinutes = 0;
     selectedSlots.forEach(slotKey => {
-      // Search across all instructors for the lesson
+      // Search across all instructors for the lesson (both SSE and static data)
       for (const instructor of instructors) {
-        const lesson = instructor.schedule_driving_lesson?.find(l => {
-          const lessonKey = `${l.date}-${l.start}-${l.end}`;
-          return lessonKey === slotKey && l.status === "available";
-        });
+        // First try SSE data
+        const sseSchedule = getScheduleForInstructor(instructor._id);
+        let lesson = null;
+        
+        if (sseSchedule && Array.isArray(sseSchedule)) {
+          lesson = sseSchedule.find((l: any) => {
+            const lessonKey = `${l.date}-${l.start}-${l.end}`;
+            return lessonKey === slotKey && l.status === "available";
+          });
+        }
+        
+        // Fallback to static data if SSE data not found
+        if (!lesson && instructor.schedule_driving_lesson) {
+          lesson = instructor.schedule_driving_lesson.find(l => {
+            const lessonKey = `${l.date}-${l.start}-${l.end}`;
+            return lessonKey === slotKey && l.status === "available";
+          });
+        }
+        
         if (lesson) {
           const startMin = timeToMinutes(lesson.start);
           const endMin = timeToMinutes(lesson.end);
@@ -157,19 +186,40 @@ export default function ScheduleTableImproved({
     });
     
     return Math.round(totalMinutes / 60 * 100) / 100;
-  }, [instructors, selectedSlots, timeToMinutes]);
+  }, [instructors, selectedSlots, timeToMinutes, getScheduleForInstructor]);
 
   // Function to create grouped schedule like Book-Now
   const createGroupedSchedule = () => {
     const grouped: { [instructorId: string]: { instructor: Instructor, schedule: { date: string; slots: ScheduleEntry[] }[] } } = {};
     
-    // Show only the selected instructor's schedule
+    // Use SSE data if available, otherwise fall back to static instructor data
     const instructorsToShow = selectedInstructorForSchedule 
       ? [selectedInstructorForSchedule]
       : instructors;
 
     instructorsToShow.forEach(instructor => {
-      if (instructor.schedule_driving_lesson) {
+      // Try to get SSE data first
+      const sseSchedule = getScheduleForInstructor(instructor._id);
+      
+      if (sseSchedule && Array.isArray(sseSchedule) && sseSchedule.length > 0) {
+        // Process SSE data similar to Book-Now
+        const scheduleByDate: { [date: string]: ScheduleEntry[] } = {};
+        
+        sseSchedule.forEach((lesson: any) => {
+          if (!scheduleByDate[lesson.date]) {
+            scheduleByDate[lesson.date] = [];
+          }
+          scheduleByDate[lesson.date].push(lesson);
+        });
+        
+        const schedule = Object.entries(scheduleByDate).map(([date, slots]) => ({ date, slots }));
+        grouped[instructor._id] = { 
+          instructor, 
+          schedule 
+        };
+        console.log(`📅 Using SSE data for instructor ${instructor.name}:`, schedule.length, 'days with slots');
+      } else if (instructor.schedule_driving_lesson) {
+        // Fallback to static data
         const scheduleByDate: { [date: string]: ScheduleEntry[] } = {};
         
         instructor.schedule_driving_lesson.forEach(lesson => {
@@ -181,6 +231,9 @@ export default function ScheduleTableImproved({
         
         const schedule = Object.entries(scheduleByDate).map(([date, slots]) => ({ date, slots }));
         grouped[instructor._id] = { instructor, schedule };
+        console.log(`📅 Using static data for instructor ${instructor.name}:`, schedule.length, 'days with slots');
+      } else {
+        console.log(`⚠️ No schedule data found for instructor ${instructor.name}`);
       }
     });
     
@@ -188,6 +241,15 @@ export default function ScheduleTableImproved({
   };
   
   const groupedSchedule = createGroupedSchedule();
+  
+  // Debug: Log SSE data
+  React.useEffect(() => {
+    console.log("🔍 Debug - SSE data for all instructors:");
+    instructors.forEach(instructor => {
+      const sseData = getScheduleForInstructor(instructor._id);
+      console.log(`  ${instructor.name} (${instructor._id}):`, sseData?.length || 0, 'slots');
+    });
+  }, [instructors, getScheduleForInstructor]);
 
   // Notify parent component when selected hours change
   React.useEffect(() => {
@@ -240,7 +302,17 @@ export default function ScheduleTableImproved({
       </div>
 
       {/* Schedule Table - Using Book-Now exact structure */}
-      <div className="overflow-x-auto w-full mt-6">
+      <div className="overflow-x-auto w-full mt-6 relative">
+        {/* Loading indicator when SSE is connecting */}
+        {instructors.length > 0 && !instructors.every(instructor => isConnectedForInstructor(instructor._id)) && (
+          <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center z-10">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-blue-600 text-sm font-medium">Connecting to live updates...</span>
+            </div>
+          </div>
+        )}
+        
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-gray-100 text-center">
@@ -441,80 +513,41 @@ export default function ScheduleTableImproved({
             }).filter(row => row !== null)}
           </tbody>
         </table>
+        
+        {/* SSE Connection Status Indicators */}
+        {(() => {
+          const hasErrors = instructors.some(instructor => getErrorForInstructor(instructor._id));
+          const allConnected = instructors.length > 0 && instructors.every(instructor => isConnectedForInstructor(instructor._id));
+          const someConnected = instructors.some(instructor => isConnectedForInstructor(instructor._id));
+          
+          if (hasErrors) {
+            return (
+              <div className="absolute top-2 right-2 bg-red-100 border border-red-300 rounded px-3 py-1 z-20">
+                <p className="text-red-600 text-xs">Connection error</p>
+              </div>
+            );
+          }
+          
+          if (allConnected) {
+            return (
+              <div className="absolute top-2 right-2 bg-green-100 border border-green-300 rounded px-3 py-1 z-20">
+                <p className="text-green-600 text-xs">Live updates</p>
+              </div>
+            );
+          }
+          
+          if (someConnected) {
+            return (
+              <div className="absolute top-2 right-2 bg-yellow-100 border border-yellow-300 rounded px-3 py-1 z-20">
+                <p className="text-yellow-600 text-xs">Connecting...</p>
+              </div>
+            );
+          }
+          
+          return null;
+        })()}
       </div>
 
-      {/* Selected Hours Summary and Book Button */}
-      {selectedSlots.size > 0 && selectedProduct && (
-        <div className="mt-6 text-center bg-blue-50 rounded-lg p-6">
-          <div className="mb-4">
-            <p className="text-blue-800 font-semibold text-lg">
-              Selected: {calculateSelectedHours()} hours of {selectedProduct.duration || 0} hours needed
-            </p>
-            {calculateSelectedHours() === (selectedProduct.duration || 0) && (
-              <p className="text-green-600 font-medium mt-2">
-                ✓ Perfect! You have selected the exact hours needed for your package.
-              </p>
-            )}
-          </div>
-          
-          {calculateSelectedHours() === (selectedProduct.duration || 0) ? (
-            <button
-              onClick={() => {
-                // Convert selected slots to the format expected by onTimeSlotSelect
-                const selectedLessons: ScheduleEntry[] = [];
-                const instructorsInvolved: Instructor[] = [];
-                
-                selectedSlots.forEach(slotKey => {
-                  // Search across all instructors for the lesson
-                  for (const instructor of instructors) {
-                    const lesson = instructor.schedule_driving_lesson?.find(l => {
-                      const lessonKey = `${l.date}-${l.start}-${l.end}`;
-                      return lessonKey === slotKey && l.status === "available";
-                    });
-                    if (lesson) {
-                      selectedLessons.push(lesson);
-                      if (!instructorsInvolved.some(i => i._id === instructor._id)) {
-                        instructorsInvolved.push(instructor);
-                      }
-                      break;
-                    }
-                  }
-                });
-                
-                if (selectedLessons.length > 0) {
-                  const firstLesson = selectedLessons[0];
-                  const timeSlot: SelectedTimeSlot = {
-                    date: firstLesson.date,
-                    start: firstLesson.start,
-                    end: firstLesson.end,
-                    instructors: instructorsInvolved
-                  };
-                  onTimeSlotSelect(timeSlot, firstLesson);
-                }
-              }}
-              className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg shadow-lg"
-            >
-              Book Selected Hours ({selectedSlots.size} slots)
-            </button>
-          ) : (
-            <button
-              disabled
-              className="bg-gray-400 text-white px-8 py-3 rounded-lg font-semibold cursor-not-allowed text-lg"
-            >
-              Select {selectedProduct.duration || 0} hours to continue
-            </button>
-          )}
-          
-          <div className="mt-4">
-            <button
-              onClick={() => onSelectedSlotsChange(new Set())}
-              className="text-red-600 hover:text-red-800 font-medium"
-            >
-              Clear All Selections
-            </button>
-          </div>
-        </div>
-      )}
       
       {/* Modal for multiple instructors */}
       <Modal
