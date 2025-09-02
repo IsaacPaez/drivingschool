@@ -84,49 +84,21 @@ export async function POST(req: NextRequest) {
         });
       }
       
-      // Actualizar la orden a "completed" y "approved"
-      const updateResult = await Order.updateOne(
-        { _id: orderId },
-        {
-          $set: {
-            paymentStatus: "completed",
-            estado: "completed",
-            updatedAt: new Date()
-          }
-        }
-      );
+      // Use the new update-status endpoint to handle order completion and instructor updates
+      const updateResponse = await fetch(`${req.nextUrl.origin}/api/orders/update-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          status: "completed",
+          paymentStatus: "completed"
+        }),
+      });
 
-      if (updateResult.modifiedCount > 0) {
-        console.log("✅ Order status updated to completed");
-        
-        // También actualizar el estado de las citas si existen
-        if (order.appointments && order.appointments.length > 0) {
-          try {
-            // Para driving_test, actualizar el slot del instructor
-            if (order.orderType === "driving_test") {
-              for (const appointment of order.appointments) {
-                if (appointment.instructorId) {
-                  // Actualizar el slot del instructor a "confirmed"
-                  // Esto se puede implementar si es necesario
-                  console.log("📅 Appointment confirmed for instructor:", appointment.instructorId);
-                }
-              }
-            }
-            
-            // Para ticket_class, actualizar el estado en la colección ticketclasses
-            if (order.orderType === "ticket_class") {
-              for (const appointment of order.appointments) {
-                if (appointment.ticketClassId) {
-                  // Actualizar el estado en ticketclasses si es necesario
-                  console.log("📅 Ticket class appointment confirmed:", appointment.ticketClassId);
-                }
-              }
-            }
-          } catch (error) {
-            console.error("⚠️ Error updating appointment status:", error);
-            // No fallar si hay error en actualizar citas
-          }
-        }
+      if (updateResponse.ok) {
+        console.log("✅ Order status updated to completed via update-status endpoint");
         
         return NextResponse.json({
           success: true,
