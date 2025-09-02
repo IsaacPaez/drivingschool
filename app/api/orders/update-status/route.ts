@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       // Get the specific instructor IDs you mentioned
       const targetInstructorIds = ['679e84fecec9a6a2cd008c7a', '68b76e08c9eb0e64de946f2f'];
       
-      // Update only the specific slots that are in this order's appointments
+      // Update only the specific slots that are in this order's appointments using slot IDs
       const updatePromises = updatedOrder.appointments.map(async (appointment: any) => {
         try {
           // Only update if the instructor is in our target list
@@ -49,36 +49,61 @@ export async function POST(req: NextRequest) {
             return { modifiedCount: 0 };
           }
           
-          console.log(`🔄 Updating specific slot for instructor ${appointment.instructorId}: ${appointment.date} ${appointment.start}-${appointment.end}`);
-          
-          const updateResult = await User.updateOne(
-            {
-              _id: appointment.instructorId,
-              'schedule_driving_lesson': {
-                $elemMatch: {
-                  date: appointment.date,
-                  start: appointment.start,
-                  end: appointment.end,
-                  studentId: updatedOrder.userId.toString(),
-                  status: 'pending'
+          // Use the specific slot ID if available, otherwise fall back to date/time matching
+          if (appointment.slotId) {
+            console.log(`🎯 Updating slot by ID: ${appointment.slotId} for instructor ${appointment.instructorId}`);
+            
+            const updateResult = await User.updateOne(
+              {
+                _id: appointment.instructorId,
+                'schedule_driving_lesson._id': appointment.slotId,
+                'schedule_driving_lesson.status': 'pending'
+              },
+              {
+                $set: {
+                  'schedule_driving_lesson.$.status': 'booked',
+                  'schedule_driving_lesson.$.paid': true,
+                  'schedule_driving_lesson.$.paymentId': orderId,
+                  'schedule_driving_lesson.$.confirmedAt': new Date()
                 }
               }
-            },
-            {
-              $set: {
-                'schedule_driving_lesson.$.status': 'booked',
-                'schedule_driving_lesson.$.paid': true,
-                'schedule_driving_lesson.$.paymentId': orderId,
-                'schedule_driving_lesson.$.confirmedAt': new Date()
+            );
+            
+            console.log(`✅ Slot ID ${appointment.slotId} update result:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
+            return updateResult;
+          } else {
+            // Fallback to date/time matching (old method)
+            console.log(`🔄 Updating slot by date/time for instructor ${appointment.instructorId}: ${appointment.date} ${appointment.start}-${appointment.end}`);
+            
+            const updateResult = await User.updateOne(
+              {
+                _id: appointment.instructorId,
+                'schedule_driving_lesson': {
+                  $elemMatch: {
+                    date: appointment.date,
+                    start: appointment.start,
+                    end: appointment.end,
+                    studentId: updatedOrder.userId.toString(),
+                    status: 'pending'
+                  }
+                }
+              },
+              {
+                $set: {
+                  'schedule_driving_lesson.$.status': 'booked',
+                  'schedule_driving_lesson.$.paid': true,
+                  'schedule_driving_lesson.$.paymentId': orderId,
+                  'schedule_driving_lesson.$.confirmedAt': new Date()
+                }
               }
-            }
-          );
-          
-          console.log(`✅ Slot ${appointment.date} ${appointment.start}-${appointment.end} update result:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
-          return updateResult;
+            );
+            
+            console.log(`✅ Slot ${appointment.date} ${appointment.start}-${appointment.end} update result:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
+            return updateResult;
+          }
           
         } catch (error) {
-          console.error(`❌ Error updating slot ${appointment.date} ${appointment.start}-${appointment.end}:`, error);
+          console.error(`❌ Error updating slot ${appointment.slotId || `${appointment.date} ${appointment.start}-${appointment.end}`}:`, error);
           return { modifiedCount: 0 };
         }
       });
