@@ -33,11 +33,9 @@ export async function POST(req: NextRequest) {
     const generatedOrderNumber = `ORD-${Date.now()}-${orderCount + 1}`;
 
     // Create the order
-    const order = new Order({
-      userId,
-      orderType,
-      orderNumber: generatedOrderNumber, // Set manually to ensure it's always present
-      appointments: appointments.map((apt: any) => ({
+    console.log('📝 Creating order with appointments:', appointments);
+    const mappedAppointments = appointments.map((apt: any) => {
+      const mapped = {
         slotId: apt.slotId || `${apt.date}-${apt.start}-${apt.end}`,
         instructorId: apt.instructorId,
         instructorName: apt.instructorName,
@@ -47,7 +45,16 @@ export async function POST(req: NextRequest) {
         classType: apt.classType,
         amount: apt.amount,
         status: 'pending'
-      })),
+      };
+      console.log('🎯 Mapped appointment:', mapped);
+      return mapped;
+    });
+    
+    const order = new Order({
+      userId,
+      orderType,
+      orderNumber: generatedOrderNumber, // Set manually to ensure it's always present
+      appointments: mappedAppointments,
       packageDetails: packageDetails || {},
       items: items || [],
       total,
@@ -59,43 +66,61 @@ export async function POST(req: NextRequest) {
     const savedOrder = await order.save();
     console.log("✅ Order created successfully:", savedOrder._id, savedOrder.orderNumber);
 
-    // Update instructor schedules to mark slots as pending with order reference
+    // Update instructor schedules to link slots with order reference (slots are already pending from cart)
     const updatePromises = appointments.map(async (apt: any) => {
       try {
-        console.log(`🔄 Updating instructor ${apt.instructorId} schedule for ${apt.classType}`);
+        console.log(`🔄 Linking slot ${apt.slotId} to order ${savedOrder._id}`);
         
         const scheduleField = apt.classType === 'driving_test' ? 'schedule_driving_test' : 'schedule_driving_lesson';
         
-        const updateResult = await Instructor.updateOne(
-          {
-            _id: apt.instructorId,
-            [`${scheduleField}.date`]: apt.date,
-            [`${scheduleField}.start`]: apt.start,
-            [`${scheduleField}.end`]: apt.end
-          },
-          {
-            $set: {
-              [`${scheduleField}.$.status`]: 'pending',
-              [`${scheduleField}.$.studentId`]: userId,
-              [`${scheduleField}.$.studentName`]: 'Pending Payment',
-              [`${scheduleField}.$.orderId`]: savedOrder._id.toString(),
-              [`${scheduleField}.$.orderNumber`]: savedOrder.orderNumber,
-              [`${scheduleField}.$.reservedAt`]: new Date()
+        // Use slotId if available, otherwise fall back to date/time matching
+        let updateResult;
+        if (apt.slotId) {
+          updateResult = await Instructor.updateOne(
+            {
+              _id: apt.instructorId,
+              [`${scheduleField}._id`]: apt.slotId,
+              [`${scheduleField}.status`]: 'pending'
+            },
+            {
+              $set: {
+                [`${scheduleField}.$.orderId`]: savedOrder._id.toString(),
+                [`${scheduleField}.$.orderNumber`]: savedOrder.orderNumber,
+                [`${scheduleField}.$.studentName`]: 'Pending Payment'
+              }
             }
-          }
-        );
+          );
+        } else {
+          // Fallback to date/time matching
+          updateResult = await Instructor.updateOne(
+            {
+              _id: apt.instructorId,
+              [`${scheduleField}.date`]: apt.date,
+              [`${scheduleField}.start`]: apt.start,
+              [`${scheduleField}.end`]: apt.end,
+              [`${scheduleField}.status`]: 'pending'
+            },
+            {
+              $set: {
+                [`${scheduleField}.$.orderId`]: savedOrder._id.toString(),
+                [`${scheduleField}.$.orderNumber`]: savedOrder.orderNumber,
+                [`${scheduleField}.$.studentName`]: 'Pending Payment'
+              }
+            }
+          );
+        }
         
-        console.log(`✅ Updated instructor ${apt.instructorId} schedule:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
+        console.log(`✅ Linked slot ${apt.slotId || `${apt.date} ${apt.start}-${apt.end}`} to order:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
         return updateResult;
         
       } catch (error) {
-        console.error(`❌ Error updating instructor ${apt.instructorId} schedule:`, error);
+        console.error(`❌ Error linking slot ${apt.slotId || `${apt.date} ${apt.start}-${apt.end}`} to order:`, error);
         throw error;
       }
     });
 
     await Promise.all(updatePromises);
-    console.log("✅ All instructor schedules updated successfully");
+    console.log("✅ All slots linked to order successfully");
 
     return NextResponse.json({
       success: true,

@@ -207,7 +207,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Driving lesson package added to cart and slots marked as pending",
-      cartItem: cartItem
+      cartItem: cartItem,
+      slotDetails: slotDetails // Include slotDetails in the response
     });
 
   } catch (error) {

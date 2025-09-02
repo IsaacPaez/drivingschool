@@ -350,14 +350,16 @@ function DrivingLessonsContent() {
 
           const cartResult = await cartResponse.json();
           console.log('✅ Added to cart and slots marked as pending successfully');
+          console.log('🎯 Cart result slotDetails:', cartResult.slotDetails);
 
-          // Add to local cart context
+          // Add to local cart context with slotDetails
           console.log('🛒 [driving-lessons] Adding to cart context:', {
             id: selectedProduct._id,
             title: selectedProduct.title,
             price: selectedProduct.price,
             packageDetails: cartData.packageDetails,
-            selectedSlots: cartData.selectedSlots
+            selectedSlots: cartData.selectedSlots,
+            slotDetails: cartResult.slotDetails // Include slotDetails from the response
           });
 
         await addToCart({
@@ -367,7 +369,8 @@ function DrivingLessonsContent() {
             quantity: 1,
             packageDetails: cartData.packageDetails,
             selectedSlots: cartData.selectedSlots,
-            instructorData: cartData.instructorData
+            instructorData: cartData.instructorData,
+            slotDetails: cartResult.slotDetails // Include slotDetails from the response
           });
 
           console.log('🛒 [driving-lessons] Successfully added to cart context');
