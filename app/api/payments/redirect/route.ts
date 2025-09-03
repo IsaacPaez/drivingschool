@@ -247,23 +247,35 @@ export async function GET(req: NextRequest) {
         );
         console.log("[API][redirect] Estado de pago de orden actualizado a 'processing'");
       } else {
-        // Solo crear nueva orden si no hay una existente
-        console.log("[API][redirect] Creando nueva orden...");
-        const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
-        const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
-        console.log("[API][redirect] Siguiente número de orden:", nextOrderNumber);
+        // Verificar si ya existe una orden pendiente para este usuario
+        console.log("[API][redirect] Verificando si ya existe una orden pendiente para el usuario...");
+        const existingOrder = await Order.findOne({
+          userId: userId,
+          paymentStatus: 'pending'
+        }).sort({ createdAt: -1 });
         
-        const createdOrder = await Order.create({
-          userId,
-          orderType: 'general', // Agregar orderType para evitar error de validación
-          items,
-          total: Number(total.toFixed(2)),
-          estado: 'pending',
-          createdAt: new Date(),
-          orderNumber: nextOrderNumber,
-        });
-        console.log("[API][redirect] Orden creada:", createdOrder._id);
-        finalOrderId = createdOrder._id.toString();
+        if (existingOrder) {
+          console.log("[API][redirect] Usando orden existente:", existingOrder._id);
+          finalOrderId = existingOrder._id.toString();
+        } else {
+          // Solo crear nueva orden si no hay una existente
+          console.log("[API][redirect] Creando nueva orden...");
+          const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
+          const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
+          console.log("[API][redirect] Siguiente número de orden:", nextOrderNumber);
+          
+          const createdOrder = await Order.create({
+            userId,
+            orderType: 'general', // Agregar orderType para evitar error de validación
+            items,
+            total: Number(total.toFixed(2)),
+            estado: 'pending',
+            createdAt: new Date(),
+            orderNumber: nextOrderNumber,
+          });
+          console.log("[API][redirect] Orden creada:", createdOrder._id);
+          finalOrderId = createdOrder._id.toString();
+        }
         
         // Limpiar carrito del usuario (para driving-lessons)
         if (user.cart && user.cart.length > 0) {
