@@ -42,6 +42,36 @@ function PaymentSuccessContent() {
                 if (orderResponse.ok) {
                   const orderData = await orderResponse.json();
                   setOrderDetails(orderData.order);
+                  
+                  // Update instructor schedule slots to "booked" if this is a driving lesson order
+                  if (orderData.order.orderType === 'driving_lesson' && orderData.order.appointments) {
+                    console.log('🎯 Updating driving lesson slots to booked status...');
+                    
+                    for (const appointment of orderData.order.appointments) {
+                      if (appointment.slotId) {
+                        try {
+                          const updateResponse = await fetch('/api/orders/update-status', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              orderId: orderId,
+                              paymentStatus: 'completed'
+                            })
+                          });
+                          
+                          if (updateResponse.ok) {
+                            console.log(`✅ Slot ${appointment.slotId} updated to booked status`);
+                          } else {
+                            console.error(`❌ Failed to update slot ${appointment.slotId}`);
+                          }
+                        } catch (error) {
+                          console.error(`❌ Error updating slot ${appointment.slotId}:`, error);
+                        }
+                      }
+                    }
+                  }
                 }
               } catch (error) {
                 console.error("Error fetching order details:", error);
