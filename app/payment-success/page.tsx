@@ -46,31 +46,54 @@ function PaymentSuccessContent() {
                   // Update instructor schedule slots to "booked" if this is a driving lesson order
                   if (orderData.order.orderType === 'driving_lesson' && orderData.order.appointments) {
                     console.log('🎯 Updating driving lesson slots to booked status...');
+                    console.log('🎯 Order details:', {
+                      orderId: orderId,
+                      orderType: orderData.order.orderType,
+                      appointments: orderData.order.appointments
+                    });
                     
-                    for (const appointment of orderData.order.appointments) {
-                      if (appointment.slotId) {
-                        try {
-                          const updateResponse = await fetch('/api/orders/update-status', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              orderId: orderId,
-                              paymentStatus: 'completed'
-                            })
-                          });
-                          
-                          if (updateResponse.ok) {
-                            console.log(`✅ Slot ${appointment.slotId} updated to booked status`);
-                          } else {
-                            console.error(`❌ Failed to update slot ${appointment.slotId}`);
-                          }
-                        } catch (error) {
-                          console.error(`❌ Error updating slot ${appointment.slotId}:`, error);
-                        }
+                    // Call update-status API to update all slots at once
+                    try {
+                      console.log('🔄 Calling /api/orders/update-status with:', {
+                        orderId: orderId,
+                        status: 'completed',
+                        paymentStatus: 'completed'
+                      });
+                      
+                      const updateResponse = await fetch('/api/orders/update-status', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          orderId: orderId,
+                          status: 'completed',
+                          paymentStatus: 'completed'
+                        })
+                      });
+                      
+                      console.log('🔄 Update response status:', updateResponse.status);
+                      
+                      if (updateResponse.ok) {
+                        const updateResult = await updateResponse.json();
+                        console.log('✅ All driving lesson slots updated to booked status:', updateResult);
+                        
+                        // Wait 5 seconds after successful update before redirecting
+                        console.log('⏳ Waiting 5 seconds after slot update before redirecting...');
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        console.log('✅ 5 seconds completed, ready to redirect');
+                      } else {
+                        const errorText = await updateResponse.text();
+                        console.error('❌ Failed to update driving lesson slots:', errorText);
                       }
+                    } catch (error) {
+                      console.error('❌ Error updating driving lesson slots:', error);
                     }
+                  } else {
+                    console.log('⏭️ Not a driving lesson order or no appointments:', {
+                      orderType: orderData.order.orderType,
+                      hasAppointments: !!orderData.order.appointments
+                    });
                   }
                 }
               } catch (error) {
@@ -150,8 +173,8 @@ function PaymentSuccessContent() {
       case "approved":
         return (
           <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl border-4 border-white">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -161,8 +184,8 @@ function PaymentSuccessContent() {
       case "pending":
         return (
           <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl border-4 border-white">
-              <svg className="w-10 h-10 text-white animate-spin" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
+              <svg className="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -172,8 +195,8 @@ function PaymentSuccessContent() {
       case "error":
         return (
           <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl border-4 border-white">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
@@ -183,8 +206,8 @@ function PaymentSuccessContent() {
       default:
         return (
           <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl border-4 border-white">
-              <div className="animate-spin rounded-full h-10 w-10 border-3 border-white border-t-transparent"></div>
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
             </div>
             <div className="absolute inset-0 bg-blue-400/30 rounded-full blur-xl scale-110 animate-pulse"></div>
           </div>
@@ -248,25 +271,20 @@ function PaymentSuccessContent() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      {/* Floating Logo with Glass Effect */}
+      {/* Simple Logo without background */}
       <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
-        <div className="relative">
-          <div className="w-20 h-20 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center shadow-2xl border border-white/20 hover:scale-110 transition-transform duration-500">
-            <Image 
-              src="/favicon.ico" 
-              alt="Driving School Logo" 
-              width={48} 
-              height={48}
-              className="rounded-xl drop-shadow-lg"
-            />
-          </div>
-          <div className="absolute -inset-2 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-3xl blur-xl -z-10 animate-pulse"></div>
-        </div>
+        <Image 
+          src="/favicon.ico" 
+          alt="Driving School Logo" 
+          width={48} 
+          height={48}
+          className="rounded-xl"
+        />
       </div>
 
       {/* Main Content */}
-      <div className="flex items-center justify-center min-h-screen p-6 relative z-10">
-        <div className="w-full max-w-lg">
+      <div className="flex items-center justify-center min-h-screen p-4 relative z-10">
+        <div className="w-full max-w-md">
           {/* Card Container with Flip Effect */}
           <div className="relative perspective-1000">
             <div className={`relative transition-transform duration-1000 transform-style-preserve-3d ${isCardFlipped ? 'rotate-y-180' : ''}`}>
@@ -278,39 +296,39 @@ function PaymentSuccessContent() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Front */}
-                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl p-12 border border-white/20">
+                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-6 border border-white/20">
                     <div className="text-center">
                       {/* Checking Icon */}
-                      <div className="relative mb-8">
-                        <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl border-4 border-white">
-                          <div className="animate-spin rounded-full h-10 w-10 border-3 border-white border-t-transparent"></div>
+                      <div className="relative mb-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
+                          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
                         </div>
                         <div className="absolute inset-0 bg-blue-400/30 rounded-full blur-xl scale-110 animate-pulse"></div>
                       </div>
                       
-                      <h1 className="text-4xl font-black mb-6 text-blue-600 tracking-tight">
+                      <h1 className="text-2xl font-black mb-4 text-blue-600 tracking-tight">
                         Verifying Payment
                       </h1>
                       
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 mb-8 border border-gray-200/50">
-                        <p className="text-xl text-gray-800 mb-2 font-semibold">
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-4 border border-gray-200/50">
+                        <p className="text-lg text-gray-800 mb-1 font-semibold">
                           Processing transaction...
                         </p>
                         
-                        <p className="text-gray-600 leading-relaxed">
+                        <p className="text-sm text-gray-600">
                           Please wait while we verify your payment status.
                         </p>
                       </div>
 
                       {/* Loading Animation */}
-                      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200/50 rounded-2xl p-6 shadow-inner">
-                        <div className="flex items-center justify-center space-x-3">
+                      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/50 rounded-xl p-4 shadow-inner">
+                        <div className="flex items-center justify-center space-x-2">
                           <div className="flex space-x-1">
-                            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
-                            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                           </div>
-                          <p className="text-lg font-bold text-blue-700">
+                          <p className="text-sm font-bold text-blue-700">
                             Checking payment status...
                           </p>
                         </div>
@@ -327,24 +345,24 @@ function PaymentSuccessContent() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Back */}
-                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl p-12 border border-white/20">
+                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-6 border border-white/20">
                     <div className="text-center">
                       {/* Floating Status Icon */}
-                      <div className="relative mb-8">
+                      <div className="relative mb-4">
                         {getStatusIcon()}
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-xl scale-150 -z-10 animate-pulse"></div>
                       </div>
                       
-                      <h1 className={`text-4xl font-black mb-6 ${statusInfo.statusClass} tracking-tight`}>
+                      <h1 className={`text-2xl font-black mb-4 ${statusInfo.statusClass} tracking-tight`}>
                         {statusInfo.title}
                       </h1>
                       
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 mb-8 border border-gray-200/50">
-                        <p className="text-xl text-gray-800 mb-2 font-semibold">
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-4 border border-gray-200/50">
+                        <p className="text-lg text-gray-800 mb-1 font-semibold">
                           {statusInfo.subtitle}
                         </p>
                         
-                        <p className="text-gray-600 leading-relaxed">
+                        <p className="text-sm text-gray-600">
                           {statusInfo.description}
                         </p>
                       </div>
@@ -383,48 +401,21 @@ function PaymentSuccessContent() {
                       
                       {/* Countdown Timer */}
                       {showCountdown && (
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6 shadow-sm animate-fade-in">
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-4 shadow-sm animate-fade-in">
                           <div className="flex items-center justify-center space-x-2">
-                            <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center animate-spin">
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-spin">
+                              <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </div>
-                            <p className="text-sm font-semibold text-blue-700">
-                              Redirecting in <span className="text-lg text-blue-800 font-bold">{countdown}</span> seconds
+                            <p className="text-xs font-semibold text-blue-700">
+                              Redirecting in <span className="text-sm text-blue-800 font-bold">{countdown}</span> seconds
                             </p>
                           </div>
                         </div>
                       )}
                       
-                      {/* Action Buttons */}
-                      {showCountdown && (
-                        <div className="space-y-3 animate-fade-in">
-                          <button 
-                            onClick={() => router.replace("/")}
-                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02]"
-                          >
-                            <div className="flex items-center justify-center space-x-2">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                              </svg>
-                              <span className="text-sm">Go to Home</span>
-                            </div>
-                          </button>
-                          
-                          <button 
-                            onClick={() => window.location.reload()}
-                            className="w-full bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 font-semibold py-3 px-6 rounded-lg border border-gray-300 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-[1.02]"
-                          >
-                            <div className="flex items-center justify-center space-x-2">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              <span className="text-sm">Verify Again</span>
-                            </div>
-                          </button>
-                        </div>
-                      )}
+
                     </div>
                   </div>
                 </div>
