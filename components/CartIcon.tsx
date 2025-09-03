@@ -133,6 +133,12 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
     }
   }, []); // NO DEPENDENCIES - only run once on mount
   const handleCheckout = async () => {
+    // Prevent multiple simultaneous executions
+    if (loading) {
+      console.log("🔄 Checkout already in progress, ignoring duplicate call");
+      return;
+    }
+    
     if (!user) {
       setShowAuthWarning(true);
       return;
@@ -159,6 +165,16 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
       const packagesWithoutOrders = cart.filter(item => 
         !item.orderId && item.packageDetails && item.selectedSlots
       );
+      
+      console.log(`🔍 [CHECKOUT DEBUG] Total cart items: ${cart.length}`);
+      console.log(`🔍 [CHECKOUT DEBUG] Packages without orders: ${packagesWithoutOrders.length}`);
+      console.log(`🔍 [CHECKOUT DEBUG] Cart items:`, cart.map(item => ({
+        id: item.id,
+        title: item.title,
+        orderId: item.orderId,
+        hasPackageDetails: !!item.packageDetails,
+        hasSelectedSlots: !!item.selectedSlots
+      })));
       
       if (packagesWithoutOrders.length > 0) {
         console.log(`🔄 Creating orders for ${packagesWithoutOrders.length} driving lesson packages...`);
@@ -298,6 +314,13 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             if (orderRes.ok) {
               const orderResult = await orderRes.json();
               console.log(`✅ Order created for package ${packageItem.title}:`, orderResult.order.orderNumber);
+              console.log('🎯 [ORDER CREATED] Order details:', {
+                orderId: orderResult.order._id,
+                orderNumber: orderResult.order.orderNumber,
+                orderType: orderResult.order.orderType,
+                appointmentsCount: orderResult.order.appointments?.length || 0,
+                timestamp: new Date().toISOString()
+              });
             } else {
               const errorData = await orderRes.json();
               console.error(`❌ Failed to create order for package ${packageItem.title}:`, errorData.error);
