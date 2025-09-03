@@ -12,6 +12,7 @@ function PaymentSuccessContent() {
   const [orderDetails, setOrderDetails] = useState<{orderNumber: string; total: number} | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
+  const [slotsUpdated, setSlotsUpdated] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -92,8 +93,12 @@ function PaymentSuccessContent() {
                     
                     if (allSlotsUpdated) {
                       console.log('✅ ALL SLOTS FORCED TO BOOKED - Ready for countdown');
+                      // Set a flag to indicate slots are updated
+                      setSlotsUpdated(true);
                     } else {
-                      console.error('❌ SOME SLOTS FAILED TO UPDATE - But continuing with countdown');
+                      console.error('❌ SOME SLOTS FAILED TO UPDATE - NOT starting countdown');
+                      // Set a flag to indicate slots failed to update
+                      setSlotsUpdated(false);
                     }
                   } else {
                     console.log('⏭️ Not a driving lesson order or no appointments:', {
@@ -123,23 +128,48 @@ function PaymentSuccessContent() {
       setTimeout(() => {
         setIsCardFlipped(true);
         
-        // Después del flip, esperar 1 segundo más y mostrar el countdown
+        // Después del flip, esperar 1 segundo más y verificar si los slots se actualizaron
         setTimeout(() => {
-          setShowCountdown(true);
-          
-          // Iniciar countdown después de mostrar el resultado
-          const countdownTimer = setInterval(() => {
-            setCountdown(prev => {
-              if (prev <= 1) {
-                clearInterval(countdownTimer);
-                router.replace("/");
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-          
-          return () => clearInterval(countdownTimer);
+          // Solo mostrar countdown si los slots se actualizaron correctamente
+          if (slotsUpdated === true) {
+            console.log('✅ Slots updated successfully - Starting countdown');
+            setShowCountdown(true);
+            
+            // Iniciar countdown después de mostrar el resultado
+            const countdownTimer = setInterval(() => {
+              setCountdown(prev => {
+                if (prev <= 1) {
+                  clearInterval(countdownTimer);
+                  router.replace("/");
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+            
+            return () => clearInterval(countdownTimer);
+          } else if (slotsUpdated === false) {
+            console.log('❌ Slots failed to update - NOT starting countdown');
+            // Show error message instead of countdown
+            setTransactionStatus("error");
+          } else {
+            console.log('⏭️ Not a driving lesson order - Starting countdown normally');
+            setShowCountdown(true);
+            
+            // Iniciar countdown después de mostrar el resultado
+            const countdownTimer = setInterval(() => {
+              setCountdown(prev => {
+                if (prev <= 1) {
+                  clearInterval(countdownTimer);
+                  router.replace("/");
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+            
+            return () => clearInterval(countdownTimer);
+          }
         }, 1000);
       }, 1000); // Reducido a 1 segundo para que sea más rápido
     };
@@ -278,22 +308,22 @@ function PaymentSuccessContent() {
       </div>
 
       {/* Simple Logo without background */}
-      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
+      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20">
         <Image 
           src="/favicon.ico" 
           alt="Driving School Logo" 
-          width={64} 
-          height={64}
+          width={80} 
+          height={80}
           className="rounded-xl"
         />
       </div>
 
       {/* Main Content */}
-      <div className="flex items-center justify-center min-h-screen p-4 relative z-10">
-        <div className="w-full max-w-md">
+      <div className="flex items-center justify-center min-h-screen p-6 relative z-10">
+        <div className="w-full max-w-lg">
           {/* Card Container with Flip Effect */}
           <div className="relative perspective-1000">
-            <div className={`relative transition-transform duration-1000 transform-style-preserve-3d h-96 ${isCardFlipped ? 'rotate-y-180' : ''}`}>
+            <div className={`relative transition-transform duration-1000 transform-style-preserve-3d h-[28rem] ${isCardFlipped ? 'rotate-y-180' : ''}`}>
               
               {/* Front of Card - Loading/Checking */}
               <div className={`absolute inset-0 backface-hidden ${isCardFlipped ? 'invisible' : 'visible'}`}>
@@ -302,7 +332,7 @@ function PaymentSuccessContent() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Front */}
-                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-6 border border-white/20 h-full flex flex-col justify-center">
+                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-8 border border-white/20 h-full flex flex-col justify-center">
                     <div className="text-center">
                       {/* Checking Icon */}
                       <div className="relative mb-4">
@@ -351,7 +381,7 @@ function PaymentSuccessContent() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Back */}
-                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-6 border border-white/20 h-full flex flex-col justify-center">
+                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-8 border border-white/20 h-full flex flex-col justify-center">
                     <div className="text-center">
                       {/* Floating Status Icon */}
                       <div className="relative mb-4">
