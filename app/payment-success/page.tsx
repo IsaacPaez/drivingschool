@@ -52,7 +52,7 @@ function PaymentSuccessContent() {
                       appointments: orderData.order.appointments
                     });
                     
-                    // Call update-status API to update all slots at once
+                    // Call update-status API to update all slots at once - MUST COMPLETE BEFORE COUNTDOWN
                     try {
                       console.log('🔄 Calling /api/orders/update-status with:', {
                         orderId: orderId,
@@ -77,11 +77,7 @@ function PaymentSuccessContent() {
                       if (updateResponse.ok) {
                         const updateResult = await updateResponse.json();
                         console.log('✅ All driving lesson slots updated to booked status:', updateResult);
-                        
-                        // Wait 5 seconds after successful update before redirecting
-                        console.log('⏳ Waiting 5 seconds after slot update before redirecting...');
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        console.log('✅ 5 seconds completed, ready to redirect');
+                        console.log('✅ SLOT UPDATE COMPLETED - Ready for countdown');
                       } else {
                         const errorText = await updateResponse.text();
                         console.error('❌ Failed to update driving lesson slots:', errorText);
@@ -135,7 +131,7 @@ function PaymentSuccessContent() {
           
           return () => clearInterval(countdownTimer);
         }, 1000);
-      }, 2000); // Esperamos 2 segundos para que el usuario vea la verificación
+      }, 1000); // Reducido a 1 segundo para que sea más rápido
     };
 
     // Limpiar carrito completamente
@@ -276,8 +272,8 @@ function PaymentSuccessContent() {
         <Image 
           src="/favicon.ico" 
           alt="Driving School Logo" 
-          width={48} 
-          height={48}
+          width={64} 
+          height={64}
           className="rounded-xl"
         />
       </div>
@@ -287,7 +283,7 @@ function PaymentSuccessContent() {
         <div className="w-full max-w-md">
           {/* Card Container with Flip Effect */}
           <div className="relative perspective-1000">
-            <div className={`relative transition-transform duration-1000 transform-style-preserve-3d ${isCardFlipped ? 'rotate-y-180' : ''}`}>
+            <div className={`relative transition-transform duration-1000 transform-style-preserve-3d h-96 ${isCardFlipped ? 'rotate-y-180' : ''}`}>
               
               {/* Front of Card - Loading/Checking */}
               <div className={`absolute inset-0 backface-hidden ${isCardFlipped ? 'invisible' : 'visible'}`}>
@@ -296,7 +292,7 @@ function PaymentSuccessContent() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Front */}
-                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-6 border border-white/20">
+                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-6 border border-white/20 h-full flex flex-col justify-center">
                     <div className="text-center">
                       {/* Checking Icon */}
                       <div className="relative mb-4">
@@ -345,7 +341,7 @@ function PaymentSuccessContent() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Back */}
-                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-6 border border-white/20">
+                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-6 border border-white/20 h-full flex flex-col justify-center">
                     <div className="text-center">
                       {/* Floating Status Icon */}
                       <div className="relative mb-4">
