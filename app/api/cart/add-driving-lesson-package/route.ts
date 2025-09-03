@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
             slotKey,
             instructorId: instructorId.toString(),
             instructorName: instructor.name,
-            solcuion typesslotId: updatedSlot._id.toString(),
+            slotId: updatedSlot._id.toString(),
             date,
             start,
             end
