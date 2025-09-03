@@ -43,47 +43,57 @@ function PaymentSuccessContent() {
                   const orderData = await orderResponse.json();
                   setOrderDetails(orderData.order);
                   
-                  // Update instructor schedule slots to "booked" if this is a driving lesson order
+                  // FORCE UPDATE instructor schedule slots to "booked" if this is a driving lesson order
                   if (orderData.order.orderType === 'driving_lesson' && orderData.order.appointments) {
-                    console.log('🎯 Updating driving lesson slots to booked status...');
+                    console.log('🎯 FORCING update of driving lesson slots to booked status...');
                     console.log('🎯 Order details:', {
                       orderId: orderId,
                       orderType: orderData.order.orderType,
                       appointments: orderData.order.appointments
                     });
                     
-                    // Call update-status API to update all slots at once - MUST COMPLETE BEFORE COUNTDOWN
-                    try {
-                      console.log('🔄 Calling /api/orders/update-status with:', {
-                        orderId: orderId,
-                        status: 'completed',
-                        paymentStatus: 'completed'
-                      });
-                      
-                      const updateResponse = await fetch('/api/orders/update-status', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          orderId: orderId,
-                          status: 'completed',
-                          paymentStatus: 'completed'
-                        })
-                      });
-                      
-                      console.log('🔄 Update response status:', updateResponse.status);
-                      
-                      if (updateResponse.ok) {
-                        const updateResult = await updateResponse.json();
-                        console.log('✅ All driving lesson slots updated to booked status:', updateResult);
-                        console.log('✅ SLOT UPDATE COMPLETED - Ready for countdown');
-                      } else {
-                        const errorText = await updateResponse.text();
-                        console.error('❌ Failed to update driving lesson slots:', errorText);
+                    // FORCE UPDATE each slot directly using slotId
+                    let allSlotsUpdated = true;
+                    
+                    for (const appointment of orderData.order.appointments) {
+                      if (appointment.slotId) {
+                        try {
+                          console.log(`🔄 FORCING update of slot ${appointment.slotId}...`);
+                          
+                          const directUpdateResponse = await fetch('/api/instructors/update-slot-status', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              slotId: appointment.slotId,
+                              instructorId: appointment.instructorId,
+                              status: 'booked',
+                              paid: true,
+                              paymentId: orderId,
+                              confirmedAt: new Date().toISOString()
+                            })
+                          });
+                          
+                          if (directUpdateResponse.ok) {
+                            const updateResult = await directUpdateResponse.json();
+                            console.log(`✅ Slot ${appointment.slotId} FORCED to booked status:`, updateResult);
+                          } else {
+                            const errorText = await directUpdateResponse.text();
+                            console.error(`❌ Failed to FORCE update slot ${appointment.slotId}:`, errorText);
+                            allSlotsUpdated = false;
+                          }
+                        } catch (error) {
+                          console.error(`❌ Error FORCING update of slot ${appointment.slotId}:`, error);
+                          allSlotsUpdated = false;
+                        }
                       }
-                    } catch (error) {
-                      console.error('❌ Error updating driving lesson slots:', error);
+                    }
+                    
+                    if (allSlotsUpdated) {
+                      console.log('✅ ALL SLOTS FORCED TO BOOKED - Ready for countdown');
+                    } else {
+                      console.error('❌ SOME SLOTS FAILED TO UPDATE - But continuing with countdown');
                     }
                   } else {
                     console.log('⏭️ Not a driving lesson order or no appointments:', {
