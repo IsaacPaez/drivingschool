@@ -42,7 +42,7 @@ export default function PackageSelector({
     <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
       
       {/* Calendar Title */}
-      <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-gray-800">
+      <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-[#10B981]">
         Select Date
       </h2>
       
@@ -59,7 +59,7 @@ export default function PackageSelector({
 
 
       {/* Available Driving Packages Title */}
-      <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">
+      <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
         Available Driving Packages
       </h3>
 

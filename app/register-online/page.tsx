@@ -828,24 +828,24 @@ function RegisterOnlineContent() {
               Available Ticket Classes
             </h3>
 
-            {/* Class Types Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 w-full">
-              {classList.map((cls) => {
-                return (
-                  <div
-                    key={cls._id}
-                    className={`shadow-lg rounded-xl p-3 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full ${selectedClassId === cls._id ? "border-4 border-blue-500 bg-blue-100" : "bg-white"}`}
-                    onClick={() => {
-                      setSelectedClassId(cls._id);
-                      setSelectedInstructorId("ALL"); // Show all instructors for this class
-                    }}
-                  >
-                    <div className="flex flex-col items-center">
-                      <span className="text-sm sm:text-md font-semibold text-black text-center leading-tight">{cls.title}</span>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Class Types Dropdown */}
+            <div className="w-full mb-4">
+              <select
+                value={selectedClassId || ""}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  setSelectedClassId(selectedId);
+                  setSelectedInstructorId("ALL"); // Show all instructors for this class
+                }}
+                className="w-full p-3 border-2 border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-black font-medium"
+              >
+                <option value="" className="text-black text-sm">Select a ticket class...</option>
+                {classList.map((cls) => (
+                  <option key={cls._id} value={cls._id} className="text-black text-sm">
+                    {cls.title}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         )}
