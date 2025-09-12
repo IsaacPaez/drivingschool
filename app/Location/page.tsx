@@ -122,13 +122,13 @@ const LocationPage: React.FC = () => {
             <>
               {/* Sección superior con el mapa y la información */}
               <div className="flex flex-col md:flex-row gap-8">
-                <div className="w-full md:w-1/2 flex items-center">
-                  <div className="w-full h-64 md:h-[400px] rounded-lg overflow-hidden shadow-lg">
+                <div className="w-full md:w-1/2 flex flex-col">
+                  <div className="flex-1 rounded-lg overflow-hidden shadow-lg">
                     <LocationMap />
                   </div>
                 </div>
 
-                <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow-lg border border-gray-200 min-h-[500px] flex flex-col justify-between">
                   <div className="mb-4 text-center">
                     <h2 className="text-2xl font-bold text-blue-600 mb-2">
                       Main Office Location
@@ -138,24 +138,41 @@ const LocationPage: React.FC = () => {
                     </p>
                   </div>
                   
-                  <div className="text-gray-700 mb-6 space-y-2">
+                  <div className="text-gray-700 mb-6 space-y-3">
                     <div className="flex items-center">
-                      <span className="text-blue-600 mr-2">📞</span>
-                      <strong>Phone:</strong>
-                      <span className="text-blue-600 font-bold ml-2">561 330 7007</span>
+                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <strong>Phone:</strong>
+                        <span className="text-blue-600 font-bold ml-2">561 330 7007</span>
+                      </div>
                     </div>
                     <div className="flex items-center">
-                      <span className="text-blue-600 mr-2">✉️</span>
-                      <strong>Email:</strong>
-                      <a
-                        href="mailto:info@drivingschoolpalmbeach.com"
-                        className="text-blue-600 underline ml-2 hover:text-blue-800"
-                      >
-                        info@drivingschoolpalmbeach.com
-                      </a>
+                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                          <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <strong>Email:</strong>
+                        <a
+                          href="mailto:info@drivingschoolpalmbeach.com"
+                          className="text-blue-600 underline ml-2 hover:text-blue-800"
+                        >
+                          info@drivingschoolpalmbeach.com
+                        </a>
+                      </div>
                     </div>
                     <div className="flex items-start">
-                      <span className="text-blue-600 mr-2 mt-1">📍</span>
+                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-3 mt-1">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
                       <div>
                         <strong>Address:</strong>
                         <p className="text-gray-800 font-medium">
@@ -168,7 +185,11 @@ const LocationPage: React.FC = () => {
                   
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                      <span className="text-blue-600 mr-2">🕒</span>
+                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                      </div>
                       Business Hours
                     </h3>
                     <div className="text-gray-900 grid grid-cols-1 gap-y-1">
@@ -189,8 +210,11 @@ const LocationPage: React.FC = () => {
                     </div>
                   </div>
                   
-                  <button className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg" onClick={() => window.location.href = '/Book-Now'}>
-                    📅 Book Your Lesson Now
+                  <button className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg flex items-center justify-center" onClick={() => window.location.href = '/Book-Now'}>
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    Book Your Lesson Now
                   </button>
                 </div>
               </div>
@@ -334,7 +358,12 @@ const LocationPage: React.FC = () => {
                               gap: '8px'
                             }}
                           >
-                            📍 Location Info
+                            <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            Location Info
                           </h3>
 
                           <div 
@@ -355,7 +384,11 @@ const LocationPage: React.FC = () => {
                                 color: '#1f2937'
                               }}
                             >
-                              <span className="text-red-600 text-xl">📞</span>
+                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                </svg>
+                              </div>
                               <strong>Phone:</strong>
                               <a
                                 href="tel:5613307007"
@@ -379,7 +412,12 @@ const LocationPage: React.FC = () => {
                                 color: '#1f2937'
                               }}
                             >
-                              <span className="text-purple-600 text-xl">✉️</span>
+                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                </svg>
+                              </div>
                               <strong>Email:</strong>
                               <a
                                 href="mailto:info@drivingschoolpalmbeach.com"
@@ -413,7 +451,12 @@ const LocationPage: React.FC = () => {
                                 gap: '8px'
                               }}
                             >
-                              🕒 Opening Hours
+                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              Opening Hours
                             </h3>
                             <div 
                               className="grid grid-cols-1 gap-2 text-gray-800"

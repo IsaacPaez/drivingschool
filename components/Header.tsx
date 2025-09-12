@@ -96,11 +96,12 @@ const Header = () => {
     <header className={`fixed top-0 left-0 w-full z-50 px-4 ${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'}`}>
       {/* Top Row with Phone and Login */}
       <div className={`${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'} flex lg:justify-center gap-4 items-center py-2 text-sm font-sans relative`}>
-        <span
-          className={`hidden lg:flex ${isHome ? (isScrolled ? "text-[#0056b3]" : "text-white") : "text-[#0056b3]"} font-semibold`}
+        <Link
+          href="/contact"
+          className={`hidden lg:flex ${isHome ? (isScrolled ? "text-[#0056b3]" : "text-white") : "text-[#0056b3]"} font-semibold hover:underline cursor-pointer`}
         >
           Phone: <strong className="font-semibold">561 330 7007</strong>
-        </span>
+        </Link>
         {/* 🛒 Carrito de Compras con color dinámico */}
         <div>
           <CartIcon
@@ -108,7 +109,7 @@ const Header = () => {
           />
         </div>
         {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
-        <div className="fixed top-8 right-10 flex items-end z-50 mt-0">
+        <div className="fixed top-2 right-10 flex items-end z-50 mt-0">
           {user ? (
             <div className="relative flex flex-col items-center">
               <button

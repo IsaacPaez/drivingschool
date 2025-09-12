@@ -847,12 +847,12 @@ export default function BookNowPage() {
             </div>
             
             {/* Available Instructors Title */}
-            <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">
+            <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
               Available Instructors
             </h3>
             
-            {/* Instructors Grid - Max 2 per row */}
-            <div className="grid grid-cols-2 gap-3 mt-2 w-full">
+            {/* Instructors Grid - Improved Design */}
+            <div className="flex flex-wrap gap-4 justify-center">
               {instructors.map((inst) => {
                 const [firstName, ...lastNameParts] = inst.name.split(' ');
                 const lastName = lastNameParts.join(' ');
@@ -861,10 +861,10 @@ export default function BookNowPage() {
                 return (
                   <div
                     key={inst._id}
-                    className={`shadow-lg rounded-xl p-2 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full relative ${
+                    className={`border-2 rounded-lg p-3 text-center bg-white shadow-lg cursor-pointer transition-all duration-200 ease-in-out hover:shadow-xl hover:scale-105 w-[110px] relative ${
                       isSelected 
-                        ? "border-4 border-blue-500 bg-blue-100" 
-                        : "bg-white"
+                        ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                     }`}
                     onClick={() => {
                       setIsLoadingSchedule(true);
@@ -872,21 +872,26 @@ export default function BookNowPage() {
                     }}
                   >
                     {isLoadingThis && (
-                      <div className="absolute inset-0 bg-blue-100 bg-opacity-90 rounded-xl flex items-center justify-center z-10">
-                        <div className="w-8 h-8 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+                      <div className="absolute inset-0 bg-blue-100 bg-opacity-90 rounded-lg flex items-center justify-center z-10">
+                        <div className="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
                       </div>
                     )}
-                    <Image
-                      src={inst.photo || "/default-avatar.png"}
-                      alt={inst.name}
-                      width={60}
-                      height={60}
-                      className="w-14 h-14 sm:w-20 sm:h-20 rounded-full mx-auto mb-1 sm:mb-2"
-                    />
-                    <div className="flex flex-col items-center mt-1 sm:mt-2">
-                      <span className="text-sm sm:text-md font-semibold text-black leading-tight">{firstName}</span>
-                      <span className="text-xs sm:text-sm text-gray-600 leading-tight">{lastName}</span>
+                    <div className="relative mb-2">
+                      <Image
+                        src={inst.photo || "/default-avatar.png"}
+                        alt={inst.name}
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full mx-auto object-cover border border-white shadow-md"
+                      />
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                          <span className="text-white text-xs font-bold">✓</span>
+                        </div>
+                      )}
                     </div>
+                    <h4 className="font-semibold text-sm text-gray-800 truncate mb-1 capitalize">{firstName}</h4>
+                    <div className="text-xs text-gray-600 truncate">{lastName}</div>
                   </div>
                 );
               })}
@@ -960,12 +965,12 @@ export default function BookNowPage() {
             </div>
             
             {/* Available Instructors Title */}
-            <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">
+            <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
               Available Instructors
             </h3>
             
-            {/* Instructors Grid - Max 2 per row */}
-            <div className="grid grid-cols-2 gap-3 mt-2 w-full">
+            {/* Instructors Grid - Improved Design */}
+            <div className="flex flex-wrap gap-4 justify-center">
               {instructors.map((inst) => {
                 const [firstName, ...lastNameParts] = inst.name.split(' ');
                 const lastName = lastNameParts.join(' ');
@@ -974,10 +979,10 @@ export default function BookNowPage() {
                 return (
                   <div
                     key={inst._id}
-                    className={`shadow-lg rounded-xl p-2 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all w-full relative ${
+                    className={`border-2 rounded-lg p-3 text-center bg-white shadow-lg cursor-pointer transition-all duration-200 ease-in-out hover:shadow-xl hover:scale-105 w-[110px] relative ${
                       isSelected 
-                        ? "border-4 border-blue-500 bg-blue-100" 
-                        : "bg-white"
+                        ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                     }`}
                     onClick={() => {
                       setIsLoadingSchedule(true);
@@ -985,21 +990,26 @@ export default function BookNowPage() {
                     }}
                   >
                     {isLoadingThis && (
-                      <div className="absolute inset-0 bg-blue-100 bg-opacity-90 rounded-xl flex items-center justify-center z-10">
-                        <div className="w-8 h-8 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+                      <div className="absolute inset-0 bg-blue-100 bg-opacity-90 rounded-lg flex items-center justify-center z-10">
+                        <div className="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
                       </div>
                     )}
-                    <Image
-                      src={inst.photo || "/default-avatar.png"}
-                      alt={inst.name}
-                      width={60}
-                      height={60}
-                      className="w-14 h-14 sm:w-20 sm:h-20 rounded-full mx-auto mb-1 sm:mb-2"
-                    />
-                    <div className="flex flex-col items-center mt-1 sm:mt-2">
-                      <span className="text-sm sm:text-md font-semibold text-black leading-tight">{firstName}</span>
-                      <span className="text-xs sm:text-sm text-gray-600 leading-tight">{lastName}</span>
+                    <div className="relative mb-2">
+                      <Image
+                        src={inst.photo || "/default-avatar.png"}
+                        alt={inst.name}
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full mx-auto object-cover border border-white shadow-md"
+                      />
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                          <span className="text-white text-xs font-bold">✓</span>
+                        </div>
+                      )}
                     </div>
+                    <h4 className="font-semibold text-sm text-gray-800 truncate mb-1 capitalize">{firstName}</h4>
+                    <div className="text-xs text-gray-600 truncate">{lastName}</div>
                   </div>
                 );
               })}

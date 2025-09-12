@@ -102,45 +102,85 @@ function Page() {
           </div>
         </motion.div>
         {/* What Sets Us Apart Section */}
-        <motion.div className="mb-12" {...fadeInUp(0.2)}>
-          <Title green="Still Feeling" black="Nervous?" blue="What Sets Us Apart" className="text-2xl md:text-3xl mb-8" />
-          <div className="grid md:grid-cols-3 gap-6 items-stretch">
-            <div className="md:col-span-2 flex flex-col h-full">
-              <div className="bg-white border-l-4 border-green-600 rounded-xl shadow p-6 flex flex-col h-full">
-                <h3 className="text-2xl font-bold text-slate-800 mb-2">State-of-the-Art Vehicle Safety Features</h3>
-                <p className="text-slate-700 mb-4">
+        <motion.div className="mb-16" {...fadeInUp(0.2)}>
+          <Title green="Still Feeling" black="Nervous?" blue="What Sets Us Apart" className="text-3xl md:text-4xl mb-12 text-center" />
+          
+          {/* Vehicle Safety Features Section */}
+          <div className="mb-12">
+            <div className="bg-white border-l-4 border-green-600 rounded-2xl shadow-lg p-8 mb-8">
+              <h3 className="text-3xl font-bold text-slate-800 mb-6 text-center">State-of-the-Art Vehicle Safety Features</h3>
+              <div className="max-w-4xl mx-auto">
+                <p className="text-lg text-slate-700 mb-8 text-center leading-relaxed">
                   Our vehicles for driving lessons are <span className="font-semibold text-green-600">late model and State licensed</span> for driving instruction. Every vehicle is equipped with <span className="font-bold text-blue-600">dual controlled brakes and accelerator pedals (yes, gas pedals!)</span>, giving our instructors complete control from the passenger side whenever necessary for dangerous situations.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-slate-100 rounded-lg p-4 border border-slate-200">
-                    <h4 className="font-bold text-slate-800 mb-1">No Dual Steering Wheels</h4>
-                    <p className="text-slate-700 text-sm">
-                      Through years of experience, we’ve found that dual steering wheels prevent students from feeling total control and hinder skill development. Our approach lets you truly master vehicle control.
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200 shadow-md">
+                    <h4 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
+                      <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      No Dual Steering Wheels
+                    </h4>
+                    <p className="text-slate-700 leading-relaxed">
+                      Through years of experience, we've found that dual steering wheels prevent students from feeling total control and hinder skill development. Our approach lets you truly master vehicle control.
                     </p>
                   </div>
-                  <div className="bg-slate-100 rounded-lg p-4 border border-slate-200">
-                    <h4 className="font-bold text-slate-800 mb-1">Regular Maintenance</h4>
-                    <p className="text-slate-700 text-sm">
+                  
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-md">
+                    <h4 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      Regular Maintenance
+                    </h4>
+                    <p className="text-slate-700 leading-relaxed">
                       All vehicles undergo routine mechanical maintenance to ensure the <span className="font-semibold text-green-600">safety of our students</span> and instructors at all times.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col h-full">
-              <div className="bg-white border-l-4 border-blue-600 rounded-xl shadow p-6 flex flex-col h-full">
-                <h4 className="text-xl font-bold text-slate-800 mb-2">GPS Tracking System</h4>
-                <p className="text-slate-700 mb-2">
-                  Our vehicles are monitored by a <span className="font-semibold text-blue-600">GPS tracking system</span>, so we always know where our students are located during their driving lessons.
-                </p>
-                <div className="bg-slate-100 rounded-lg p-3 border border-slate-200">
-                  <h5 className="font-semibold text-slate-800 mb-1">Safety Benefits:</h5>
-                  <ul className="text-sm text-slate-600 list-disc pl-4">
-                    <li>Real-time location monitoring</li>
-                    <li>Emergency response capability</li>
-                    <li>Route optimization</li>
-                    <li>Parent peace of mind</li>
-                  </ul>
+          </div>
+
+          {/* GPS Tracking System Section */}
+          <div className="bg-white border-l-4 border-blue-600 rounded-2xl shadow-lg p-8">
+            <div className="max-w-4xl mx-auto text-center">
+              <h4 className="text-3xl font-bold text-slate-800 mb-6">GPS Tracking System</h4>
+              <p className="text-lg text-slate-700 mb-8 leading-relaxed">
+                Our vehicles are monitored by a <span className="font-semibold text-blue-600">GPS tracking system</span>, so we always know where our students are located during their driving lessons.
+              </p>
+              
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-md max-w-2xl mx-auto">
+                <h5 className="text-xl font-bold text-slate-800 mb-6 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  Safety Benefits
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center text-slate-700">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                    Real-time location monitoring
+                  </div>
+                  <div className="flex items-center text-slate-700">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                    Emergency response capability
+                  </div>
+                  <div className="flex items-center text-slate-700">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                    Route optimization
+                  </div>
+                  <div className="flex items-center text-slate-700">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                    Parent peace of mind
+                  </div>
                 </div>
               </div>
             </div>

@@ -479,10 +479,6 @@ function DrivingLessonsContent() {
           onProductSelect={handleProductSelect}
           onRequestSchedule={handleRequestSchedule}
           selectedHours={selectedHours}
-          instructors={instructors}
-          selectedInstructorForSchedule={selectedInstructorForSchedule}
-          onInstructorSelect={setSelectedInstructorForSchedule}
-          getScheduleForInstructor={getScheduleForInstructor}
         />
 
         {/* Right Side - Schedule Table Improved */}

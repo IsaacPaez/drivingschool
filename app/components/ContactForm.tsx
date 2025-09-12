@@ -78,19 +78,25 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-6 py-10">
+    <div className="max-w-7xl mx-auto">
       {/* 📌 CONTENEDOR PRINCIPAL EN DOS COLUMNAS */}
-      <div className="flex flex-col md:flex-row items-start justify-between gap-8 w-full max-w-5xl">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* 🔹 Formulario */}
-        <div className="bg-white shadow-md rounded-lg p-6 w-full md:w-1/2 border border-gray-300">
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+        <div className="bg-white shadow-2xl rounded-2xl p-8 border border-gray-100">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Send us a Message</h2>
+            <p className="text-gray-600">We'll get back to you within 24 hours</p>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name */}
-            <div className="flex flex-col">
-              <label className="font-bold text-black">Name:</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">Full Name *</label>
               <input
                 type="text"
                 name="name"
-                className="border border-black text-black rounded-md p-2 w-full"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-500"
+                placeholder="Enter your full name"
                 value={formData.name}
                 onChange={handleChange}
                 required
@@ -98,12 +104,13 @@ const ContactPage = () => {
             </div>
 
             {/* Email */}
-            <div className="flex flex-col">
-              <label className="font-bold text-black">Email:</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">Email Address *</label>
               <input
                 type="email"
                 name="email"
-                className="border border-black text-black rounded-md p-2 w-full"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-500"
+                placeholder="Enter your email address"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -111,12 +118,13 @@ const ContactPage = () => {
             </div>
 
             {/* Phone */}
-            <div className="flex flex-col">
-              <label className="font-bold text-black">Phone:</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">Phone Number *</label>
               <input
-                type="text"
+                type="tel"
                 name="phone"
-                className="border border-black text-black rounded-md p-2 w-full"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-500"
+                placeholder="Enter your phone number"
                 value={formData.phone}
                 onChange={handleChange}
                 required
@@ -124,28 +132,29 @@ const ContactPage = () => {
             </div>
 
             {/* City */}
-            <div className="flex flex-col">
-              <label className="font-bold text-black">City:</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">City</label>
               <input
                 type="text"
                 name="city"
-                className="border border-black text-black rounded-md p-2 w-full"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-500"
+                placeholder="Enter your city"
                 value={formData.city}
                 onChange={handleChange}
               />
             </div>
 
             {/* Subject (Dropdown) */}
-            <div className="flex flex-col">
-              <label className="font-bold text-black">Subject:</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">Subject *</label>
               <select
                 name="subject"
-                className="border border-black rounded-md p-2 w-full text-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white"
                 value={formData.subject}
                 onChange={handleChange}
               >
                 {subjects.map((subject, index) => (
-                  <option key={index} value={subject} className="text-black">
+                  <option key={index} value={subject}>
                     {subject}
                   </option>
                 ))}
@@ -153,73 +162,135 @@ const ContactPage = () => {
             </div>
 
             {/* Inquiry (Text Area) */}
-            <div className="flex flex-col">
-              <label className="font-bold text-black">Inquiry:</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">Message</label>
               <textarea
                 name="inquiry"
-                rows={3}
-                className="border border-black text-black rounded-md p-2 w-full"
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-500 resize-none"
+                placeholder="Tell us how we can help you..."
                 value={formData.inquiry}
                 onChange={handleChange}
               />
             </div>
 
-            {/* ✅ Botón de Enviar (Centrado) */}
-            <div className="flex justify-center mt-4">
+            {/* Submit Button */}
+            <div className="pt-4">
               <button
                 type="submit"
-                className="bg-[#27ae60] text-white font-bold py-2 px-6 rounded-md shadow-lg hover:shadow-black hover:bg-[#0056b3] transition hover:-translate-y-3 duration-300 ease-out cursor-pointer active:translate-y-1"
+                className="w-full bg-blue-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-xl hover:bg-blue-700 transform hover:-translate-y-1 transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 disabled={loading}
               >
-                {loading ? "Sending..." : "Send"}
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending Message...
+                  </span>
+                ) : (
+                  "Send Message"
+                )}
               </button>
             </div>
 
             {message && (
-              <p className="text-center font-semibold mt-4">{message}</p>
+              <div className={`text-center p-4 rounded-lg font-semibold ${
+                message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                {message}
+              </div>
             )}
           </form>
         </div>
 
         {/* 🔹 Información de Contacto */}
-        <div className="bg-white shadow-md rounded-lg p-6 w-full md:w-1/2 border border-gray-300 flex flex-col items-center">
-          <Image
-            src="/DV-removebg-preview.png"
-            alt="Logo"
-            width={120}
-            height={120}
-            className="mb-2"
-          />
-          <h3 className="text-lg font-bold text-[#0056b3]">
-            Affordable Driving Traffic School
-          </h3>
+        <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-2xl">
+          <div className="text-center mb-8">
+            <Image
+              src="/DV-removebg-preview.png"
+              alt="Logo"
+              width={120}
+              height={120}
+              className="mx-auto mb-4 bg-white rounded-full p-4 shadow-lg"
+            />
+            <h3 className="text-2xl font-bold mb-2">
+              Affordable Driving Traffic School
+            </h3>
+            <p className="text-blue-100">Your trusted driving education partner</p>
+          </div>
 
-          <p className="text-gray-600 flex items-center mt-3">
-            📞 <span className="font-bold text-black ml-2">561 735 1615</span>
-          </p>
-          <p className="text-gray-600 mt-2">
-            ✉️{" "}
-            <a
-              href="mailto:info@drivingschoolpalmbeach.com"
-              className="text-[#0056b3] hover:underline"
-            >
-              info@drivingschoolpalmbeach.com
-            </a>
-          </p>
+          <div className="space-y-6">
+            {/* Phone Numbers */}
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/20 p-3 rounded-full">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-lg">561 735 1615</p>
+                <p className="text-blue-100 text-sm">Primary Phone</p>
+              </div>
+            </div>
 
-          <div className="text-left mt-4">
-            <p className="text-black font-bold">Phone:</p>
-            <p className="text-[#0056b3] font-bold">561 330 7007</p>
-            <p className="text-black font-bold mt-2">Address:</p>
-            <p className="text-black">
-              3167 Forest Hill Blvd West, Palm Beach, Florida 33406
-            </p>
-            <p className="text-black font-bold mt-2">Email:</p>
-            <p className="text-[#0056b3] hover:underline">
-              <a href="mailto:info@drivingschoolpalmbeach.com">
-                info@drivingschoolpalmbeach.com
-              </a>
-            </p>
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/20 p-3 rounded-full">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-lg">561 330 7007</p>
+                <p className="text-blue-100 text-sm">Secondary Phone</p>
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/20 p-3 rounded-full">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <a 
+                  href="mailto:info@drivingschoolpalmbeach.com"
+                  className="font-semibold text-lg hover:text-blue-200 transition-colors"
+                >
+                  info@drivingschoolpalmbeach.com
+                </a>
+                <p className="text-blue-100 text-sm">Email Address</p>
+              </div>
+            </div>
+
+            {/* Address */}
+            <div className="flex items-start space-x-4">
+              <div className="bg-white/20 p-3 rounded-full mt-1">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-lg">Our Location</p>
+                <p className="text-blue-100">
+                  3167 Forest Hill Blvd West<br />
+                  Palm Beach, Florida 33406
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Business Hours */}
+          <div className="mt-8 pt-6 border-t border-white/20">
+            <h4 className="font-bold text-lg mb-3">Business Hours</h4>
+            <div className="space-y-1 text-blue-100">
+              <p>Monday - Friday: 8:00 AM - 6:00 PM</p>
+              <p>Saturday: 9:00 AM - 4:00 PM</p>
+              <p>Sunday: Closed</p>
+            </div>
           </div>
         </div>
       </div>

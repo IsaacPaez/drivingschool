@@ -58,9 +58,13 @@ const FAQPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 pt-40 pb-20">
-      <h1 className="text-4xl font-extrabold text-center mb-16 text-black">Frequently Asked Questions</h1>
+      <h1 className="text-4xl font-extrabold text-center mb-2">
+        <span className="text-blue-600">Frequently</span>{" "}
+        <span className="text-black">Asked</span>{" "}
+        <span className="text-green-600">Questions</span>
+      </h1>
       <FAQSection title="Driving Lessons" faqs={drivingLessonsFaqs} />
-      <div className="py-12" />
+      <div className="py-4" />
       <FAQSection title="Advanced Driving Improvement Course" faqs={adiFaqs} />
     </div>
   );

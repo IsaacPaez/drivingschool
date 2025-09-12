@@ -13,6 +13,22 @@ function PaymentSuccessContent() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [slotsUpdated, setSlotsUpdated] = useState<boolean | null>(null);
+  const [isProcessingSlots, setIsProcessingSlots] = useState(false);
+
+  const startCountdown = () => {
+    const countdownTimer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownTimer);
+          router.replace("/");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(countdownTimer);
+  };
 
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -53,6 +69,8 @@ function PaymentSuccessContent() {
                       appointments: orderData.order.appointments
                     });
                     
+                    setIsProcessingSlots(true);
+                    
                     // FORCE UPDATE each slot directly using slotId
                     let allSlotsUpdated = true;
                     
@@ -91,6 +109,8 @@ function PaymentSuccessContent() {
                       }
                     }
                     
+                    setIsProcessingSlots(false);
+                    
                     if (allSlotsUpdated) {
                       console.log('✅ ALL SLOTS FORCED TO BOOKED - Ready for countdown');
                       // Set a flag to indicate slots are updated
@@ -105,13 +125,66 @@ function PaymentSuccessContent() {
                       orderType: orderData.order.orderType,
                       hasAppointments: !!orderData.order.appointments
                     });
+                    // Set slots as updated for non-driving lesson orders
+                    setSlotsUpdated(true);
                   }
+                } else {
+                  console.error("Failed to fetch order details");
+                  setSlotsUpdated(false);
                 }
               } catch (error) {
                 console.error("Error fetching order details:", error);
+                setSlotsUpdated(false);
               }
             } else {
               setTransactionStatus("pending");
+              
+              // If payment is rejected, try to get order details and revert slots back to available
+              try {
+                const orderResponse = await fetch(`/api/orders/details?orderId=${orderId}`);
+                if (orderResponse.ok) {
+                  const orderData = await orderResponse.json();
+                  
+                  if (orderData.order && orderData.order.orderType === 'driving_lesson' && orderData.order.appointments) {
+                    console.log('🔄 Payment rejected - Reverting slots back to available...');
+                    
+                    for (const appointment of orderData.order.appointments) {
+                      if (appointment.slotId) {
+                        try {
+                          console.log(`🔄 Reverting slot ${appointment.slotId} back to available...`);
+                          
+                          const revertResponse = await fetch('/api/instructors/update-slot-status', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              slotId: appointment.slotId,
+                              instructorId: appointment.instructorId,
+                              status: 'available',
+                              paid: false,
+                              paymentId: null,
+                              confirmedAt: null
+                            })
+                          });
+                          
+                          if (revertResponse.ok) {
+                            const revertResult = await revertResponse.json();
+                            console.log(`✅ Slot ${appointment.slotId} reverted to available:`, revertResult);
+                          } else {
+                            const errorText = await revertResponse.text();
+                            console.error(`❌ Failed to revert slot ${appointment.slotId}:`, errorText);
+                          }
+                        } catch (error) {
+                          console.error(`❌ Error reverting slot ${appointment.slotId}:`, error);
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error("Error fetching order details for slot reversion:", error);
+              }
             }
           } else {
             setTransactionStatus("error");
@@ -130,45 +203,19 @@ function PaymentSuccessContent() {
         
         // Después del flip, esperar 1 segundo más y verificar si los slots se actualizaron
         setTimeout(() => {
-          // Solo mostrar countdown si los slots se actualizaron correctamente
+          // Solo mostrar countdown si los slots se actualizaron correctamente o no es una orden de driving lesson
           if (slotsUpdated === true) {
             console.log('✅ Slots updated successfully - Starting countdown');
             setShowCountdown(true);
-            
-            // Iniciar countdown después de mostrar el resultado
-            const countdownTimer = setInterval(() => {
-              setCountdown(prev => {
-                if (prev <= 1) {
-                  clearInterval(countdownTimer);
-                  router.replace("/");
-                  return 0;
-                }
-                return prev - 1;
-              });
-            }, 1000);
-            
-            return () => clearInterval(countdownTimer);
+            startCountdown();
           } else if (slotsUpdated === false) {
             console.log('❌ Slots failed to update - NOT starting countdown');
             // Show error message instead of countdown
             setTransactionStatus("error");
           } else {
-            console.log('⏭️ Not a driving lesson order - Starting countdown normally');
+            console.log('⏭️ Slots status unknown - Starting countdown normally');
             setShowCountdown(true);
-            
-            // Iniciar countdown después de mostrar el resultado
-            const countdownTimer = setInterval(() => {
-              setCountdown(prev => {
-                if (prev <= 1) {
-                  clearInterval(countdownTimer);
-                  router.replace("/");
-                  return 0;
-                }
-                return prev - 1;
-              });
-            }, 1000);
-            
-            return () => clearInterval(countdownTimer);
+            startCountdown();
           }
         }, 1000);
       }, 1000); // Reducido a 1 segundo para que sea más rápido
@@ -365,7 +412,7 @@ function PaymentSuccessContent() {
                             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                           </div>
                           <p className="text-sm font-bold text-blue-700">
-                            Checking payment status...
+                            {isProcessingSlots ? 'Updating lesson slots...' : 'Checking payment status...'}
                           </p>
                         </div>
                       </div>

@@ -279,9 +279,69 @@ export default function ScheduleTableImproved({
       <p className="text-center text-gray-600 mb-6 text-sm">
         {selectedInstructorForSchedule 
           ? `Showing ${selectedInstructorForSchedule.name}'s schedule. Green slots are available for booking.`
-          : 'Showing all instructors. Green slots are available for booking.'
+          : 'Please select an instructor first to view their available schedule.'
         }
       </p>
+
+      {/* Available Instructors - Improved Design */}
+      <div className="mb-6 w-full">
+        <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 justify-center">
+          {instructors.map((instructor) => {
+            // Use SSE data first, fallback to static data
+            const sseSchedule = getScheduleForInstructor(instructor._id);
+            const scheduleToUse = sseSchedule && sseSchedule.length > 0 ? sseSchedule : instructor.schedule_driving_lesson;
+            
+            const availableCount = scheduleToUse?.filter(
+              (lesson: ScheduleEntry) => lesson.status === "available"
+            ).length || 0;
+            const isSelected = selectedInstructorForSchedule?._id === instructor._id;
+
+            return (
+              <div
+                key={instructor._id}
+                className={`border-2 rounded-lg p-3 text-center bg-white shadow-lg cursor-pointer transition-all duration-200 ease-in-out hover:shadow-xl hover:scale-105 flex-shrink-0 w-[110px] ${
+                  isSelected 
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                }`}
+                onClick={() => onInstructorSelect(isSelected ? null : instructor)}
+              >
+                <div className="relative mb-2">
+                  <Image
+                    src={instructor.photo || '/default-instructor.png'}
+                    alt={instructor.name}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full mx-auto object-cover border border-white shadow-md"
+                  />
+                  {isSelected && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  )}
+                </div>
+                <h4 className="font-semibold text-sm text-gray-800 truncate mb-1 capitalize">{instructor.name}</h4>
+                <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                  availableCount > 0 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {availableCount} available
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Show count when many instructors */}
+        {instructors.length > 2 && (
+          <div className="text-center mt-3">
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {instructors.length} instructors available
+            </span>
+          </div>
+        )}
+      </div>
       
 
 

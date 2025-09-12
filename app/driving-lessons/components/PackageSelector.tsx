@@ -18,26 +18,15 @@ interface Product {
   media?: string[];
 }
 
-interface Instructor {
-  _id: string;
-  name: string;
-  photo?: string;
-  email?: string;
-  schedule_driving_lesson?: any[];
-}
 
 interface PackageSelectorProps {
   selectedDate: Date | null;
   onDateChange: (value: CalendarValue) => void;
   products: Product[];
   selectedProduct: Product | null;
-  onProductSelect: (product: Product) => void;
+  onProductSelect: (product: Product | null) => void;
   onRequestSchedule: () => void;
   selectedHours: number;
-  instructors: Instructor[];
-  selectedInstructorForSchedule: Instructor | null;
-  onInstructorSelect: (instructor: Instructor | null) => void;
-  getScheduleForInstructor: (instructorId: string) => any[];
 }
 
 export default function PackageSelector({
@@ -47,17 +36,13 @@ export default function PackageSelector({
   selectedProduct,
   onProductSelect,
   onRequestSchedule,
-  selectedHours,
-  instructors,
-  selectedInstructorForSchedule,
-  onInstructorSelect,
-  getScheduleForInstructor
+  selectedHours
 }: PackageSelectorProps) {
   return (
     <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
       
       {/* Calendar Title */}
-      <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-gray-800">
+      <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-[#10B981]">
         Select Date
       </h2>
       
@@ -72,93 +57,30 @@ export default function PackageSelector({
         />
       </div>
 
-      {/* Available Instructors - Horizontal Scroll with Max 3 per Row */}
-      <div className="mb-6 w-full">
-        <h3 className="text-lg font-bold text-center mb-3 text-black">Select Instructor</h3>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          {instructors.map((instructor) => {
-            // Use SSE data first, fallback to static data
-            const sseSchedule = getScheduleForInstructor(instructor._id);
-            const scheduleToUse = sseSchedule && sseSchedule.length > 0 ? sseSchedule : instructor.schedule_driving_lesson;
-            
-            const availableCount = scheduleToUse?.filter(
-              lesson => lesson.status === "available"
-            ).length || 0;
-            const isSelected = selectedInstructorForSchedule?._id === instructor._id;
-
-            return (
-              <div
-                key={instructor._id}
-                className={`border rounded-lg p-2 text-center bg-white shadow-sm cursor-pointer transition-all duration-1000 ease-in-out hover:shadow-md flex-shrink-0 w-[80px] ${
-                  isSelected 
-                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
-                    : 'border-gray-300 hover:border-blue-300'
-                }`}
-                onClick={() => onInstructorSelect(isSelected ? null : instructor)}
-              >
-                <Image
-                  src={instructor.photo || '/default-instructor.png'}
-                  alt={instructor.name}
-                  width={28}
-                  height={28}
-                  className="w-7 h-7 rounded-full mx-auto mb-1 object-cover"
-                />
-                <h4 className="font-semibold text-xs text-black truncate mb-1">{instructor.name}</h4>
-                <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                  {availableCount} available
-                </span>
-                {isSelected && (
-                  <div className="mt-1">
-                    <span className="inline-block bg-blue-500 text-white text-xs px-1 py-0.5 rounded">
-                      ✓
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Show count when many instructors */}
-        {instructors.length > 3 && (
-          <div className="text-center mt-2">
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              {instructors.length} instructors available
-            </span>
-          </div>
-        )}
-      </div>
 
       {/* Available Driving Packages Title */}
-      <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-gray-700">
+      <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
         Available Driving Packages
       </h3>
 
-      {/* Packages Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 w-full">
-        {products.map((product) => (
-          <div
-            key={product._id}
-            className={`shadow-lg rounded-xl p-3 sm:p-4 text-center cursor-pointer hover:shadow-xl transition-all duration-1000 ease-in-out w-full ${
-              selectedProduct?._id === product._id 
-                ? "border-4 border-blue-500 bg-blue-100" 
-                : "bg-white"
-            }`}
-            onClick={() => onProductSelect(product)}
-          >
-            <div className="flex flex-col items-center">
-              <span className="text-sm sm:text-md font-semibold text-black text-center leading-tight">
-                {product.title}
-              </span>
-              <div className="flex justify-between items-center mt-2 w-full">
-                <span className="text-lg font-bold text-green-600">${product.price}</span>
-                {product.duration && (
-                  <span className="text-sm text-blue-600 font-semibold">{product.duration} hrs</span>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Packages Dropdown */}
+      <div className="w-full mb-4">
+        <select
+          value={selectedProduct?._id || ""}
+          onChange={(e) => {
+            const selectedId = e.target.value;
+            const product = products.find(p => p._id === selectedId);
+            onProductSelect(product || null);
+          }}
+          className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-white text-black font-medium"
+        >
+          <option value="" className="text-black text-lg">Select a driving package...</option>
+          {products.map((product) => (
+            <option key={product._id} value={product._id} className="text-black text-lg">
+              {product.title} - ${product.price} ({product.duration || 0} hrs)
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Selected Package Info */}
