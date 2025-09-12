@@ -24,7 +24,7 @@ interface PackageSelectorProps {
   onDateChange: (value: CalendarValue) => void;
   products: Product[];
   selectedProduct: Product | null;
-  onProductSelect: (product: Product) => void;
+  onProductSelect: (product: Product | null) => void;
   onRequestSchedule: () => void;
   selectedHours: number;
 }

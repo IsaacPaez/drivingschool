@@ -292,7 +292,7 @@ export default function ScheduleTableImproved({
             const scheduleToUse = sseSchedule && sseSchedule.length > 0 ? sseSchedule : instructor.schedule_driving_lesson;
             
             const availableCount = scheduleToUse?.filter(
-              lesson => lesson.status === "available"
+              (lesson: ScheduleEntry) => lesson.status === "available"
             ).length || 0;
             const isSelected = selectedInstructorForSchedule?._id === instructor._id;
 
