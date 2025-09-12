@@ -430,7 +430,7 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 20 }}
-            className="fixed left-0 top-0 h-full w-full sm:w-96 bg-white shadow-lg p-6 z-50 overflow-auto"
+            className="fixed left-0 top-0 h-full w-full sm:w-[28rem] bg-white shadow-lg p-6 z-50 overflow-auto"
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold dark:text-black">Your Cart</h2>

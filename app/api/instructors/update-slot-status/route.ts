@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
             'schedule_driving_lesson.$.status': status,
             'schedule_driving_lesson.$.paid': paid,
             'schedule_driving_lesson.$.paymentId': paymentId,
-            'schedule_driving_lesson.$.confirmedAt': new Date(confirmedAt),
-            'schedule_driving_lesson.$.studentName': 'Confirmed'
+            'schedule_driving_lesson.$.confirmedAt': confirmedAt ? new Date(confirmedAt) : null,
+            'schedule_driving_lesson.$.studentName': status === 'available' ? 'Available' : 'Confirmed'
           }
         }
       );
@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
               'schedule_driving_lesson.$.status': status,
               'schedule_driving_lesson.$.paid': paid,
               'schedule_driving_lesson.$.paymentId': paymentId,
-              'schedule_driving_lesson.$.confirmedAt': new Date(confirmedAt),
-              'schedule_driving_lesson.$.studentName': 'Confirmed'
+              'schedule_driving_lesson.$.confirmedAt': confirmedAt ? new Date(confirmedAt) : null,
+              'schedule_driving_lesson.$.studentName': status === 'available' ? 'Available' : 'Confirmed'
             }
           }
         );

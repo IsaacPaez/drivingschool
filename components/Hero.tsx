@@ -21,7 +21,7 @@ const Hero = () => {
       {/* Contenido principal */}
       <div className="relative max-w-6xl mx-auto flex flex-col items-start text-left w-full z-10" style={{maxWidth: '1500px'}}>
         {/* Hero Text Mejorado */}
-        <div className="w-full max-w-xl mb-8">
+        <div className="w-full max-w-xl mb-8 mt-8 sm:mt-0">
           <div className="px-8 py-10 rounded-xl shadow-2xl animate-fade-in-up">
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white leading-tight mb-6 drop-shadow-2xl transition-all duration-500">
               <span className="block bg-gradient-to-r from-[#4CAF50] via-[#43e97b] to-[#38f9d7] bg-clip-text text-transparent animate-gradient-x">Learn To Drive</span>
