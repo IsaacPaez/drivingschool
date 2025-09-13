@@ -95,8 +95,8 @@ export default function UserDropdown({ onClose }: UserDropdownProps) {
 
   const handleLogout = () => {
     logout();
-    router.replace("/");
     onClose();
+    // No redirigir - el usuario se queda en la misma página
   };
 
   // Solo mostrar para usuarios regulares (no instructores)

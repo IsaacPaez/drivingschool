@@ -85,12 +85,19 @@ export default function BookNowPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
 
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const userId = user?._id || "";
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
-  const [showAuthWarning, setShowAuthWarning] = useState(false);
+  const [pendingSlot, setPendingSlot] = useState<{ 
+    start: string, 
+    end: string, 
+    date: string,
+    amount?: number,
+    instructorName?: string,
+    instructorId?: string
+  } | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [showCancellation, setShowCancellation] = useState(false);
@@ -101,6 +108,19 @@ export default function BookNowPage() {
     slot: Slot;
   } | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
+
+  // Función para manejar el login exitoso
+  const handleLoginSuccess = (user: any) => {
+    setShowLogin(false);
+    // Actualizar el contexto de autenticación
+    setUser(user);
+    // Si hay un slot pendiente, abrir el modal de reserva
+    if (pendingSlot) {
+      setSelectedSlot(pendingSlot);
+      setIsBookingModalOpen(true);
+      setPendingSlot(null); // Limpiar el slot pendiente
+    }
+  };
 
   // Use SSE hook instead of polling
   const { schedule: sseSchedule, error: sseError, isConnected } = useScheduleSSE(selectedInstructorId);
@@ -466,18 +486,22 @@ export default function BookNowPage() {
                               rowSpan={rowSpan}
                               className="border border-gray-300 py-1 bg-green-200 text-black font-bold cursor-pointer hover:bg-green-300 min-w-[80px] w-[80px]"
                               onClick={() => {
-                                if (!userId) {
-                                  setShowAuthWarning(true);
-                                  return;
-                                }
-                                setSelectedSlot({ 
+                                const slotData = { 
                                   start: slot.start, 
                                   end: slot.end, 
                                   date: dateString,
                                   amount: slot.amount,
                                   instructorName: selectedInstructor?.name,
                                   instructorId: selectedInstructor?._id
-                                });
+                                };
+                                
+                                if (!userId) {
+                                  setPendingSlot(slotData);
+                                  setShowLogin(true);
+                                  return;
+                                }
+                                
+                                setSelectedSlot(slotData);
                                 setIsBookingModalOpen(true);
                               }}
                           >
@@ -569,7 +593,7 @@ export default function BookNowPage() {
   const renderBookingModal = () => {
     const handleConfirm = async () => {
               if (!userId) {
-                setShowAuthWarning(true);
+                setShowLogin(true);
                 setIsBookingModalOpen(false);
                 return;
               }
@@ -877,9 +901,9 @@ export default function BookNowPage() {
                       </div>
                     )}
                     <div className="relative mb-2">
-                      <Image
-                        src={inst.photo || "/default-avatar.png"}
-                        alt={inst.name}
+                    <Image
+                      src={inst.photo || "/default-avatar.png"}
+                      alt={inst.name}
                         width={40}
                         height={40}
                         className="w-10 h-10 rounded-full mx-auto object-cover border border-white shadow-md"
@@ -887,7 +911,7 @@ export default function BookNowPage() {
                       {isSelected && (
                         <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
                           <span className="text-white text-xs font-bold">✓</span>
-                        </div>
+                    </div>
                       )}
                     </div>
                     <h4 className="font-semibold text-sm text-gray-800 truncate mb-1 capitalize">{firstName}</h4>
@@ -995,9 +1019,9 @@ export default function BookNowPage() {
                       </div>
                     )}
                     <div className="relative mb-2">
-                      <Image
-                        src={inst.photo || "/default-avatar.png"}
-                        alt={inst.name}
+                    <Image
+                      src={inst.photo || "/default-avatar.png"}
+                      alt={inst.name}
                         width={40}
                         height={40}
                         className="w-10 h-10 rounded-full mx-auto object-cover border border-white shadow-md"
@@ -1005,7 +1029,7 @@ export default function BookNowPage() {
                       {isSelected && (
                         <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
                           <span className="text-white text-xs font-bold">✓</span>
-                        </div>
+                    </div>
                       )}
                     </div>
                     <h4 className="font-semibold text-sm text-gray-800 truncate mb-1 capitalize">{firstName}</h4>
@@ -1246,22 +1270,13 @@ export default function BookNowPage() {
         </div>
       </Modal>
       
-      <Modal isOpen={showAuthWarning} onClose={() => setShowAuthWarning(false)}>
-        <div className="p-6 text-center">
-          <h2 className="text-xl font-bold mb-4 text-red-600">Authentication Required</h2>
-          <p className="mb-4">You must be logged in to book a class. Please sign in first.</p>
-          <button
-            className="bg-blue-500 text-white px-6 py-2 rounded"
-            onClick={() => setShowAuthWarning(false)}
-          >
-            Close
-          </button>
-        </div>
-      </Modal>
       <LoginModal
         open={showLogin}
-        onClose={() => setShowLogin(false)}
-        onLoginSuccess={() => setShowLogin(false)}
+        onClose={() => {
+          setShowLogin(false);
+          setPendingSlot(null); // Limpiar el slot pendiente si se cierra sin login
+        }}
+        onLoginSuccess={handleLoginSuccess}
       />
       {/* Modal de espera de pago online */}
       <Modal isOpen={isOnlinePaymentLoading} onClose={() => {}}>
