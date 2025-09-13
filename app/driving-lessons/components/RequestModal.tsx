@@ -92,26 +92,26 @@ export default function RequestModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-800 text-center leading-tight">Schedule Request</h2>
+      <div className="p-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-bold mb-3 text-gray-800 text-center">Schedule Request</h2>
         
         {selectedProduct && (
-          <div className="bg-gray-50 p-3 rounded-lg mb-3 border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-800 mb-2">Package Summary</h3>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-sm">
+          <div className="bg-gray-50 p-2.5 rounded-lg mb-2.5 border border-gray-200">
+            <h3 className="text-xs font-semibold text-gray-800 mb-1.5">Package Summary</h3>
+            <div className="grid grid-cols-2 gap-1 text-xs">
+              <div className="flex justify-between">
                 <span className="text-gray-600">Package:</span>
-                <span className="font-medium text-gray-800">{selectedProduct.title}</span>
+                <span className="font-medium text-gray-800 truncate ml-2">{selectedProduct.title}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between">
                 <span className="text-gray-600">Price:</span>
                 <span className="font-medium text-gray-800">${selectedProduct.price}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Selected Hours:</span>
-                <span className="font-medium text-gray-800">{selectedHours} of {selectedProduct.duration || 0} hours</span>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Hours:</span>
+                <span className="font-medium text-gray-800">{selectedHours}/{selectedProduct.duration || 0}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between">
                 <span className="text-gray-600">Status:</span>
                 <span className={`font-medium ${selectedHours === (selectedProduct.duration || 0) ? 'text-green-600' : 'text-orange-600'}`}>
                   {selectedHours === (selectedProduct.duration || 0) ? "Complete" : "Partial"}
@@ -121,43 +121,43 @@ export default function RequestModal({
           </div>
         )}
 
-        <div className="mb-3">
-          <h3 className="text-sm font-semibold text-gray-800 mb-2">Payment Method</h3>
-          <div className="space-y-2">
-            <label className="flex items-center p-2.5 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
+        <div className="mb-2.5">
+          <h3 className="text-xs font-semibold text-gray-800 mb-1.5">Payment Method</h3>
+          <div className="space-y-1.5">
+            <label className="flex items-center p-2 border border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
               <input
                 type="radio"
                 value="online"
                 checked={paymentMethod === 'online'}
                 onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'physical')}
-                className="mr-2.5 text-green-600 focus:ring-green-500"
+                className="mr-2 text-green-600 focus:ring-green-500"
               />
               <div>
-                <div className="font-semibold text-green-600 text-sm">Pay Online Now</div>
+                <div className="font-semibold text-green-600 text-xs">Pay Online Now</div>
                 <div className="text-xs text-gray-600">Add to cart and pay securely online</div>
               </div>
             </label>
             
-            <label className="flex items-center p-2.5 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+            <label className="flex items-center p-2 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
               <input
                 type="radio"
                 value="physical"
                 checked={paymentMethod === 'physical'}
                 onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'physical')}
-                className="mr-2.5 text-blue-600 focus:ring-blue-500"
+                className="mr-2 text-blue-600 focus:ring-blue-500"
               />
               <div>
-                <div className="font-semibold text-blue-600 text-sm">Pay at Location</div>
-                <div className="text-xs text-gray-600">Complete payment when you arrive for your lessons</div>
+                <div className="font-semibold text-blue-600 text-xs">Pay at Location</div>
+                <div className="text-xs text-gray-600">Complete payment when you arrive</div>
               </div>
             </label>
           </div>
         </div>
 
-        <div className="mb-3">
-          <h3 className="text-sm font-semibold text-gray-800 mb-2">Location Details</h3>
+        <div className="mb-2.5">
+          <h3 className="text-xs font-semibold text-gray-800 mb-1.5">Location Details</h3>
           
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <LocationInput
               label="Pickup Location *"
               value={pickupLocation}
@@ -180,32 +180,32 @@ export default function RequestModal({
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-3 rounded-lg mb-3 border border-blue-200">
-          <h3 className="text-sm font-semibold text-blue-800 mb-1.5">Contact Information</h3>
-          <p className="text-blue-700 text-xs mb-2">
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-2.5 rounded-lg mb-2.5 border border-blue-200">
+          <h3 className="text-xs font-semibold text-blue-800 mb-1">Contact Information</h3>
+          <p className="text-blue-700 text-xs mb-1.5">
             Please contact our team to finalize the process and coordinate your schedule.
           </p>
-          <div className="bg-white p-2.5 rounded-lg border border-blue-300">
+          <div className="bg-white p-2 rounded-lg border border-blue-300">
             <div className="text-center">
-              <p className="text-blue-800 font-semibold mb-1 text-sm">
-                Call us at: <span className="text-base font-bold text-blue-900">(561) 330-7007</span>
+              <p className="text-blue-800 font-semibold text-xs">
+                Call us: <span className="text-sm font-bold text-blue-900">(561) 330-7007</span>
               </p>
               <p className="text-blue-600 text-xs">
-                Our team is ready to help you complete your booking and arrange the perfect schedule for your driving lessons.
+                Our team is ready to help you complete your booking.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-center gap-2.5 mt-4">
+        <div className="flex justify-center gap-2 mt-3">
           <button
-            className="bg-gray-500 text-white px-5 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold text-sm min-w-[100px]"
+            className="bg-gray-500 text-white px-4 py-1.5 rounded-lg hover:bg-gray-600 transition-colors font-semibold text-xs min-w-[80px]"
             onClick={onClose}
           >
             Cancel
           </button>
           <button
-            className={`px-5 py-2 rounded-lg font-semibold transition-colors text-sm min-w-[140px] ${
+            className={`px-4 py-1.5 rounded-lg font-semibold transition-colors text-xs min-w-[120px] ${
               pickupLocation.trim() && dropoffLocation.trim()
                 ? paymentMethod === 'online' 
                   ? "bg-green-600 text-white hover:bg-green-700"
