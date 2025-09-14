@@ -7,7 +7,17 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     
-    const { userId } = await req.json();
+    let userId;
+    try {
+      const body = await req.json();
+      userId = body.userId;
+    } catch (jsonError) {
+      console.error("❌ Error parsing JSON:", jsonError);
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
 
     if (!userId) {
       return NextResponse.json(

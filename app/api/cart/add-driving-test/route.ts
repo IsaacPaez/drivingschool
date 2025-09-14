@@ -50,11 +50,15 @@ export async function POST(req: NextRequest) {
     // Buscar el instructor
     const instructor = await Instructor.findById(instructorId);
     if (!instructor) {
+      console.error(`❌ Instructor not found with ID: ${instructorId}`);
       return NextResponse.json(
         { error: "Instructor not found" },
         { status: 404 }
       );
     }
+    
+    console.log(`✅ Instructor found: ${instructor.name}`);
+    console.log(`🔍 Instructor has ${instructor.schedule_driving_test?.length || 0} driving test slots`);
 
     // Buscar el slot específico en schedule_driving_test
     const slot = instructor.schedule_driving_test?.find((s: {
@@ -69,11 +73,15 @@ export async function POST(req: NextRequest) {
     );
 
     if (!slot) {
+      console.error(`❌ Slot not found for ${date} ${start}-${end}`);
+      console.error(`🔍 Available slots:`, instructor.schedule_driving_test?.map(s => `${s.date} ${s.start}-${s.end} (${s.status})`));
       return NextResponse.json(
-        { error: "Slot not found" },
+        { error: `Slot not found for ${date} ${start}-${end}` },
         { status: 404 }
       );
     }
+    
+    console.log(`✅ Slot found: ${date} ${start}-${end} (status: ${slot.status})`);
 
     // Verificar que el slot esté disponible
     if (slot.status !== 'available' && slot.status !== 'free') {
@@ -119,12 +127,12 @@ export async function POST(req: NextRequest) {
 
     // Verificar si ya existe en el carrito
     const existingCartItem = user.cart?.find((item: {
-      instructorId: string;
-      date: string;
-      start: string;
-      classType: string;
+      instructorId?: string;
+      date?: string;
+      start?: string;
+      classType?: string;
     }) => 
-      item.instructorId.toString() === instructorId &&
+      item.instructorId?.toString() === instructorId &&
       item.date === date &&
       item.start === start &&
       item.classType === classType
@@ -171,8 +179,13 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("❌ Error adding driving test to cart:", error);
+    console.error("❌ Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+    console.error("❌ Error message:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error", 
+        details: error instanceof Error ? error.message : String(error) 
+      },
       { status: 500 }
     );
   }

@@ -176,6 +176,12 @@ function PaymentSuccessContent() {
                       if (appointment.slotId) {
                         try {
                           console.log(`🔄 FORCING update of ${orderTypeDisplay} slot ${appointment.slotId}...`);
+                          console.log(`🔍 Appointment details:`, {
+                            slotId: appointment.slotId,
+                            classType: appointment.classType,
+                            instructorId: appointment.instructorId,
+                            orderType: orderData.order.orderType
+                          });
                           
                           const directUpdateResponse = await fetch('/api/instructors/update-slot-status', {
                             method: 'POST',
@@ -331,7 +337,7 @@ function PaymentSuccessContent() {
         
         // NO iniciar countdown aquí - esperar a que el pago esté confirmado
         console.log('🎴 Card flipped, waiting for payment confirmation before starting countdown...');
-      }, 1000);
+        }, 1000);
     };
 
     // Limpiar carrito completamente
@@ -397,43 +403,43 @@ function PaymentSuccessContent() {
       case "approved":
         return (
           <div className="relative">
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+            <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl">
+              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <div className="absolute inset-0 bg-emerald-400/30 rounded-full blur-xl scale-110 animate-pulse"></div>
+            <div className="absolute inset-0 bg-emerald-400/40 rounded-full blur-2xl scale-125 animate-pulse"></div>
           </div>
         );
       case "pending":
         return (
           <div className="relative">
-            <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
-              <svg className="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl">
+              <svg className="w-12 h-12 text-white animate-spin" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="absolute inset-0 bg-amber-400/30 rounded-full blur-xl scale-110 animate-pulse"></div>
+            <div className="absolute inset-0 bg-amber-400/40 rounded-full blur-2xl scale-125 animate-pulse"></div>
           </div>
         );
       case "error":
         return (
           <div className="relative">
-            <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+            <div className="w-24 h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl">
+              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <div className="absolute inset-0 bg-red-400/30 rounded-full blur-xl scale-110 animate-pulse"></div>
+            <div className="absolute inset-0 bg-red-400/40 rounded-full blur-2xl scale-125 animate-pulse"></div>
           </div>
         );
       default:
         return (
           <div className="relative">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl border-4 border-blue-200">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
             </div>
-            <div className="absolute inset-0 bg-blue-400/30 rounded-full blur-xl scale-110 animate-pulse"></div>
+            <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-2xl scale-125 animate-pulse"></div>
           </div>
         );
     }
@@ -495,23 +501,25 @@ function PaymentSuccessContent() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      {/* Logo with white border */}
-      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20">
-        <Image 
-          src="/favicon.ico" 
-          alt="Driving School Logo" 
-          width={80} 
-          height={80}
-          className="rounded-xl border-4 border-white shadow-lg"
-        />
+      {/* Logo without circle - clean and simple */}
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-2xl border border-white/40">
+          <Image 
+            src="/favicon.ico" 
+            alt="Driving School Logo" 
+            width={80} 
+            height={80}
+            className="rounded-lg"
+          />
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex items-center justify-center min-h-screen p-6 relative z-10">
-        <div className="w-full max-w-lg">
-          {/* Card Container with Flip Effect */}
+        <div className="w-full max-w-2xl">
+          {/* Card Container with Flip Effect - Larger */}
           <div className="relative perspective-1000">
-            <div className={`relative transition-transform duration-1000 transform-style-preserve-3d h-[28rem] ${isCardFlipped ? 'rotate-y-180' : ''}`}>
+            <div className={`relative transition-transform duration-1000 transform-style-preserve-3d h-[36rem] ${isCardFlipped ? 'rotate-y-180' : ''}`}>
               
               {/* Front of Card - Loading/Checking */}
               <div className={`absolute inset-0 backface-hidden ${isCardFlipped ? 'invisible' : 'visible'}`}>
@@ -520,26 +528,26 @@ function PaymentSuccessContent() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-blue-500/30 to-blue-600/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Front */}
-                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-8 border border-white/20 h-full flex flex-col justify-center">
+                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-12 border border-white/20 h-full flex flex-col justify-center">
                     <div className="text-center">
-                      {/* Checking Icon */}
-                      <div className="relative mb-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl border-2 border-white">
-                          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
+                      {/* Checking Icon - White background with blue spinner */}
+                      <div className="relative mb-6">
+                        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl border-4 border-blue-200">
+                          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
                         </div>
-                        <div className="absolute inset-0 bg-blue-400/30 rounded-full blur-xl scale-110 animate-pulse"></div>
+                        <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-2xl scale-125 animate-pulse"></div>
                       </div>
                       
-                      <h1 className="text-2xl font-black mb-4 text-blue-600 tracking-tight">
+                      <h1 className="text-4xl font-black mb-6 text-blue-600 tracking-tight">
                         Verifying Payment
                       </h1>
                       
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-4 border border-gray-200/50">
-                        <p className="text-lg text-gray-800 mb-1 font-semibold">
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border border-gray-200/50">
+                        <p className="text-xl text-gray-800 mb-2 font-semibold">
                           Processing transaction...
                         </p>
                         
-                        <p className="text-sm text-gray-600">
+                        <p className="text-base text-gray-600">
                           Please wait while we verify your payment status.
                         </p>
                       </div>
@@ -569,24 +577,24 @@ function PaymentSuccessContent() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-blue-500/30 to-blue-600/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Back */}
-                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-8 border border-white/20 h-full flex flex-col justify-center">
+                  <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-12 border border-white/20 h-full flex flex-col justify-center">
                     <div className="text-center">
                       {/* Floating Status Icon */}
-                      <div className="relative mb-4">
+                      <div className="relative mb-6">
                         {getStatusIcon()}
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-xl scale-150 -z-10 animate-pulse"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-blue-500/20 rounded-full blur-xl scale-150 -z-10 animate-pulse"></div>
                       </div>
                       
-                      <h1 className={`text-2xl font-black mb-4 ${statusInfo.statusClass} tracking-tight`}>
+                      <h1 className={`text-4xl font-black mb-6 ${statusInfo.statusClass} tracking-tight`}>
                         {statusInfo.title}
                       </h1>
                       
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-4 border border-gray-200/50">
-                        <p className="text-lg text-gray-800 mb-1 font-semibold">
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border border-gray-200/50">
+                        <p className="text-xl text-gray-800 mb-2 font-semibold">
                           {statusInfo.subtitle}
                         </p>
                         
-                        <p className="text-sm text-gray-600">
+                        <p className="text-base text-gray-600">
                           {statusInfo.description}
                         </p>
                       </div>
