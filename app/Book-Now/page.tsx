@@ -10,7 +10,7 @@ import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
-import { useScheduleWebSocket } from "@/hooks/useScheduleWebSocket";
+import { useScheduleSSE } from "@/hooks/useScheduleSSE";
 import { useRouter } from "next/navigation";
 
 // Google Maps configuration - removed as not needed for driving test
@@ -135,16 +135,16 @@ export default function BookNowPage() {
     }
   };
 
-  // Use WebSocket hook instead of SSE
-  const { schedule: wsSchedule, error: wsError, isConnected } = useScheduleWebSocket(selectedInstructorId);
+  // Use SSE hook instead of polling
+  const { schedule: sseSchedule, error: sseError, isConnected } = useScheduleSSE(selectedInstructorId);
 
-  // Debug WebSocket connection
+  // Debug SSE connection
   useEffect(() => {
     // Debug logs (commented out for production)
-    // if (wsError) console.log("❌ WebSocket Error:", wsError);
-    // if (isConnected) console.log("✅ WebSocket Connected successfully");
+    // if (sseError) console.log("❌ SSE Error:", sseError);
+    // if (isConnected) console.log("✅ SSE Connected successfully");
     // if (selectedInstructorId) console.log("🎯 Selected instructor ID:", selectedInstructorId);
-  }, [wsError, isConnected, selectedInstructorId]);
+  }, [sseError, isConnected, selectedInstructorId]);
 
   useEffect(() => {
     async function fetchLocations() {
@@ -166,26 +166,26 @@ export default function BookNowPage() {
     fetchLocations();
   }, []);
 
-  // Process WebSocket schedule data
+  // Process SSE schedule data
   useEffect(() => {
     if (!selectedInstructorId) {
       setIsLoadingSchedule(false);
       return;
     }
 
-    if (!wsSchedule) {
+    if (!sseSchedule) {
       setIsLoadingSchedule(true);
       return;
     }
     
-    // console.log('🔍 Processing WebSocket schedule data:', {
+    // console.log('🔍 Processing SSE schedule data:', {
     //   selectedInstructorId,
-    //   wsScheduleLength: Array.isArray(wsSchedule) ? wsSchedule.length : 'not array',
-    //   wsSchedule: wsSchedule
+    //   sseScheduleLength: Array.isArray(sseSchedule) ? sseSchedule.length : 'not array',
+    //   sseSchedule: sseSchedule
     // });
     
     // Los datos de schedule_driving_test ya son de tipo "driving test", no necesitamos filtrar
-    const scheduleSlots = Array.isArray(wsSchedule) ? wsSchedule as SlotWithDate[] : [];
+    const scheduleSlots = Array.isArray(sseSchedule) ? sseSchedule as SlotWithDate[] : [];
     
     // console.log('📋 Schedule slots to display:', scheduleSlots.length, scheduleSlots);
     
@@ -222,7 +222,7 @@ export default function BookNowPage() {
       // console.log("❌ No instructor base found for ID:", selectedInstructorId);
       setIsLoadingSchedule(false);
     }
-  }, [wsSchedule, selectedInstructorId, instructors]);
+  }, [sseSchedule, selectedInstructorId, instructors]);
 
   useEffect(() => {
     if (
@@ -1010,7 +1010,7 @@ export default function BookNowPage() {
                       </div>
                     </div>
                   )}
-                  {wsError && (
+                  {sseError && (
                     <div className="absolute top-2 right-2 bg-red-100 border border-red-300 rounded px-3 py-1 z-20">
                       <p className="text-red-600 text-xs">Connection error</p>
                     </div>
