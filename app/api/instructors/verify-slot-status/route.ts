@@ -17,12 +17,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`🔍 VERIFYING slot ${slotId} for instructor ${instructorId}, classType: ${classType}`);
-    console.log(`📋 Search parameters: slotId="${slotId}", isDrivingTest=${isDrivingTest}, scheduleField="${scheduleField}"`);
-
     // Determine if it's a driving test based on classType
     const isDrivingTest = classType === 'driving_test' || classType === 'driving test';
     const scheduleField = isDrivingTest ? 'schedule_driving_test' : 'schedule_driving_lesson';
+
+    console.log(`🔍 VERIFYING slot ${slotId} for instructor ${instructorId}, classType: ${classType}`);
+    console.log(`📋 Search parameters: slotId="${slotId}", isDrivingTest=${isDrivingTest}, scheduleField="${scheduleField}"`);
 
     // Try to find in User collection (instructors)
     let instructor = await User.findById(instructorId);
