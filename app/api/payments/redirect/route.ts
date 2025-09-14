@@ -149,14 +149,13 @@ export async function GET(req: NextRequest) {
       if (user && user.cart && user.cart.length > 0) {
         console.log("[API][redirect] Carrito encontrado en usuario:", user.cart.length, "items");
         
-        // Filtrar solo items válidos para el pago (que tengan price como número)
+        // Filtrar solo items válidos para el pago (que tengan price O amount como número)
         const validItems = user.cart.filter(item => 
           item && 
-          typeof item.price === 'number' && 
-          !isNaN(item.price) && 
-          item.price > 0 &&
-          item.id &&
-          item.title
+          ((typeof item.price === 'number' && !isNaN(item.price) && item.price > 0) ||
+           (typeof item.amount === 'number' && !isNaN(item.amount) && item.amount > 0)) &&
+          (item.id || item.classType) &&
+          (item.title || item.classType)
         );
         
         console.log("[API][redirect] Items válidos para pago:", validItems.length);
@@ -172,9 +171,9 @@ export async function GET(req: NextRequest) {
         
         // Asegurar que todos los items tengan la estructura correcta
         items = validItems.map(item => ({
-          id: item.id,
-          title: item.title,
-          price: Number(item.price),
+          id: item.id || `driving_test_${item.instructorId}_${item.date}_${item.start}`,
+          title: item.title || item.classType || 'Driving Test',
+          price: Number(item.price || item.amount || 0),
           quantity: Number(item.quantity || 1),
           ...item // Mantener otros campos como packageDetails, selectedSlots, etc.
         }));

@@ -7,7 +7,6 @@ interface BookingModalProps {
   selectedInstructor: any;
   paymentMethod: 'online' | 'instructor';
   setPaymentMethod: (method: 'online' | 'instructor') => void;
-  isOnlinePaymentLoading: boolean;
   isProcessingBooking: boolean;
   onConfirm: () => void;
 }
@@ -19,7 +18,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
   selectedInstructor,
   paymentMethod,
   setPaymentMethod,
-  isOnlinePaymentLoading,
   isProcessingBooking,
   onConfirm
 }) => {
@@ -121,15 +119,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
              </button>
              <button
                className="flex-1 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-all duration-200 font-medium text-sm"
-               disabled={isOnlinePaymentLoading || isProcessingBooking}
+               disabled={isProcessingBooking}
                onClick={onConfirm}
              >
-              {isOnlinePaymentLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin h-4 w-4 border-2 border-white border-t-blue-500 rounded-full"></span> 
-                  Adding to cart...
-                </span>
-              ) : isProcessingBooking ? (
+              {isProcessingBooking ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin h-4 w-4 border-2 border-white border-t-blue-500 rounded-full"></span> 
                   Reserving slot...

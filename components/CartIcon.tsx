@@ -451,9 +451,23 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             )}
 
             {cart.length === 0 ? (
-              <p className="text-gray-500 text-center dark:text-black">
-                Your cart is empty.
-              </p>
+              <div className="text-center">
+                <p className="text-gray-500 dark:text-black mb-4">
+                  Your cart is empty.
+                </p>
+                
+                {/* Botón de limpiar carrito siempre disponible */}
+                <button
+                  onClick={clearCart}
+                  className="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-all duration-200 font-medium text-sm shadow-md hover:shadow-lg flex items-center justify-center"
+                  title="Clear all items from cart (in case of bugs)"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Clear Cart (Debug)
+                </button>
+              </div>
             ) : (
               <>
                 <ul className="divide-y divide-gray-300">
@@ -502,6 +516,67 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                       {/* Appointment Details (fetch from order if available) */}
                       {item.orderId && (
                         <OrderDetailsComponent orderId={item.orderId} />
+                      )}
+
+                      {/* Driving Test Details */}
+                      {item.classType === 'driving test' && item.instructorName && item.date && (
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200 shadow-sm">
+                          <div className="flex items-center mb-3">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-semibold text-green-900">
+                                Driving Test Appointment
+                              </h4>
+                              <p className="text-xs text-green-600">
+                                Ready for checkout
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2 mb-3">
+                            <div className="flex items-center text-xs text-green-700">
+                              <svg className="w-3 h-3 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              <span className="font-medium">Instructor:</span> {item.instructorName}
+                            </div>
+                            
+                            <div className="flex items-center text-xs text-green-700">
+                              <svg className="w-3 h-3 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span className="font-medium">Date:</span> {(() => {
+                                // Parse the date string correctly to avoid timezone issues
+                                const dateStr = item.date; // Should be in format "2025-09-02"
+                                const [year, month, day] = dateStr.split('-').map(Number);
+                                const date = new Date(year, month - 1, day); // month is 0-indexed
+                                return date.toLocaleDateString('en-US', { 
+                                  weekday: 'short', 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                });
+                              })()}
+                            </div>
+                            
+                            <div className="flex items-center text-xs text-green-700">
+                              <svg className="w-3 h-3 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="font-medium">Time:</span> {item.start} - {item.end}
+                            </div>
+                          </div>
+                          
+                          <div className="bg-green-100 p-2 rounded border-l-4 border-green-400">
+                            <p className="text-xs text-green-800">
+                              <span className="font-medium">Note:</span> Slot is reserved temporarily. Complete checkout to confirm your driving test.
+                            </p>
+                          </div>
+                        </div>
                       )}
 
                       {/* Package Details (for driving lessons without order yet) */}
@@ -588,9 +663,22 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                     </li>
                   ))}
                 </ul>
+                
+                {/* Botón de limpiar carrito */}
+                <button
+                  onClick={clearCart}
+                  className="w-full bg-red-500 hover:bg-red-600 text-white mt-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm shadow-md hover:shadow-lg flex items-center justify-center"
+                  title="Clear all items from cart"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Clear Cart
+                </button>
+                
                 <button
                   onClick={handleCheckout}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white mt-6 py-3 rounded-lg disabled:opacity-50 transition-all duration-200 font-semibold text-base shadow-lg hover:shadow-xl flex items-center justify-center"
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white mt-2 py-3 rounded-lg disabled:opacity-50 transition-all duration-200 font-semibold text-base shadow-lg hover:shadow-xl flex items-center justify-center"
                   disabled={loading}
                 >
                   {loading ? (

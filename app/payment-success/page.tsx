@@ -60,9 +60,10 @@ function PaymentSuccessContent() {
                   const orderData = await orderResponse.json();
                   setOrderDetails(orderData.order);
                   
-                  // FORCE UPDATE instructor schedule slots to "booked" if this is a driving lesson order
-                  if (orderData.order.orderType === 'driving_lesson' && orderData.order.appointments) {
-                    console.log('🎯 FORCING update of driving lesson slots to booked status...');
+                  // FORCE UPDATE instructor schedule slots to "booked" for both driving lessons and driving tests
+                  if ((orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test') && orderData.order.appointments) {
+                    const orderTypeDisplay = orderData.order.orderType === 'driving_test' ? 'driving test' : 'driving lesson';
+                    console.log(`🎯 FORCING update of ${orderTypeDisplay} slots to booked status...`);
                     console.log('🎯 Order details:', {
                       orderId: orderId,
                       orderType: orderData.order.orderType,
@@ -77,7 +78,7 @@ function PaymentSuccessContent() {
                     for (const appointment of orderData.order.appointments) {
                       if (appointment.slotId) {
                         try {
-                          console.log(`🔄 FORCING update of slot ${appointment.slotId}...`);
+                          console.log(`🔄 FORCING update of ${orderTypeDisplay} slot ${appointment.slotId}...`);
                           
                           const directUpdateResponse = await fetch('/api/instructors/update-slot-status', {
                             method: 'POST',
@@ -90,20 +91,21 @@ function PaymentSuccessContent() {
                               status: 'booked',
                               paid: true,
                               paymentId: orderId,
-                              confirmedAt: new Date().toISOString()
+                              confirmedAt: new Date().toISOString(),
+                              classType: appointment.classType || orderData.order.orderType // Add classType for proper slot identification
                             })
                           });
                           
                           if (directUpdateResponse.ok) {
                             const updateResult = await directUpdateResponse.json();
-                            console.log(`✅ Slot ${appointment.slotId} FORCED to booked status:`, updateResult);
+                            console.log(`✅ ${orderTypeDisplay} slot ${appointment.slotId} FORCED to booked status:`, updateResult);
                           } else {
                             const errorText = await directUpdateResponse.text();
-                            console.error(`❌ Failed to FORCE update slot ${appointment.slotId}:`, errorText);
+                            console.error(`❌ Failed to FORCE update ${orderTypeDisplay} slot ${appointment.slotId}:`, errorText);
                             allSlotsUpdated = false;
                           }
                         } catch (error) {
-                          console.error(`❌ Error FORCING update of slot ${appointment.slotId}:`, error);
+                          console.error(`❌ Error FORCING update of ${orderTypeDisplay} slot ${appointment.slotId}:`, error);
                           allSlotsUpdated = false;
                         }
                       }
@@ -112,20 +114,20 @@ function PaymentSuccessContent() {
                     setIsProcessingSlots(false);
                     
                     if (allSlotsUpdated) {
-                      console.log('✅ ALL SLOTS FORCED TO BOOKED - Ready for countdown');
+                      console.log(`✅ ALL ${orderTypeDisplay.toUpperCase()} SLOTS FORCED TO BOOKED - Ready for countdown`);
                       // Set a flag to indicate slots are updated
                       setSlotsUpdated(true);
                     } else {
-                      console.error('❌ SOME SLOTS FAILED TO UPDATE - NOT starting countdown');
+                      console.error(`❌ SOME ${orderTypeDisplay.toUpperCase()} SLOTS FAILED TO UPDATE - NOT starting countdown`);
                       // Set a flag to indicate slots failed to update
                       setSlotsUpdated(false);
                     }
                   } else {
-                    console.log('⏭️ Not a driving lesson order or no appointments:', {
+                    console.log('⏭️ Not a driving lesson/test order or no appointments:', {
                       orderType: orderData.order.orderType,
                       hasAppointments: !!orderData.order.appointments
                     });
-                    // Set slots as updated for non-driving lesson orders
+                    // Set slots as updated for non-appointment orders
                     setSlotsUpdated(true);
                   }
                 } else {
@@ -145,13 +147,14 @@ function PaymentSuccessContent() {
                 if (orderResponse.ok) {
                   const orderData = await orderResponse.json();
                   
-                  if (orderData.order && orderData.order.orderType === 'driving_lesson' && orderData.order.appointments) {
-                    console.log('🔄 Payment rejected - Reverting slots back to available...');
+                  if (orderData.order && (orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test') && orderData.order.appointments) {
+                    const orderTypeDisplay = orderData.order.orderType === 'driving_test' ? 'driving test' : 'driving lesson';
+                    console.log(`🔄 Payment rejected - Reverting ${orderTypeDisplay} slots back to available...`);
                     
                     for (const appointment of orderData.order.appointments) {
                       if (appointment.slotId) {
                         try {
-                          console.log(`🔄 Reverting slot ${appointment.slotId} back to available...`);
+                          console.log(`🔄 Reverting ${orderTypeDisplay} slot ${appointment.slotId} back to available...`);
                           
                           const revertResponse = await fetch('/api/instructors/update-slot-status', {
                             method: 'POST',
@@ -164,19 +167,20 @@ function PaymentSuccessContent() {
                               status: 'available',
                               paid: false,
                               paymentId: null,
-                              confirmedAt: null
+                              confirmedAt: null,
+                              classType: appointment.classType || orderData.order.orderType // Add classType for proper slot identification
                             })
                           });
                           
                           if (revertResponse.ok) {
                             const revertResult = await revertResponse.json();
-                            console.log(`✅ Slot ${appointment.slotId} reverted to available:`, revertResult);
+                            console.log(`✅ ${orderTypeDisplay} slot ${appointment.slotId} reverted to available:`, revertResult);
                           } else {
                             const errorText = await revertResponse.text();
-                            console.error(`❌ Failed to revert slot ${appointment.slotId}:`, errorText);
+                            console.error(`❌ Failed to revert ${orderTypeDisplay} slot ${appointment.slotId}:`, errorText);
                           }
                         } catch (error) {
-                          console.error(`❌ Error reverting slot ${appointment.slotId}:`, error);
+                          console.error(`❌ Error reverting ${orderTypeDisplay} slot ${appointment.slotId}:`, error);
                         }
                       }
                     }
@@ -201,24 +205,9 @@ function PaymentSuccessContent() {
       setTimeout(() => {
         setIsCardFlipped(true);
         
-        // Después del flip, esperar 1 segundo más y verificar si los slots se actualizaron
-        setTimeout(() => {
-          // Solo mostrar countdown si los slots se actualizaron correctamente o no es una orden de driving lesson
-          if (slotsUpdated === true) {
-            console.log('✅ Slots updated successfully - Starting countdown');
-            setShowCountdown(true);
-            startCountdown();
-          } else if (slotsUpdated === false) {
-            console.log('❌ Slots failed to update - NOT starting countdown');
-            // Show error message instead of countdown
-            setTransactionStatus("error");
-          } else {
-            console.log('⏭️ Slots status unknown - Starting countdown normally');
-            setShowCountdown(true);
-            startCountdown();
-          }
-        }, 1000);
-      }, 1000); // Reducido a 1 segundo para que sea más rápido
+        // NO iniciar countdown aquí - esperar a que el pago esté confirmado
+        console.log('🎴 Card flipped, waiting for payment confirmation before starting countdown...');
+      }, 1000);
     };
 
     // Limpiar carrito completamente
@@ -250,6 +239,34 @@ function PaymentSuccessContent() {
     clearCartCompletely();
     checkTransactionAndUpdateOrder();
   }, [router, searchParams]);
+
+  // Nuevo useEffect para iniciar countdown solo cuando el pago esté confirmado
+  useEffect(() => {
+    // Solo iniciar countdown si:
+    // 1. La carta ya está volteada
+    // 2. El pago está aprobado
+    // 3. Los slots se actualizaron correctamente (o no hay slots)
+    // 4. El countdown no se ha mostrado aún
+    if (isCardFlipped && transactionStatus === "approved" && !showCountdown) {
+      if (slotsUpdated === true) {
+        console.log('✅ Payment approved and slots updated - Starting countdown');
+        setTimeout(() => {
+          setShowCountdown(true);
+          startCountdown();
+        }, 1000); // Esperar 1 segundo después de que se confirme el pago
+      } else if (slotsUpdated === false) {
+        console.log('❌ Payment approved but slots failed to update - NOT starting countdown');
+        setTransactionStatus("error");
+      } else if (slotsUpdated === null) {
+        // Para órdenes sin appointments, iniciar countdown normalmente
+        console.log('✅ Payment approved (no appointments) - Starting countdown');
+        setTimeout(() => {
+          setShowCountdown(true);
+          startCountdown();
+        }, 1000);
+      }
+    }
+  }, [isCardFlipped, transactionStatus, slotsUpdated, showCountdown]);
 
   const getStatusIcon = () => {
     switch (transactionStatus) {
@@ -346,7 +363,7 @@ function PaymentSuccessContent() {
   const statusInfo = getStatusMessage();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
@@ -376,7 +393,7 @@ function PaymentSuccessContent() {
               <div className={`absolute inset-0 backface-hidden ${isCardFlipped ? 'invisible' : 'visible'}`}>
                 <div className="relative">
                   {/* Glow Effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-blue-500/30 to-blue-600/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Front */}
                   <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-8 border border-white/20 h-full flex flex-col justify-center">
@@ -425,7 +442,7 @@ function PaymentSuccessContent() {
               <div className={`backface-hidden rotate-y-180 ${isCardFlipped ? 'visible' : 'invisible'}`}>
                 <div className="relative">
                   {/* Glow Effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-blue-500/30 to-blue-600/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
                   
                   {/* Card Back */}
                   <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-8 border border-white/20 h-full flex flex-col justify-center">
@@ -514,7 +531,7 @@ function PaymentSuccessContent() {
 export default function PaymentSuccess() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
@@ -543,7 +560,7 @@ export default function PaymentSuccess() {
           <div className="w-full max-w-lg">
             <div className="relative">
               {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/30 via-blue-500/30 to-blue-600/30 rounded-3xl blur-xl opacity-75 animate-pulse"></div>
               
               {/* Main Card */}
               <div className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl p-12 border border-white/20">

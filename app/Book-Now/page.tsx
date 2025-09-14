@@ -8,6 +8,7 @@ import Modal from "@/components/Modal";
 import BookingModal from "@/components/BookingModal";
 import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
+import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
 import { useScheduleSSE } from "@/hooks/useScheduleSSE";
 import { useRouter } from "next/navigation";
@@ -86,7 +87,19 @@ export default function BookNowPage() {
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
 
   const { user, setUser } = useAuth();
+  const { addToCart, cart } = useCart();
   const userId = user?._id || "";
+
+  // Function to check if a slot is already in the cart
+  const isSlotInCart = (instructorId: string, date: string, start: string, end: string) => {
+    return cart.some(item => 
+      item.classType === 'driving test' &&
+      item.instructorId === instructorId &&
+      item.date === date &&
+      item.start === start &&
+      item.end === end
+    );
+  };
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
@@ -312,14 +325,26 @@ export default function BookNowPage() {
 
   const handleDateChange = (value: Date | Date[] | null) => {
     if (!value || Array.isArray(value)) return;
+    
+    console.log('📅 Date changed to:', value.toDateString());
+    
+    // When a specific date is selected, reset weekOffset to 0
+    // This way getWeekDates will show the week containing the selected date
     setSelectedDate(value);
+    setWeekOffset(0);
   };
 
-  const getWeekDates = (date: Date) => {
-    const base = new Date(date);
-    base.setDate(base.getDate() + weekOffset * 7);
-    const startOfWeek = new Date(base);
-    startOfWeek.setDate(base.getDate() - startOfWeek.getDay());
+  const getWeekDates = (baseDate: Date) => {
+    // Use the provided date as the reference point
+    const referenceDate = new Date(baseDate);
+    
+    // Calculate the start of the week for the reference date (Sunday = 0)
+    const startOfWeek = new Date(referenceDate);
+    startOfWeek.setDate(referenceDate.getDate() - referenceDate.getDay());
+    
+    // Apply weekOffset to navigate weeks
+    startOfWeek.setDate(startOfWeek.getDate() + weekOffset * 7);
+    
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
@@ -351,7 +376,7 @@ export default function BookNowPage() {
                           {dayNames[date.getDay()]}
                         </span>
                         <span className="block text-black text-xs">
-                          Jul {date.getDate()}
+                          {date.toLocaleDateString('en-US', { month: 'short' })} {date.getDate()}
                         </span>
                       </th>
                     );
@@ -413,7 +438,7 @@ export default function BookNowPage() {
                       {dayNames[date.getDay()]}
                     </span>
                     <span className="block text-black text-xs">
-                      Jul {date.getDate()}
+                      {date.toLocaleDateString('en-US', { month: 'short' })} {date.getDate()}
                     </span>
                   </th>
                 );
@@ -481,11 +506,23 @@ export default function BookNowPage() {
                       
                       // Slot disponible para reservar
                       if ((slot.status === 'free' || slot.status === 'available') && !slot.booked) {
+                        // Check if this slot is already in the cart
+                        const slotInCart = isSlotInCart(selectedInstructor?._id || '', dateString, slot.start, slot.end);
+                        
                         return (
                           <td key={date.toDateString()} 
                               rowSpan={rowSpan}
-                              className="border border-gray-300 py-1 bg-green-200 text-black font-bold cursor-pointer hover:bg-green-300 min-w-[80px] w-[80px]"
+                              className={`border border-gray-300 py-1 font-bold min-w-[80px] w-[80px] ${
+                                slotInCart 
+                                  ? 'bg-orange-200 text-orange-800 cursor-not-allowed' 
+                                  : 'bg-green-200 text-black cursor-pointer hover:bg-green-300'
+                              }`}
                               onClick={() => {
+                                // Don't allow clicking if slot is already in cart
+                                if (slotInCart) {
+                                  return;
+                                }
+                                
                                 const slotData = { 
                                   start: slot.start, 
                                   end: slot.end, 
@@ -505,8 +542,8 @@ export default function BookNowPage() {
                                 setIsBookingModalOpen(true);
                               }}
                           >
-                            <div className="text-xs">Available</div>
-                            <div className="text-xs font-bold text-green-700">${slot.amount || 50}</div>
+                            <div className="text-xs">{slotInCart ? 'In Cart' : 'Available'}</div>
+                            <div className={`text-xs font-bold ${slotInCart ? 'text-orange-700' : 'text-green-700'}`}>${slot.amount || 50}</div>
                           </td>
                         );
                       }
@@ -582,8 +619,6 @@ export default function BookNowPage() {
     instructorId?: string
   } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'instructor'>('online');
-  // Nuevo: Estado para loading de pago online
-  const [isOnlinePaymentLoading, setIsOnlinePaymentLoading] = useState(false);
   
   // Estados para el flujo de pago local
   const [showContactModal, setShowContactModal] = useState(false);
@@ -600,49 +635,11 @@ export default function BookNowPage() {
               if (!selectedSlot?.instructorId || !selectedSlot) return;
               
               if (paymentMethod === 'online') {
-        // PAGO ONLINE: Crear orden primero, luego agregar al carrito
-                setIsOnlinePaymentLoading(true);
+        // PAGO ONLINE: Agregar al carrito directamente y marcar slot como pending
                 try {
-          console.log('🔄 Creating order for driving test...');
+          console.log('🛒 Adding driving test to cart...');
           
-          // Step 1: Create order with all appointment details
-          const orderData = {
-            userId,
-            orderType: 'driving_test',
-            appointments: [{
-              instructorId: selectedSlot.instructorId,
-              instructorName: selectedInstructor?.name || 'Unknown Instructor',
-              date: selectedSlot.date,
-              start: selectedSlot.start,
-              end: selectedSlot.end,
-              classType: 'driving_test',
-              amount: selectedSlot.amount || 50
-            }],
-            items: [{
-              id: 'driving_test',
-              title: 'Driving Test',
-              price: selectedSlot.amount || 50,
-              quantity: 1
-            }],
-            total: selectedSlot.amount || 50,
-            paymentMethod: 'online'
-          };
-
-          const orderRes = await fetch('/api/orders/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderData),
-          });
-
-          if (!orderRes.ok) {
-            const errorData = await orderRes.json();
-            throw new Error(errorData.error || 'Failed to create order');
-          }
-
-          const orderResult = await orderRes.json();
-          console.log('✅ Order created successfully:', orderResult.order.orderNumber);
-
-          // Step 2: Add to cart with order reference
+          // Step 1: Add to cart with appointment details - this will mark slot as pending automatically
           const cartRes = await fetch('/api/cart/add-driving-test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -654,67 +651,42 @@ export default function BookNowPage() {
                       end: selectedSlot.end,
                       classType: 'driving test',
               amount: selectedSlot.amount || 50,
-              orderId: orderResult.order._id,
-              orderNumber: orderResult.order.orderNumber
+              pickupLocation: '',
+              dropoffLocation: ''
                     }),
                   });
                   
-          if (cartRes.ok) {
-                    setIsBookingModalOpen(false);
-                    setSelectedSlot(null);
-                    setIsOnlinePaymentLoading(false);
-            
-            // Redirect directly to payment gateway with order ID
-            console.log('🔄 Redirecting to payment gateway with order:', orderResult.order._id);
-            
-            // Show brief confirmation message
-            setConfirmationMessage(
-              `Order created successfully!\n\n` +
-              `Order Number: ${orderResult.order.orderNumber}\n` +
-              `Redirecting to payment gateway...\n\n` +
-              `Amount: $${selectedSlot.amount || 50}`
-            );
-                    setShowConfirmation(true);
-            
-            // Redirect to payment gateway after 2 seconds
-            setTimeout(async () => {
-              try {
-                console.log('🚀 Fetching payment gateway URL...');
-                const paymentResponse = await fetch(`/api/payments/redirect?userId=${userId}&orderId=${orderResult.order._id}`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  }
-                });
-                
-                if (!paymentResponse.ok) {
-                  throw new Error(`Payment gateway error: ${paymentResponse.status}`);
-                }
-                
-                const paymentData = await paymentResponse.json();
-                console.log('💳 Payment gateway response:', paymentData);
-                
-                if (paymentData.redirectUrl) {
-                  console.log('🚀 Redirecting to ConvergePay:', paymentData.redirectUrl);
-                  window.location.href = paymentData.redirectUrl;
-                  } else {
-                  throw new Error('No redirectUrl received from payment gateway');
-                }
-              } catch (error) {
-                console.error('❌ Error accessing payment gateway:', error);
-                alert(`Error accessing payment gateway: ${error.message || 'Please try again.'}`);
-              }
-            }, 2000);
-            
-          } else {
-            const cartErrorData = await cartRes.json();
-            console.error('❌ Error adding to cart:', cartErrorData);
-            alert(`Order created but failed to add to cart: ${cartErrorData.error || 'Please try again.'}`);
+          if (!cartRes.ok) {
+            const errorData = await cartRes.json();
+            throw new Error(errorData.error || 'Failed to add to cart');
           }
+
+          const cartResult = await cartRes.json();
+          console.log('✅ Driving test added to cart successfully');
+
+          // Step 2: Add to local cart context
+          await addToCart({
+            id: `driving_test_${selectedSlot.instructorId}_${selectedSlot.date}_${selectedSlot.start}`,
+            title: 'Driving Test',
+            price: selectedSlot.amount || 50,
+            quantity: 1,
+            instructorId: selectedSlot.instructorId,
+            instructorName: selectedInstructor?.name || 'Unknown Instructor',
+            date: selectedSlot.date,
+            start: selectedSlot.start,
+            end: selectedSlot.end,
+            classType: 'driving test'
+          });
+
+          setIsBookingModalOpen(false);
+          setSelectedSlot(null);
+          
+          // No need to show confirmation modal - item is added to cart silently
+          console.log('✅ Driving test added to cart successfully - no modal needed');
+            
         } catch (error) {
-          console.error('❌ Error in online payment process:', error);
-                  setIsOnlinePaymentLoading(false);
-          alert(`Error processing payment: ${error.message || 'Please try again.'}`);
+          console.error('❌ Error adding driving test to cart:', error);
+          alert(`Error adding to cart: ${error.message || 'Please try again.'}`);
                 }
                 return;
               }
@@ -761,7 +733,6 @@ export default function BookNowPage() {
         selectedInstructor={selectedInstructor}
         paymentMethod={paymentMethod}
         setPaymentMethod={setPaymentMethod}
-        isOnlinePaymentLoading={isOnlinePaymentLoading}
         isProcessingBooking={isProcessingBooking}
         onConfirm={handleConfirm}
       />
@@ -837,35 +808,9 @@ export default function BookNowPage() {
                 className="border rounded-lg shadow-md w-full max-w-xs p-2"
                 minDate={new Date()}
                 onClickDay={(date) => {
-                  // ALWAYS change week when clicking on calendar
+                  // Use the handleDateChange function to update both date and week offset
                   console.log('📅 Calendar click on:', date.toDateString());
-                  
-                  // Calculate the start of the week for the clicked date (Sunday = 0)
-                  const targetWeekStart = new Date(date);
-                  targetWeekStart.setDate(date.getDate() - date.getDay());
-                  targetWeekStart.setHours(0, 0, 0, 0);
-                  
-                  // Calculate the start of TODAY's week for reference
-                  const today = new Date();
-                  const currentWeekStart = new Date(today);
-                  currentWeekStart.setDate(today.getDate() - today.getDay());
-                  currentWeekStart.setHours(0, 0, 0, 0);
-                  
-                  // Calculate the week difference from current week
-                  const weekDiff = Math.round((targetWeekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
-                  
-                  console.log('📅 Week calculation:', {
-                    clickedDate: date.toDateString(),
-                    targetWeekStart: targetWeekStart.toDateString(),
-                    currentWeekStart: currentWeekStart.toDateString(),
-                    calculatedWeekDiff: weekDiff,
-                    previousOffset: weekOffset,
-                    willUpdate: true
-                  });
-                  
-                  // ALWAYS update the week offset - force update
-                  setWeekOffset(weekDiff);
-                  console.log('📅 Updated weekOffset to:', weekDiff);
+                  handleDateChange(date);
                 }}
               />
             </div>
@@ -955,35 +900,9 @@ export default function BookNowPage() {
                 className="border rounded-lg shadow-md w-full max-w-xs p-2"
                 minDate={new Date()}
                 onClickDay={(date) => {
-                  // ALWAYS change week when clicking on calendar
+                  // Use the handleDateChange function to update both date and week offset
                   console.log('📅 Calendar click on:', date.toDateString());
-                  
-                  // Calculate the start of the week for the clicked date (Sunday = 0)
-                  const targetWeekStart = new Date(date);
-                  targetWeekStart.setDate(date.getDate() - date.getDay());
-                  targetWeekStart.setHours(0, 0, 0, 0);
-                  
-                  // Calculate the start of TODAY's week for reference
-                  const today = new Date();
-                  const currentWeekStart = new Date(today);
-                  currentWeekStart.setDate(today.getDate() - today.getDay());
-                  currentWeekStart.setHours(0, 0, 0, 0);
-                  
-                  // Calculate the week difference from current week
-                  const weekDiff = Math.round((targetWeekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
-                  
-                  console.log('📅 Week calculation:', {
-                    clickedDate: date.toDateString(),
-                    targetWeekStart: targetWeekStart.toDateString(),
-                    currentWeekStart: currentWeekStart.toDateString(),
-                    calculatedWeekDiff: weekDiff,
-                    previousOffset: weekOffset,
-                    willUpdate: true
-                  });
-                  
-                  // ALWAYS update the week offset - force update
-                  setWeekOffset(weekDiff);
-                  console.log('📅 Updated weekOffset to:', weekDiff);
+                  handleDateChange(date);
                 }}
               />
             </div>
@@ -1278,14 +1197,6 @@ export default function BookNowPage() {
         }}
         onLoginSuccess={handleLoginSuccess}
       />
-      {/* Modal de espera de pago online */}
-      <Modal isOpen={isOnlinePaymentLoading} onClose={() => {}}>
-        <div className="p-8 flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-          <h2 className="text-lg font-bold mb-2 text-blue-600 text-center">Please wait...</h2>
-          <p className="text-gray-700 text-center">You are being redirected to the payment gateway.</p>
-        </div>
-      </Modal>
     </section>
   );
 }
