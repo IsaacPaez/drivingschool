@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`🔍 VERIFYING slot ${slotId} for instructor ${instructorId}, classType: ${classType}`);
+    console.log(`📋 Search parameters: slotId="${slotId}", isDrivingTest=${isDrivingTest}, scheduleField="${scheduleField}"`);
 
     // Determine if it's a driving test based on classType
     const isDrivingTest = classType === 'driving_test' || classType === 'driving test';
@@ -31,16 +32,35 @@ export async function POST(req: NextRequest) {
       console.log(`✅ Found instructor in User collection`);
       
       if (isDrivingTest) {
-        // For driving tests, match by date-start-end
-        const parts = slotId.split('-');
-        if (parts.length >= 5) {
-          const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
-          const start = parts[3];
-          const end = parts[4];
-          
-          const schedule = instructor.get(scheduleField) || [];
+        // For driving tests, try multiple matching strategies
+        const schedule = instructor.get(scheduleField) || [];
+        
+        // Strategy 1: Try to match by _id directly
+        slot = schedule.find((s: any) => s._id && s._id.toString() === slotId);
+        console.log(`🎯 Strategy 1 (by _id): ${slot ? 'FOUND' : 'NOT FOUND'} - Searched ${schedule.length} slots`);
+        
+        // Strategy 2: If not found, try date-start-end format (generated slotId like "2025-09-20-09:00-11:00")
+        if (!slot && slotId.includes('-')) {
+          const parts = slotId.split('-');
+          if (parts.length >= 5) {
+            const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+            const start = parts[3];
+            const end = parts[4];
+            
+            slot = schedule.find((s: any) => 
+              s.date === date && s.start === start && s.end === end
+            );
+            console.log(`🎯 Strategy 2 (by date-time): ${slot ? 'FOUND' : 'NOT FOUND'} - Looking for ${date} ${start}-${end}`);
+          }
+        }
+        
+        // Strategy 3: If still not found, try to match by the studentId and date-time (in case slotId has extra info)
+        if (!slot) {
           slot = schedule.find((s: any) => 
-            s.date === date && s.start === start && s.end === end
+            s.status === 'pending' && 
+            s.studentId && 
+            slotId.includes(s.date) && 
+            slotId.includes(s.start)
           );
         }
       } else {
@@ -58,16 +78,33 @@ export async function POST(req: NextRequest) {
         console.log(`✅ Found instructor in Instructor collection`);
         
         if (isDrivingTest) {
-          // For driving tests, match by date-start-end
-          const parts = slotId.split('-');
-          if (parts.length >= 5) {
-            const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
-            const start = parts[3];
-            const end = parts[4];
-            
-            const schedule = instructor.get(scheduleField) || [];
+          // For driving tests, try multiple matching strategies
+          const schedule = instructor.get(scheduleField) || [];
+          
+          // Strategy 1: Try to match by _id directly
+          slot = schedule.find((s: any) => s._id && s._id.toString() === slotId);
+          
+          // Strategy 2: If not found, try date-start-end format (generated slotId like "2025-09-20-09:00-11:00")
+          if (!slot && slotId.includes('-')) {
+            const parts = slotId.split('-');
+            if (parts.length >= 5) {
+              const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+              const start = parts[3];
+              const end = parts[4];
+              
+              slot = schedule.find((s: any) => 
+                s.date === date && s.start === start && s.end === end
+              );
+            }
+          }
+          
+          // Strategy 3: If still not found, try to match by the studentId and date-time (in case slotId has extra info)
+          if (!slot) {
             slot = schedule.find((s: any) => 
-              s.date === date && s.start === start && s.end === end
+              s.status === 'pending' && 
+              s.studentId && 
+              slotId.includes(s.date) && 
+              slotId.includes(s.start)
             );
           }
         } else {
