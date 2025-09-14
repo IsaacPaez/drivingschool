@@ -77,11 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    if (user?.type === 'instructor') {
-      router.push('/');
-    }
     setUserState(null);
     localStorage.removeItem(LOCAL_KEY);
+    // No redirigir automáticamente - el usuario se queda en la misma página
   };
 
   return (

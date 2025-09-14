@@ -15,24 +15,24 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
       onClick={onClose}
     >
       <div 
-        className="relative bg-white text-black rounded-2xl shadow-2xl border border-gray-200 max-h-[90vh] flex flex-col mx-4"
+        className="relative bg-white text-black rounded-2xl shadow-2xl border border-gray-200 max-h-[85vh] flex flex-col mx-4"
         style={{
-          minWidth: '450px', 
-          maxWidth: '550px', 
+          minWidth: '400px', 
+          maxWidth: '500px', 
           width: '90vw',
-          overflow: 'auto'
+          overflow: 'hidden'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Botón de cierre mejorado */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 z-[9999] transition-all duration-300 bg-red-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="absolute top-2 right-2 p-1.5 z-[9999] transition-all duration-300 bg-red-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-label="Close modal"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-gray-600 hover:text-gray-900"
+            className="h-5 w-5 text-gray-600 hover:text-gray-900"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

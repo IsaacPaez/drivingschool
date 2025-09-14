@@ -16,6 +16,7 @@ interface CartItem {
   quantity: number;
   orderId?: string;
   orderNumber?: string;
+  // For driving lesson packages
   packageDetails?: {
     productId: string;
     packageTitle: string;
@@ -36,6 +37,17 @@ interface CartItem {
     start: string;
     end: string;
   }>;
+  // For driving test appointments
+  instructorId?: string;
+  instructorName?: string;
+  instructorPhoto?: string;
+  date?: string;
+  start?: string;
+  end?: string;
+  classType?: string;
+  amount?: number;
+  pickupLocation?: string;
+  dropoffLocation?: string;
 }
 
 interface CartContextType {
@@ -255,7 +267,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   const removeFromCart = async (id: string) => {
     if (!user?._id) return;
 
-    // Find the item to remove first to check if it has selectedSlots
+    // Find the item to remove first to check its type
     const itemToRemove = cart.find(item => item.id === id);
     
     if (itemToRemove && itemToRemove.selectedSlots && itemToRemove.selectedSlots.length > 0) {
@@ -293,6 +305,44 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
         console.error("❌ Error removing driving lesson package:", error);
         alert('Error removing package from cart');
       }
+    } else if (itemToRemove && itemToRemove.classType === 'driving test' && itemToRemove.instructorId) {
+      // This is a driving test appointment - free the slot first
+      console.log('🗑️ Removing driving test appointment and freeing slot...');
+      
+      try {
+        const response = await fetch("/api/cart/remove-driving-test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            userId: user._id, 
+            instructorId: itemToRemove.instructorId,
+            date: itemToRemove.date,
+            start: itemToRemove.start,
+            end: itemToRemove.end,
+            classType: itemToRemove.classType
+          }),
+        });
+
+        if (response.ok) {
+          let updatedCart: CartItem[] = [];
+          setCart((prevCart) => {
+            updatedCart = prevCart.filter((item) => item.id !== id);
+            return updatedCart;
+          });
+          setTimeout(() => saveCartToDB(updatedCart), 50);
+          console.log("✅ Driving test appointment removed and slot freed");
+          
+          // SSE will automatically update the schedule - no need to refresh page
+          console.log("📡 SSE will automatically update the schedule with freed slot");
+        } else {
+          const errorData = await response.json();
+          console.error("❌ Failed to remove driving test appointment:", errorData.error);
+          alert(`Error removing appointment: ${errorData.error}`);
+        }
+      } catch (error) {
+        console.error("❌ Error removing driving test appointment:", error);
+        alert('Error removing appointment from cart');
+      }
     } else {
       // Regular cart item - just remove from cart
       let updatedCart: CartItem[] = [];
@@ -309,15 +359,25 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     setCart([]);
     localStorage.removeItem("cart");
     
-    // Also clear from database
+    // Clear both regular cart and user cart (for driving tests)
     if (user?._id) {
       try {
+        // Clear regular cart collection
         await fetch("/api/cart", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: user._id }),
         });
-        console.log('✅ [CartContext] Cart cleared from database');
+        console.log('✅ [CartContext] Regular cart cleared from database');
+        
+        // Clear user cart (for driving tests) and free slots
+        await fetch("/api/cart/clear-user-cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user._id }),
+        });
+        console.log('✅ [CartContext] User cart cleared and slots freed');
+        
       } catch (err) {
         console.warn('[CartContext] Failed to clear cart from database:', err);
       }
