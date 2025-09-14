@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     // Try to find in User collection (instructors)
     let instructor = await User.findById(instructorId);
-    let slot = null;
+    let slot: any = null;
 
     if (instructor) {
       console.log(`✅ Found instructor in User collection`);
