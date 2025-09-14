@@ -5,7 +5,7 @@ import "@/globals.css";
 import { useAuth } from "@/components/AuthContext";
 import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
-import { useAllDrivingLessonsSSE } from "../../hooks/useAllDrivingLessonsSSE";
+import { useAllDrivingLessonsWebSocket } from "../../hooks/useAllDrivingLessonsWebSocket";
 
 // Import our new components
 import PackageSelector from "./components/PackageSelector";
@@ -81,7 +81,7 @@ function DrivingLessonsContent() {
   const { addToCart } = useCart();
   const userId = user?._id || "";
 
-  // Use SSE hook for real-time schedule updates for all instructors
+  // Use WebSocket hook for real-time schedule updates for all instructors
   const instructorIds = React.useMemo(() => 
     instructors.map(instructor => instructor._id), 
     [instructors]
@@ -91,7 +91,7 @@ function DrivingLessonsContent() {
     getErrorForInstructor, 
     isConnectedForInstructor,
     getAllSchedules 
-  } = useAllDrivingLessonsSSE(instructorIds);
+  } = useAllDrivingLessonsWebSocket(instructorIds);
 
   // Function to immediately update selected slots to pending status locally
   const updateSlotsTopending = () => {

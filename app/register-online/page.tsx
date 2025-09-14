@@ -6,6 +6,7 @@ import "react-calendar/dist/Calendar.css";
 import "@/globals.css";
 import Modal from "@/components/Modal";
 import { useAuth } from "@/components/AuthContext";
+import { useCart } from "../context/CartContext";
 import LoginModal from "@/components/LoginModal";
 import TicketClassBookingModal from "./components/TicketClassBookingModal";
 import { useSearchParams } from "next/navigation";
@@ -88,6 +89,7 @@ function RegisterOnlineContent() {
   const [selectedClassPrice, setSelectedClassPrice] = useState<number | null>(null);
 
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const userId = user?._id || "";
 
   // Use SSE hook for real-time updates with selectedClassId and userId
@@ -115,10 +117,10 @@ function RegisterOnlineContent() {
     }
     
     if (paymentMethod === 'online') {
-      // PAGO ONLINE: Crear orden primero, luego agregar al carrito
+      // AGREGAR AL CARRITO: Agregar al carrito y poner en studentRequests
       setIsOnlinePaymentLoading(true);
       try {
-        console.log('🔄 Creating order for ticket class...');
+        console.log('🛒 Adding ticket class to cart...');
         
         // Obtener información de la clase para el precio
         const classInfo = selectedTicketClass.classInfo;
@@ -134,115 +136,62 @@ function RegisterOnlineContent() {
         const classData = await classResponse.json();
         const classPrice = classData.price || 50; // Precio por defecto
         
-        // Step 1: Create order with all appointment details
-        const orderData = {
-          userId,
-          orderType: 'ticket_class',
-          appointments: [{
-            slotId: selectedTicketClass._id, // Use _id as slotId
+        // Step 1: Agregar a studentRequests en la ticketclass
+        const ticketClassUpdateRes = await fetch(`/api/ticketclasses/request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentId: userId,
             ticketClassId: selectedTicketClass._id,
             classId: classInfo._id,
             date: selectedTicketClass.date,
             start: selectedTicketClass.hour,
             end: selectedTicketClass.endHour,
-            classType: 'ticket_class',
-            amount: classPrice
-          }],
-          items: [{
-            id: classInfo._id,
-            title: classInfo.title,
-            price: classPrice,
-            quantity: 1
-          }],
-          total: classPrice,
-          paymentMethod: 'online'
-        };
-
-        const orderRes = await fetch('/api/orders/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderData),
-        });
-
-        if (!orderRes.ok) {
-          const errorData = await orderRes.json();
-          throw new Error(errorData.error || 'Failed to create order');
-        }
-
-        const orderResult = await orderRes.json();
-        console.log('✅ Order created successfully:', orderResult.order.orderNumber);
-
-        // Step 2: Update ticket class with student enrollment
-        const ticketClassUpdateRes = await fetch(`/api/ticketclasses/enroll`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ticketClassId: selectedTicketClass._id,
-            studentId: userId,
-            orderId: orderResult.order._id,
-            orderNumber: orderResult.order.orderNumber
+            paymentMethod: 'online'
           }),
         });
         
-        if (ticketClassUpdateRes.ok) {
-          setIsBookingModalOpen(false);
-          setSelectedTicketClass(null);
-          setIsOnlinePaymentLoading(false);
-          
-          // Redirect directly to payment gateway with order ID
-          console.log('🔄 Redirecting to payment gateway with order:', orderResult.order._id);
-          
-          // Show brief confirmation message
-          setConfirmationMessage(
-            `Order created successfully!\n\n` +
-            `Order Number: ${orderResult.order.orderNumber}\n` +
-            `Class: ${classInfo.title}\n` +
-            `Date: ${selectedTicketClass.date}\n` +
-            `Time: ${selectedTicketClass.hour} - ${selectedTicketClass.endHour}\n` +
-            `Redirecting to payment gateway...\n\n` +
-            `Amount: $${classPrice}`
-          );
-          setShowConfirmation(true);
-          
-          // Redirect to payment gateway after 2 seconds
-          setTimeout(async () => {
-            try {
-              console.log('🚀 Fetching payment gateway URL...');
-              const paymentResponse = await fetch(`/api/payments/redirect?userId=${userId}&orderId=${orderResult.order._id}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                }
-              });
-              
-              if (!paymentResponse.ok) {
-                throw new Error(`Payment gateway error: ${paymentResponse.status}`);
-              }
-              
-              const paymentData = await paymentResponse.json();
-              console.log('💳 Payment gateway response:', paymentData);
-              
-              if (paymentData.redirectUrl) {
-                console.log('🚀 Redirecting to ConvergePay:', paymentData.redirectUrl);
-                window.location.href = paymentData.redirectUrl;
-              } else {
-                throw new Error('No redirectUrl received from payment gateway');
-              }
-            } catch (error) {
-              console.error('❌ Error accessing payment gateway:', error);
-              alert(`Error accessing payment gateway: ${error.message || 'Please try again.'}`);
-            }
-          }, 2000);
-          
-        } else {
+        if (!ticketClassUpdateRes.ok) {
           const updateErrorData = await ticketClassUpdateRes.json();
-          console.error('❌ Error updating ticket class:', updateErrorData);
-          alert(`Order created but failed to enroll in class: ${updateErrorData.error || 'Please try again.'}`);
+          throw new Error(updateErrorData.error || 'Failed to reserve class slot');
         }
-      } catch (error) {
-        console.error('❌ Error in online payment process:', error);
+        
+        // Step 2: Agregar al carrito
+        const cartItem = {
+          id: classInfo._id,
+          title: classInfo.title,
+          price: classPrice,
+          quantity: 1,
+          classType: 'ticket',
+          ticketClassId: selectedTicketClass._id,
+          date: selectedTicketClass.date,
+          start: selectedTicketClass.hour,
+          end: selectedTicketClass.endHour,
+          instructorId: selectedTicketClass.instructorInfo?._id,
+          instructorName: selectedTicketClass.instructorInfo?.name
+        };
+        
+        await addToCart(cartItem);
+        
+        setIsBookingModalOpen(false);
+        setSelectedTicketClass(null);
         setIsOnlinePaymentLoading(false);
-        alert(`Error processing payment: ${error.message || 'Please try again.'}`);
+        
+        // Mostrar mensaje de confirmación
+        setConfirmationMessage(
+          `Class added to cart successfully!\n\n` +
+          `Class: ${classInfo.title}\n` +
+          `Date: ${selectedTicketClass.date}\n` +
+          `Time: ${selectedTicketClass.hour} - ${selectedTicketClass.endHour}\n` +
+          `Price: $${classPrice}\n\n` +
+          `You can now proceed to checkout to complete your payment.`
+        );
+        setShowConfirmation(true);
+        
+      } catch (error) {
+        console.error('❌ Error adding to cart:', error);
+        setIsOnlinePaymentLoading(false);
+        alert(`Error adding to cart: ${error.message || 'Please try again.'}`);
       }
       return;
     }

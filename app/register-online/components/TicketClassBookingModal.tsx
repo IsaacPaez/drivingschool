@@ -93,8 +93,8 @@ export default function TicketClassBookingModal({
                 onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'instructor')}
                 className="mr-2"
               />
-              <span className="text-green-600 font-medium">💳 Online Payment</span>
-              <span className="text-sm text-gray-500 ml-2">(Pay now with credit card)</span>
+              <span className="text-green-600 font-medium">Add to Cart</span>
+              <span className="text-sm text-gray-500 ml-2">(Add to cart for online payment)</span>
             </label>
             <label className="flex items-center">
               <input
@@ -105,7 +105,7 @@ export default function TicketClassBookingModal({
                 onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'instructor')}
                 className="mr-2"
               />
-              <span className="text-blue-600 font-medium">🏪 Pay at Location</span>
+              <span className="text-blue-600 font-medium">Pay at Location</span>
               <span className="text-sm text-gray-500 ml-2">(Pay when you arrive)</span>
             </label>
           </div>
@@ -140,9 +140,9 @@ export default function TicketClassBookingModal({
                 Processing...
               </span>
             ) : paymentMethod === 'online' ? (
-              '💳 Pay Online'
+              'Add to Cart'
             ) : (
-              '🏪 Reserve & Pay Later'
+              'Reserve & Pay Later'
             )}
           </button>
         </div>

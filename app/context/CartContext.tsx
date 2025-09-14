@@ -48,6 +48,8 @@ interface CartItem {
   amount?: number;
   pickupLocation?: string;
   dropoffLocation?: string;
+  // For ticket classes
+  ticketClassId?: string;
 }
 
 interface CartContextType {

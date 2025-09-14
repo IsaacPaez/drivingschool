@@ -60,8 +60,104 @@ function PaymentSuccessContent() {
                   const orderData = await orderResponse.json();
                   setOrderDetails(orderData.order);
                   
-                  // FORCE UPDATE instructor schedule slots to "booked" for driving lessons, driving tests, and mixed (drivings)
-                  if ((orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test' || orderData.order.orderType === 'drivings') && orderData.order.appointments) {
+                  // FORCE UPDATE based on order type - each type needs different handling
+                  if (orderData.order.appointments && orderData.order.appointments.length > 0) {
+                    console.log(`🎯 Processing order type: ${orderData.order.orderType} with ${orderData.order.appointments.length} appointments`);
+                    setIsProcessingSlots(true);
+                    
+                    let allProcessed = true;
+                    
+                    // Process each appointment based on its type
+                    for (const appointment of orderData.order.appointments) {
+                      console.log(`📋 Processing appointment:`, {
+                        classType: appointment.classType,
+                        ticketClassId: appointment.ticketClassId,
+                        slotId: appointment.slotId,
+                        instructorId: appointment.instructorId
+                      });
+                      
+                      try {
+                        // Handle TICKET CLASSES
+                        if (appointment.classType === 'ticket_class' || appointment.ticketClassId) {
+                          console.log(`🎫 Processing ticket class: ${appointment.ticketClassId}`);
+                          
+                          // Call the orders/update-status endpoint to move from studentRequests to students
+                          const ticketUpdateResponse = await fetch('/api/orders/update-status', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              orderId: orderId,
+                              status: 'completed',
+                              paymentStatus: 'completed'
+                            })
+                          });
+                          
+                          if (ticketUpdateResponse.ok) {
+                            const ticketResult = await ticketUpdateResponse.json();
+                            console.log(`✅ Ticket class processed successfully:`, ticketResult);
+                          } else {
+                            const errorText = await ticketUpdateResponse.text();
+                            console.error(`❌ Failed to process ticket class:`, errorText);
+                            allProcessed = false;
+                          }
+                        }
+                        
+                        // Handle DRIVING LESSONS & DRIVING TESTS
+                        else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test') && appointment.slotId) {
+                          const appointmentTypeDisplay = appointment.classType === 'driving_test' ? 'driving test' : 'driving lesson';
+                          console.log(`🚗 Processing ${appointmentTypeDisplay}: ${appointment.slotId}`);
+                          
+                          const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              slotId: appointment.slotId,
+                              instructorId: appointment.instructorId,
+                              status: 'booked',
+                              paid: true,
+                              paymentId: orderId,
+                              confirmedAt: new Date().toISOString(),
+                              classType: appointment.classType
+                            })
+                          });
+                          
+                          if (slotUpdateResponse.ok) {
+                            const slotResult = await slotUpdateResponse.json();
+                            console.log(`✅ ${appointmentTypeDisplay} slot ${appointment.slotId} updated:`, slotResult);
+                          } else {
+                            const errorText = await slotUpdateResponse.text();
+                            console.error(`❌ Failed to update ${appointmentTypeDisplay} slot ${appointment.slotId}:`, errorText);
+                            allProcessed = false;
+                          }
+                        }
+                        
+                        else {
+                          console.log(`⏭️ Skipping appointment - no recognized type or missing data`);
+                        }
+                        
+                      } catch (error) {
+                        console.error(`❌ Error processing appointment:`, error);
+                        allProcessed = false;
+                      }
+                    }
+                    
+                    setIsProcessingSlots(false);
+                    
+                    if (allProcessed) {
+                      console.log(`✅ ALL APPOINTMENTS PROCESSED SUCCESSFULLY - Ready for countdown`);
+                      setSlotsUpdated(true);
+                    } else {
+                      console.error(`❌ SOME APPOINTMENTS FAILED TO PROCESS - NOT starting countdown`);
+                      setSlotsUpdated(false);
+                    }
+                  }
+                  
+                  // LEGACY: Handle old format for driving lessons/tests without mixed appointments
+                  else if ((orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test' || orderData.order.orderType === 'drivings') && orderData.order.appointments) {
                     const orderTypeDisplay = orderData.order.orderType === 'driving_test' ? 'driving test' : 
                                           orderData.order.orderType === 'drivings' ? 'driving lessons & tests' : 'driving lesson';
                     console.log(`🎯 FORCING update of ${orderTypeDisplay} slots to booked status...`);
@@ -142,21 +238,46 @@ function PaymentSuccessContent() {
             } else {
               setTransactionStatus("pending");
               
-              // If payment is rejected, try to get order details and revert slots back to available
+              // If payment is rejected, try to get order details and revert changes back
               try {
                 const orderResponse = await fetch(`/api/orders/details?orderId=${orderId}`);
                 if (orderResponse.ok) {
                   const orderData = await orderResponse.json();
                   
-                  if (orderData.order && (orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test' || orderData.order.orderType === 'drivings') && orderData.order.appointments) {
-                    const orderTypeDisplay = orderData.order.orderType === 'driving_test' ? 'driving test' : 
-                                          orderData.order.orderType === 'drivings' ? 'driving lessons & tests' : 'driving lesson';
-                    console.log(`🔄 Payment rejected - Reverting ${orderTypeDisplay} slots back to available...`);
+                  if (orderData.order && orderData.order.appointments) {
+                    console.log(`🔄 Payment rejected - Reverting changes for order type: ${orderData.order.orderType}`);
                     
+                    // Process each appointment for reversion
                     for (const appointment of orderData.order.appointments) {
-                      if (appointment.slotId) {
-                        try {
-                          console.log(`🔄 Reverting ${orderTypeDisplay} slot ${appointment.slotId} back to available...`);
+                      try {
+                        // Handle TICKET CLASSES reversion
+                        if (appointment.classType === 'ticket_class' || appointment.ticketClassId) {
+                          console.log(`🎫 Reverting ticket class: ${appointment.ticketClassId}`);
+                          
+                          // Call API to remove student from studentRequests (revert the add-to-cart action)
+                          const ticketRevertResponse = await fetch('/api/register-online/cancel-request', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              ticketClassId: appointment.ticketClassId,
+                              userId: orderData.order.userId
+                            })
+                          });
+                          
+                          if (ticketRevertResponse.ok) {
+                            console.log(`✅ Ticket class request reverted successfully`);
+                          } else {
+                            const errorText = await ticketRevertResponse.text();
+                            console.error(`❌ Failed to revert ticket class request:`, errorText);
+                          }
+                        }
+                        
+                        // Handle DRIVING LESSONS & DRIVING TESTS reversion
+                        else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test') && appointment.slotId) {
+                          const appointmentTypeDisplay = appointment.classType === 'driving_test' ? 'driving test' : 'driving lesson';
+                          console.log(`🚗 Reverting ${appointmentTypeDisplay} slot: ${appointment.slotId}`);
                           
                           const revertResponse = await fetch('/api/instructors/update-slot-status', {
                             method: 'POST',
@@ -170,26 +291,27 @@ function PaymentSuccessContent() {
                               paid: false,
                               paymentId: null,
                               confirmedAt: null,
-                              classType: appointment.classType || orderData.order.orderType // Add classType for proper slot identification
+                              classType: appointment.classType
                             })
                           });
                           
                           if (revertResponse.ok) {
                             const revertResult = await revertResponse.json();
-                            console.log(`✅ ${orderTypeDisplay} slot ${appointment.slotId} reverted to available:`, revertResult);
+                            console.log(`✅ ${appointmentTypeDisplay} slot ${appointment.slotId} reverted to available:`, revertResult);
                           } else {
                             const errorText = await revertResponse.text();
-                            console.error(`❌ Failed to revert ${orderTypeDisplay} slot ${appointment.slotId}:`, errorText);
+                            console.error(`❌ Failed to revert ${appointmentTypeDisplay} slot ${appointment.slotId}:`, errorText);
                           }
-                        } catch (error) {
-                          console.error(`❌ Error reverting ${orderTypeDisplay} slot ${appointment.slotId}:`, error);
                         }
+                        
+                      } catch (error) {
+                        console.error(`❌ Error reverting appointment:`, error);
                       }
                     }
                   }
                 }
               } catch (error) {
-                console.error("Error fetching order details for slot reversion:", error);
+                console.error("Error fetching order details for reversion:", error);
               }
             }
           } else {
