@@ -110,9 +110,9 @@ function PaymentSuccessContent() {
                           }
                         }
                         
-                        // Handle DRIVING LESSONS & DRIVING TESTS
-                        else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test') && appointment.slotId) {
-                          const appointmentTypeDisplay = appointment.classType === 'driving_test' ? 'driving test' : 'driving lesson';
+                        // Handle DRIVING LESSONS & DRIVING TESTS (flexible matching)
+                        else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test' || appointment.classType === 'driving test') && appointment.slotId) {
+                          const appointmentTypeDisplay = (appointment.classType === 'driving_test' || appointment.classType === 'driving test') ? 'driving test' : 'driving lesson';
                           console.log(`🚗 Processing ${appointmentTypeDisplay}: ${appointment.slotId}`);
                           
                           const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
@@ -143,6 +143,9 @@ function PaymentSuccessContent() {
                         
                         else {
                           console.log(`⏭️ Skipping appointment - no recognized type or missing data`);
+                          console.log(`🔍 DEBUG - Appointment classType:`, `"${appointment.classType}"`);
+                          console.log(`🔍 DEBUG - Appointment slotId:`, appointment.slotId);
+                          console.log(`🔍 DEBUG - Full appointment:`, appointment);
                         }
                         
                       } catch (error) {
