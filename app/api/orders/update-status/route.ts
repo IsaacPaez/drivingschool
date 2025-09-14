@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
 import User from "@/models/User";
+import TicketClass from "@/models/TicketClass";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,8 +34,78 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If payment is completed and order type is driving lesson, update instructor schedules
-    if (paymentStatus === 'completed' && updatedOrder.orderType === 'driving_lesson') {
+    // If payment is completed, handle different order types
+    if (paymentStatus === 'completed') {
+      
+      // Handle ticket class payments
+      if (updatedOrder.orderType === 'ticket_class' || updatedOrder.orderType === 'package_class') {
+        console.log("🎫 Processing ticket class payment completion...");
+        
+        // Move students from studentRequests to students for each appointment
+        const ticketClassUpdatePromises = updatedOrder.appointments.map(async (appointment: any) => {
+          try {
+            if (appointment.ticketClassId) {
+              console.log(`🔄 Moving student from requests to enrolled for ticket class: ${appointment.ticketClassId}`);
+              
+              // First, find the ticket class and the student request
+              const ticketClass = await TicketClass.findById(appointment.ticketClassId);
+              if (!ticketClass) {
+                console.error(`❌ Ticket class not found: ${appointment.ticketClassId}`);
+                return { modifiedCount: 0 };
+              }
+              
+              // Find the pending request for this user
+              const studentRequest = ticketClass.studentRequests?.find(
+                (req: any) => req.studentId === updatedOrder.userId.toString() && req.status === 'pending'
+              );
+              
+              if (!studentRequest) {
+                console.error(`❌ No pending request found for user ${updatedOrder.userId} in ticket class ${appointment.ticketClassId}`);
+                return { modifiedCount: 0 };
+              }
+              
+              // Move student from requests to enrolled students
+              const updateResult = await TicketClass.updateOne(
+                { _id: appointment.ticketClassId },
+                {
+                  $pull: { 
+                    studentRequests: { 
+                      studentId: updatedOrder.userId.toString(), 
+                      status: 'pending' 
+                    } 
+                  },
+                  $push: { 
+                    students: {
+                      studentId: updatedOrder.userId.toString(),
+                      enrolledAt: new Date(),
+                      orderId: orderId,
+                      paymentStatus: 'completed',
+                      ...studentRequest.classDetails
+                    }
+                  },
+                  $inc: { enrolledStudents: 1, availableSpots: -1 },
+                  $set: { updatedAt: new Date() }
+                }
+              );
+              
+              console.log(`✅ Student moved from requests to enrolled for ticket class ${appointment.ticketClassId}:`, 
+                updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
+              return updateResult;
+            }
+            return { modifiedCount: 0 };
+          } catch (error) {
+            console.error(`❌ Error processing ticket class ${appointment.ticketClassId}:`, error);
+            return { modifiedCount: 0 };
+          }
+        });
+        
+        const ticketClassResults = await Promise.all(ticketClassUpdatePromises);
+        const totalTicketClassesUpdated = ticketClassResults.reduce((sum, result) => sum + result.modifiedCount, 0);
+        console.log(`✅ Total ticket classes processed: ${totalTicketClassesUpdated}`);
+      }
+      
+      // Handle driving lesson payments
+      else if (updatedOrder.orderType === 'driving_lesson') {
       console.log("🔄 Processing driving lesson payment completion...");
       
       // Get the specific instructor IDs you mentioned
@@ -112,6 +183,7 @@ export async function POST(req: NextRequest) {
       const totalUpdated = updateResults.reduce((sum, result) => sum + result.modifiedCount, 0);
       
       console.log(`✅ Total specific slots updated: ${totalUpdated}`);
+      }
     }
 
     return NextResponse.json({ 
