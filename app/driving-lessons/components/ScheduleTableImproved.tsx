@@ -579,14 +579,9 @@ export default function ScheduleTableImproved({
                             </td>
                           );
                         }
-                        // Empty slot or other states - show informative indicator
+                        // Empty slot or other states - show "-"
                         return (
-                          <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-100 text-gray-400 min-w-[80px] w-[80px] text-center text-xs">
-                            <div className="flex flex-col items-center justify-center h-full">
-                              <div className="w-2 h-2 bg-gray-300 rounded-full mb-1"></div>
-                              <span className="text-[10px]">No disponible</span>
-                            </div>
-                          </td>
+                          <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px] text-center text-xs">-</td>
                         );
                       } else {
                         // This block is covered by a slot that started in a previous row
@@ -594,14 +589,9 @@ export default function ScheduleTableImproved({
                       }
                     }
                     
-                    // Always show something - if no slot, show informative indicator
+                    // Always show something - if no slot, show "-"
                     return (
-                      <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-100 text-gray-400 min-w-[80px] w-[80px] text-center text-xs">
-                        <div className="flex flex-col items-center justify-center h-full">
-                          <div className="w-2 h-2 bg-gray-300 rounded-full mb-1"></div>
-                          <span className="text-[10px]">No disponible</span>
-                        </div>
-                      </td>
+                      <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px] text-center text-xs">-</td>
                     );
                   })}
                 </tr>

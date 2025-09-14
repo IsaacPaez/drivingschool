@@ -60,9 +60,10 @@ function PaymentSuccessContent() {
                   const orderData = await orderResponse.json();
                   setOrderDetails(orderData.order);
                   
-                  // FORCE UPDATE instructor schedule slots to "booked" for both driving lessons and driving tests
-                  if ((orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test') && orderData.order.appointments) {
-                    const orderTypeDisplay = orderData.order.orderType === 'driving_test' ? 'driving test' : 'driving lesson';
+                  // FORCE UPDATE instructor schedule slots to "booked" for driving lessons, driving tests, and mixed (drivings)
+                  if ((orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test' || orderData.order.orderType === 'drivings') && orderData.order.appointments) {
+                    const orderTypeDisplay = orderData.order.orderType === 'driving_test' ? 'driving test' : 
+                                          orderData.order.orderType === 'drivings' ? 'driving lessons & tests' : 'driving lesson';
                     console.log(`🎯 FORCING update of ${orderTypeDisplay} slots to booked status...`);
                     console.log('🎯 Order details:', {
                       orderId: orderId,
@@ -147,8 +148,9 @@ function PaymentSuccessContent() {
                 if (orderResponse.ok) {
                   const orderData = await orderResponse.json();
                   
-                  if (orderData.order && (orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test') && orderData.order.appointments) {
-                    const orderTypeDisplay = orderData.order.orderType === 'driving_test' ? 'driving test' : 'driving lesson';
+                  if (orderData.order && (orderData.order.orderType === 'driving_lesson' || orderData.order.orderType === 'driving_test' || orderData.order.orderType === 'drivings') && orderData.order.appointments) {
+                    const orderTypeDisplay = orderData.order.orderType === 'driving_test' ? 'driving test' : 
+                                          orderData.order.orderType === 'drivings' ? 'driving lessons & tests' : 'driving lesson';
                     console.log(`🔄 Payment rejected - Reverting ${orderTypeDisplay} slots back to available...`);
                     
                     for (const appointment of orderData.order.appointments) {
@@ -371,14 +373,14 @@ function PaymentSuccessContent() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      {/* Simple Logo without background */}
+      {/* Logo with white border */}
       <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20">
         <Image 
           src="/favicon.ico" 
           alt="Driving School Logo" 
           width={80} 
           height={80}
-          className="rounded-xl"
+          className="rounded-xl border-4 border-white shadow-lg"
         />
       </div>
 

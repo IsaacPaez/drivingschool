@@ -6,14 +6,15 @@ import Instructor from "@/models/Instructor";
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-    const { slotId, instructorId, status, paid, paymentId, confirmedAt } = await req.json();
+    const { slotId, instructorId, status, paid, paymentId, confirmedAt, classType } = await req.json();
 
     console.log('🔄 [FORCE UPDATE] Updating slot status:', {
       slotId,
       instructorId,
       status,
       paid,
-      paymentId
+      paymentId,
+      classType
     });
 
     if (!slotId || !instructorId) {
@@ -23,49 +24,127 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find the instructor - try both User and Instructor models
-    let instructor = await User.findById(instructorId);
+    // Determine which schedule field to use based on classType
+    const isDrivingTest = classType === 'driving test';
+    const scheduleField = isDrivingTest ? 'schedule_driving_test' : 'schedule_driving_lesson';
+    
+    console.log(`🔍 [FORCE UPDATE] Looking for ${isDrivingTest ? 'driving test' : 'driving lesson'} slot in ${scheduleField}`);
+    
+    // Find the instructor - try Instructor model first
+    let instructor = await Instructor.findById(instructorId);
     let updateResult;
     
     if (instructor) {
-      console.log('✅ [FORCE UPDATE] Found instructor in User collection');
-      // Update the specific slot in schedule_driving_lesson array using slotId
-      updateResult = await User.updateOne(
-        {
-          _id: instructorId,
-          'schedule_driving_lesson._id': slotId
-        },
-        {
-          $set: {
-            'schedule_driving_lesson.$.status': status,
-            'schedule_driving_lesson.$.paid': paid,
-            'schedule_driving_lesson.$.paymentId': paymentId,
-            'schedule_driving_lesson.$.confirmedAt': confirmedAt ? new Date(confirmedAt) : null,
-            'schedule_driving_lesson.$.studentName': status === 'available' ? 'Available' : 'Confirmed'
-          }
+      console.log('✅ [FORCE UPDATE] Found instructor in Instructor collection');
+      
+      if (isDrivingTest) {
+        // For driving tests, parse slotId to get date/time (format: "2025-09-11-07:30-09:30")
+        const parts = slotId.split('-');
+        if (parts.length >= 5) {
+          const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+          const start = parts[3];
+          const end = parts[4];
+          
+          console.log(`🔍 [FORCE UPDATE] Searching driving test slot: date=${date}, start=${start}, end=${end}`);
+          
+          updateResult = await Instructor.updateOne(
+            {
+              _id: instructorId,
+              [`${scheduleField}.date`]: date,
+              [`${scheduleField}.start`]: start,
+              [`${scheduleField}.end`]: end
+            },
+            {
+              $set: {
+                [`${scheduleField}.$.status`]: status,
+                [`${scheduleField}.$.paid`]: paid,
+                [`${scheduleField}.$.paymentId`]: paymentId,
+                [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                [`${scheduleField}.$.booked`]: status === 'booked'
+              }
+            }
+          );
+        } else {
+          console.error('❌ [FORCE UPDATE] Invalid driving test slotId format:', slotId);
+          return NextResponse.json(
+            { error: "Invalid slotId format for driving test" },
+            { status: 400 }
+          );
         }
-      );
-    } else {
-      // Try Instructor model
-      instructor = await Instructor.findById(instructorId);
-      if (instructor) {
-        console.log('✅ [FORCE UPDATE] Found instructor in Instructor collection');
-        // Update the specific slot in schedule_driving_lesson array using slotId
+      } else {
+        // For driving lessons, use slotId directly
         updateResult = await Instructor.updateOne(
           {
             _id: instructorId,
-            'schedule_driving_lesson._id': slotId
+            [`${scheduleField}._id`]: slotId
           },
           {
             $set: {
-              'schedule_driving_lesson.$.status': status,
-              'schedule_driving_lesson.$.paid': paid,
-              'schedule_driving_lesson.$.paymentId': paymentId,
-              'schedule_driving_lesson.$.confirmedAt': confirmedAt ? new Date(confirmedAt) : null,
-              'schedule_driving_lesson.$.studentName': status === 'available' ? 'Available' : 'Confirmed'
+              [`${scheduleField}.$.status`]: status,
+              [`${scheduleField}.$.paid`]: paid,
+              [`${scheduleField}.$.paymentId`]: paymentId,
+              [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+              [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : 'Confirmed'
             }
           }
         );
+      }
+    } else {
+      // Try User model
+      instructor = await User.findById(instructorId);
+      if (instructor) {
+        console.log('✅ [FORCE UPDATE] Found instructor in User collection');
+        
+        if (isDrivingTest) {
+          // For driving tests in User model
+          const parts = slotId.split('-');
+          if (parts.length >= 5) {
+            const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+            const start = parts[3];
+            const end = parts[4];
+            
+            updateResult = await User.updateOne(
+              {
+                _id: instructorId,
+                [`${scheduleField}.date`]: date,
+                [`${scheduleField}.start`]: start,
+                [`${scheduleField}.end`]: end
+              },
+              {
+                $set: {
+                  [`${scheduleField}.$.status`]: status,
+                  [`${scheduleField}.$.paid`]: paid,
+                  [`${scheduleField}.$.paymentId`]: paymentId,
+                  [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                  [`${scheduleField}.$.booked`]: status === 'booked'
+                }
+              }
+            );
+          } else {
+            console.error('❌ [FORCE UPDATE] Invalid driving test slotId format:', slotId);
+            return NextResponse.json(
+              { error: "Invalid slotId format for driving test" },
+              { status: 400 }
+            );
+          }
+        } else {
+          // For driving lessons in User model
+          updateResult = await User.updateOne(
+            {
+              _id: instructorId,
+              [`${scheduleField}._id`]: slotId
+            },
+            {
+              $set: {
+                [`${scheduleField}.$.status`]: status,
+                [`${scheduleField}.$.paid`]: paid,
+                [`${scheduleField}.$.paymentId`]: paymentId,
+                [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : 'Confirmed'
+              }
+            }
+          );
+        }
       } else {
         console.error('❌ [FORCE UPDATE] Instructor not found in either User or Instructor collection:', instructorId);
         return NextResponse.json(

@@ -246,33 +246,97 @@ export async function GET(req: NextRequest) {
         );
         console.log("[API][redirect] Estado de pago de orden actualizado a 'processing'");
       } else {
-        // Verificar si ya existe una orden pendiente para este usuario
-        console.log("[API][redirect] Verificando si ya existe una orden pendiente para el usuario...");
+        // Determinar el tipo de orden basado en los items del carrito
+        const hasTickets = items.some(item => item.classType === 'ticket' || item.packageDetails || item.title?.toLowerCase().includes('package'));
+        const hasDrivingTests = items.some(item => item.classType === 'driving test');
+        const hasDrivingLessons = items.some(item => item.classType === 'driving lesson');
+        
+        let currentOrderType = 'general';
+        
+        // Prioridad: 1. Si hay tickets/packages → package_class
+        if (hasTickets) {
+          currentOrderType = 'package_class';
+        }
+        // 2. Si hay driving test + driving lesson → drivings  
+        else if (hasDrivingTests && hasDrivingLessons) {
+          currentOrderType = 'drivings';
+        } 
+        // 3. Solo driving test → driving_test
+        else if (hasDrivingTests) {
+          currentOrderType = 'driving_test';
+        } 
+        // 4. Solo driving lesson → driving_lesson
+        else if (hasDrivingLessons) {
+          currentOrderType = 'driving_lesson';
+        }
+        
+        // Verificar si ya existe una orden pendiente del MISMO TIPO para este usuario
+        console.log("[API][redirect] Verificando si ya existe una orden pendiente del tipo:", currentOrderType);
         const existingOrder = await Order.findOne({
           userId: userId,
-          paymentStatus: 'pending'
+          paymentStatus: 'pending',
+          orderType: currentOrderType // ← IMPORTANTE: Verificar el mismo tipo
         }).sort({ createdAt: -1 });
         
         if (existingOrder) {
-          console.log("[API][redirect] Usando orden existente:", existingOrder._id);
+          console.log("[API][redirect] Usando orden existente del mismo tipo:", existingOrder._id);
           finalOrderId = existingOrder._id.toString();
         } else {
-          // Solo crear nueva orden si no hay una existente
-          console.log("[API][redirect] Creando nueva orden...");
+          // Crear nueva orden con el tipo correcto
+          console.log("[API][redirect] Creando nueva orden de tipo:", currentOrderType);
           const lastOrder = await Order.findOne({}).sort({ orderNumber: -1 });
           const nextOrderNumber = lastOrder ? lastOrder.orderNumber + 1 : 1;
           console.log("[API][redirect] Siguiente número de orden:", nextOrderNumber);
           
-          const createdOrder = await Order.create({
+          // Crear appointments si es necesario
+          let appointments = [];
+          if (hasDrivingTests || hasDrivingLessons) {
+            appointments = items.map(item => {
+              if (item.classType === 'driving test') {
+                return {
+                  slotId: `${item.date}-${item.start}-${item.end}`,
+                  instructorId: item.instructorId,
+                  instructorName: item.instructorName,
+                  date: item.date,
+                  start: item.start,
+                  end: item.end,
+                  classType: 'driving test',
+                  amount: item.price || 50,
+                  status: 'pending'
+                };
+              } else if (item.classType === 'driving lesson' || item.packageDetails) {
+                return {
+                  slotId: item.id || `${Date.now()}-${Math.random()}`,
+                  instructorId: item.instructorId,
+                  instructorName: item.instructorName,
+                  date: item.date,
+                  start: item.start,
+                  end: item.end,
+                  classType: 'driving lesson',
+                  amount: item.price || 50,
+                  status: 'pending'
+                };
+              }
+              return null;
+            }).filter(Boolean);
+          }
+          
+          const orderData: any = {
             userId,
-            orderType: 'general', // Agregar orderType para evitar error de validación
+            orderType: currentOrderType,
             items,
             total: Number(total.toFixed(2)),
             estado: 'pending',
             createdAt: new Date(),
             orderNumber: nextOrderNumber,
-          });
-          console.log("[API][redirect] Orden creada:", createdOrder._id);
+          };
+          
+          if (appointments.length > 0) {
+            orderData.appointments = appointments;
+          }
+          
+          const createdOrder = await Order.create(orderData);
+          console.log("[API][redirect] Orden creada:", createdOrder._id, "tipo:", currentOrderType);
           finalOrderId = createdOrder._id.toString();
         }
         
@@ -454,26 +518,93 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
 
-      // Procesar items del carrito
+      // Determinar si hay diferentes tipos en el carrito
+      const hasTickets = cartItems.some(item => item.classType === 'ticket' || item.packageDetails || item.title?.toLowerCase().includes('package'));
+      const hasDrivingTests = cartItems.some(item => item.classType === 'driving test');
+      const hasDrivingLessons = cartItems.some(item => item.classType === 'driving lesson');
+      
+      let orderType = 'general';
+      let appointments = [];
+      
+      // Prioridad: 1. Si hay tickets/packages → package_class
+      if (hasTickets) {
+        orderType = 'package_class';
+      }
+      // 2. Si hay driving test + driving lesson → drivings  
+      else if (hasDrivingTests && hasDrivingLessons) {
+        orderType = 'drivings';
+      } 
+      // 3. Solo driving test → driving_test
+      else if (hasDrivingTests) {
+        orderType = 'driving_test';
+      } 
+      // 4. Solo driving lesson → driving_lesson
+      else if (hasDrivingLessons) {
+        orderType = 'driving_lesson';
+      }
+      
+      if (hasDrivingTests || hasDrivingLessons) {
+        // Crear appointments para driving tests y lessons
+        appointments = cartItems.map(item => {
+          if (item.classType === 'driving test') {
+            return {
+              slotId: `${item.date}-${item.start}-${item.end}`,
+              instructorId: item.instructorId,
+              instructorName: item.instructorName,
+              date: item.date,
+              start: item.start,
+              end: item.end,
+              classType: 'driving test',
+              amount: item.amount || item.price || 50,
+              status: 'pending'
+            };
+          } else if (item.classType === 'driving lesson' || item.packageDetails) {
+            // Para driving lessons, usar los slots seleccionados
+            return {
+              slotId: item.id || `${Date.now()}-${Math.random()}`,
+              instructorId: item.instructorId,
+              instructorName: item.instructorName,
+              date: item.date,
+              start: item.start,
+              end: item.end,
+              classType: 'driving lesson',
+              amount: item.price || 50,
+              status: 'pending'
+            };
+          }
+          return null;
+        }).filter(Boolean);
+        
+        // orderType ya se determinó arriba con la lógica de prioridad
+      }
+
+      // Procesar items del carrito para el payment gateway
       items = cartItems.map(item => ({
-        name: item.title || item.name || "Driving Service",
+        name: item.title || item.name || (item.classType === 'driving test' ? 'Driving Test' : 'Driving Service'),
         quantity: item.quantity || 1,
-        price: item.price || 0,
-        description: item.description || item.packageDetails || "Driving lesson package"
+        price: item.price || item.amount || 0,
+        description: item.description || item.packageDetails || (item.classType === 'driving test' ? 'Driving test appointment' : 'Driving lesson package')
       }));
 
       total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      // Crear nueva orden
+      // Crear nueva orden con appointments si es necesario
       const nextOrderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 100)}`;
-      const createdOrder = await Order.create({
+      const orderData: any = {
         userId,
+        orderType,
         items,
         total: Number(total.toFixed(2)),
         estado: 'pending',
         createdAt: new Date(),
         orderNumber: nextOrderNumber,
-      });
+      };
+      
+      if (appointments.length > 0) {
+        orderData.appointments = appointments;
+      }
+      
+      const createdOrder = await Order.create(orderData);
       console.log("[API][redirect] Orden creada:", createdOrder._id);
       finalOrderId = createdOrder._id.toString();
       
