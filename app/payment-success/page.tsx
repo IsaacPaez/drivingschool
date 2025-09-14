@@ -11,13 +11,94 @@ function PaymentSuccessContent() {
   const hasInitialized = useRef(false);
   const [countdown, setCountdown] = useState(5);
   const [transactionStatus, setTransactionStatus] = useState<string>("checking");
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [orderDetails, setOrderDetails] = useState<{orderNumber: string; total: number} | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [slotsUpdated, setSlotsUpdated] = useState<boolean | null>(null);
   const [isProcessingSlots, setIsProcessingSlots] = useState(false);
 
-  const startCountdown = () => {
+  const verifyAllSlotsUpdated = async (orderId: string) => {
+    try {
+      console.log("🔍 INTERNAL VERIFICATION: Checking if all slots are properly updated...");
+      
+      const orderResponse = await fetch(`/api/orders/details?orderId=${orderId}`);
+      if (!orderResponse.ok) {
+        console.error("❌ Failed to fetch order for verification");
+        return false;
+      }
+      
+      const orderData = await orderResponse.json();
+      const appointments = orderData.order.appointments || [];
+      
+      if (appointments.length === 0) {
+        console.log("✅ No appointments to verify");
+        return true;
+      }
+      
+      // Check each appointment slot status
+      let allVerified = true;
+      for (const appointment of appointments) {
+        if (appointment.slotId && appointment.instructorId) {
+          try {
+            // Check the actual slot status in the database
+            const verifyResponse = await fetch('/api/instructors/verify-slot-status', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                slotId: appointment.slotId,
+                instructorId: appointment.instructorId,
+                classType: appointment.classType
+              })
+            });
+            
+            if (verifyResponse.ok) {
+              const verifyResult = await verifyResponse.json();
+              if (verifyResult.status === 'booked' && verifyResult.paid === true) {
+                console.log(`✅ Slot ${appointment.slotId} verified as booked and paid`);
+              } else {
+                console.log(`❌ Slot ${appointment.slotId} NOT properly updated: status=${verifyResult.status}, paid=${verifyResult.paid}`);
+                allVerified = false;
+              }
+            } else {
+              console.error(`❌ Failed to verify slot ${appointment.slotId}`);
+              allVerified = false;
+            }
+          } catch (error) {
+            console.error(`❌ Error verifying slot ${appointment.slotId}:`, error);
+            allVerified = false;
+          }
+        }
+      }
+      
+      if (allVerified) {
+        console.log("✅ INTERNAL VERIFICATION PASSED: All slots properly updated");
+      } else {
+        console.error("❌ INTERNAL VERIFICATION FAILED: Some slots not properly updated");
+      }
+      
+      return allVerified;
+    } catch (error) {
+      console.error("❌ Error during internal verification:", error);
+      return false;
+    }
+  };
+
+  const startCountdown = async (orderId?: string) => {
+    // Internal verification before starting countdown
+    if (orderId) {
+      const verified = await verifyAllSlotsUpdated(orderId);
+      if (!verified) {
+        console.error("❌ Internal verification failed - NOT starting countdown");
+        setError("Verification failed. Please contact support if payment was charged.");
+        return;
+      }
+    }
+    
+    console.log("✅ Starting countdown after successful verification");
     const countdownTimer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -41,6 +122,7 @@ function PaymentSuccessContent() {
       const orderId = searchParams ? searchParams.get("orderId") : null;
       
       if (userId && orderId) {
+        setCurrentOrderId(orderId);
         try {
           const transactionResponse = await fetch(`/api/transactions/check-status`, {
             method: "POST",
@@ -394,7 +476,7 @@ function PaymentSuccessContent() {
         console.log('✅ Payment approved and slots updated - Starting countdown');
         setTimeout(() => {
           setShowCountdown(true);
-          startCountdown();
+          startCountdown(currentOrderId || undefined);
         }, 1000); // Esperar 1 segundo después de que se confirme el pago
       } else if (slotsUpdated === false) {
         console.log('❌ Payment approved but slots failed to update - NOT starting countdown');
@@ -404,7 +486,7 @@ function PaymentSuccessContent() {
         console.log('✅ Payment approved (no appointments) - Starting countdown');
         setTimeout(() => {
           setShowCountdown(true);
-          startCountdown();
+          startCountdown(currentOrderId || undefined);
         }, 1000);
       }
     }

@@ -50,17 +50,22 @@ export async function GET(req: NextRequest) {
       return new Response(stream.readable, { status: 404 });
     }
     
-    // Filter schedule to only include driving lesson slots
-    const fullSchedule = instructor.get('schedule_driving_lesson', { lean: true }) || [];
-    console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${fullSchedule.length} schedule_driving_lesson slots`);
+    // Get both driving lessons and driving tests
+    const drivingLessons = instructor.get('schedule_driving_lesson', { lean: true }) || [];
+    const drivingTests = instructor.get('schedule_driving_test', { lean: true }) || [];
+    
+    // Combine both schedules
+    const fullSchedule = [...drivingLessons, ...drivingTests];
+    
+    console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${drivingLessons.length} driving lessons + ${drivingTests.length} driving tests = ${fullSchedule.length} total slots`);
     
     if (fullSchedule.length > 0) {
-      console.log("📅 Sample driving lesson slots:", fullSchedule.slice(0, 3).map(s => ({ 
+      console.log("📅 Sample slots:", fullSchedule.slice(0, 3).map(s => ({ 
         date: s.date, 
         start: s.start, 
         end: s.end, 
         status: s.status,
-        classType: s.classType 
+        classType: s.classType || 'driving_lesson'
       })));
     }
     
@@ -106,10 +111,14 @@ export async function GET(req: NextRequest) {
             console.log(`🔄 Change detected for instructor ${instructorId} - sending update`);
             const instructor = await Instructor.findById(instructorId);
             if (instructor) {
-              // Get schedule_driving_lesson slots
-              const updatedSchedule = instructor.get('schedule_driving_lesson', { lean: true }) || [];
+              // Get both driving lessons and driving tests
+              const drivingLessons = instructor.get('schedule_driving_lesson', { lean: true }) || [];
+              const drivingTests = instructor.get('schedule_driving_test', { lean: true }) || [];
               
-              console.log(`🔄 Updated driving lessons schedule for ${instructorId}: ${updatedSchedule.length} driving lesson slots`);
+              // Combine both schedules
+              const updatedSchedule = [...drivingLessons, ...drivingTests];
+              
+              console.log(`🔄 Updated schedule for ${instructorId}: ${drivingLessons.length} driving lessons + ${drivingTests.length} driving tests = ${updatedSchedule.length} total slots`);
               sendEvent({ type: "update", schedule: updatedSchedule });
               lastUpdateTime = Date.now();
             }
