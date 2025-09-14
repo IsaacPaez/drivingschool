@@ -289,7 +289,7 @@ export async function GET(req: NextRequest) {
           console.log("[API][redirect] Siguiente número de orden:", nextOrderNumber);
           
           // Crear appointments si es necesario
-          let appointments = [];
+          let appointments: any[] = [];
           if (hasDrivingTests || hasDrivingLessons) {
             appointments = items.map(item => {
               if (item.classType === 'driving test') {
@@ -318,7 +318,7 @@ export async function GET(req: NextRequest) {
                 };
               }
               return null;
-            }).filter(Boolean);
+            }).filter((appointment): appointment is NonNullable<typeof appointment> => appointment !== null);
           }
           
           const orderData: any = {
@@ -524,7 +524,7 @@ export async function POST(req: NextRequest) {
       const hasDrivingLessons = cartItems.some(item => item.classType === 'driving lesson');
       
       let orderType = 'general';
-      let appointments = [];
+      let appointments: any[] = [];
       
       // Prioridad: 1. Si hay tickets/packages → package_class
       if (hasTickets) {
@@ -573,7 +573,7 @@ export async function POST(req: NextRequest) {
             };
           }
           return null;
-        }).filter(Boolean);
+        }).filter((appointment): appointment is NonNullable<typeof appointment> => appointment !== null);
         
         // orderType ya se determinó arriba con la lógica de prioridad
       }
