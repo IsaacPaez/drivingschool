@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine which schedule field to use based on classType
-    const isDrivingTest = classType === 'driving test';
+    const isDrivingTest = classType === 'driving_test' || classType === 'driving test';
     const scheduleField = isDrivingTest ? 'schedule_driving_test' : 'schedule_driving_lesson';
     
     console.log(`🔍 [FORCE UPDATE] Looking for ${isDrivingTest ? 'driving test' : 'driving lesson'} slot in ${scheduleField}`);
@@ -38,38 +38,86 @@ export async function POST(req: NextRequest) {
       console.log('✅ [FORCE UPDATE] Found instructor in Instructor collection');
       
       if (isDrivingTest) {
-        // For driving tests, parse slotId to get date/time (format: "2025-09-11-07:30-09:30")
-        const parts = slotId.split('-');
-        if (parts.length >= 5) {
-          const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
-          const start = parts[3];
-          const end = parts[4];
-          
-          console.log(`🔍 [FORCE UPDATE] Searching driving test slot: date=${date}, start=${start}, end=${end}`);
-          
-          updateResult = await Instructor.updateOne(
-            {
-              _id: instructorId,
-              [`${scheduleField}.date`]: date,
-              [`${scheduleField}.start`]: start,
-              [`${scheduleField}.end`]: end
-            },
-            {
-              $set: {
-                [`${scheduleField}.$.status`]: status,
-                [`${scheduleField}.$.paid`]: paid,
-                [`${scheduleField}.$.paymentId`]: paymentId,
-                [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
-                [`${scheduleField}.$.booked`]: status === 'booked'
-              }
+        // Strategy 1: Try to update by _id directly (in case slotId is the actual _id)
+        updateResult = await Instructor.updateOne(
+          {
+            _id: instructorId,
+            [`${scheduleField}._id`]: slotId
+          },
+          {
+            $set: {
+              [`${scheduleField}.$.status`]: status,
+              [`${scheduleField}.$.paid`]: paid,
+              [`${scheduleField}.$.paymentId`]: paymentId,
+              [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+              [`${scheduleField}.$.booked`]: status === 'booked'
             }
-          );
-        } else {
-          console.error('❌ [FORCE UPDATE] Invalid driving test slotId format:', slotId);
-          return NextResponse.json(
-            { error: "Invalid slotId format for driving test" },
-            { status: 400 }
-          );
+          }
+        );
+        
+        console.log(`🎯 [FORCE UPDATE] Strategy 1 (by _id): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+        
+        // Strategy 2: If not found, try date-time format (format: "2025-09-11-07:30-09:30")
+        if (updateResult.modifiedCount === 0 && slotId.includes('-')) {
+          const parts = slotId.split('-');
+          if (parts.length >= 5) {
+            const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+            const start = parts[3];
+            const end = parts[4];
+            
+            console.log(`🔍 [FORCE UPDATE] Strategy 2 - Searching driving test slot: date=${date}, start=${start}, end=${end}`);
+            
+            updateResult = await Instructor.updateOne(
+              {
+                _id: instructorId,
+                [`${scheduleField}.date`]: date,
+                [`${scheduleField}.start`]: start,
+                [`${scheduleField}.end`]: end
+              },
+              {
+                $set: {
+                  [`${scheduleField}.$.status`]: status,
+                  [`${scheduleField}.$.paid`]: paid,
+                  [`${scheduleField}.$.paymentId`]: paymentId,
+                  [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                  [`${scheduleField}.$.booked`]: status === 'booked'
+                }
+              }
+            );
+            
+            console.log(`🎯 [FORCE UPDATE] Strategy 2 (by date-time): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+          }
+        }
+        
+        // Strategy 3: If still not found, try to find by status=pending and date matching
+        if (updateResult.modifiedCount === 0 && slotId.includes('-')) {
+          const parts = slotId.split('-');
+          if (parts.length >= 5) {
+            const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+            const start = parts[3];
+            
+            console.log(`🔍 [FORCE UPDATE] Strategy 3 - Searching pending slot with date=${date}, start=${start}`);
+            
+            updateResult = await Instructor.updateOne(
+              {
+                _id: instructorId,
+                [`${scheduleField}.date`]: date,
+                [`${scheduleField}.start`]: start,
+                [`${scheduleField}.status`]: 'pending'
+              },
+              {
+                $set: {
+                  [`${scheduleField}.$.status`]: status,
+                  [`${scheduleField}.$.paid`]: paid,
+                  [`${scheduleField}.$.paymentId`]: paymentId,
+                  [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                  [`${scheduleField}.$.booked`]: status === 'booked'
+                }
+              }
+            );
+            
+            console.log(`🎯 [FORCE UPDATE] Strategy 3 (by pending + date): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+          }
         }
       } else {
         // For driving lessons, use slotId directly
@@ -96,36 +144,86 @@ export async function POST(req: NextRequest) {
         console.log('✅ [FORCE UPDATE] Found instructor in User collection');
         
         if (isDrivingTest) {
-          // For driving tests in User model
-          const parts = slotId.split('-');
-          if (parts.length >= 5) {
-            const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
-            const start = parts[3];
-            const end = parts[4];
-            
-            updateResult = await User.updateOne(
-              {
-                _id: instructorId,
-                [`${scheduleField}.date`]: date,
-                [`${scheduleField}.start`]: start,
-                [`${scheduleField}.end`]: end
-              },
-              {
-                $set: {
-                  [`${scheduleField}.$.status`]: status,
-                  [`${scheduleField}.$.paid`]: paid,
-                  [`${scheduleField}.$.paymentId`]: paymentId,
-                  [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
-                  [`${scheduleField}.$.booked`]: status === 'booked'
-                }
+          // Strategy 1: Try to update by _id directly (in case slotId is the actual _id)
+          updateResult = await User.updateOne(
+            {
+              _id: instructorId,
+              [`${scheduleField}._id`]: slotId
+            },
+            {
+              $set: {
+                [`${scheduleField}.$.status`]: status,
+                [`${scheduleField}.$.paid`]: paid,
+                [`${scheduleField}.$.paymentId`]: paymentId,
+                [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                [`${scheduleField}.$.booked`]: status === 'booked'
               }
-            );
-          } else {
-            console.error('❌ [FORCE UPDATE] Invalid driving test slotId format:', slotId);
-            return NextResponse.json(
-              { error: "Invalid slotId format for driving test" },
-              { status: 400 }
-            );
+            }
+          );
+          
+          console.log(`🎯 [FORCE UPDATE] User Strategy 1 (by _id): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+          
+          // Strategy 2: If not found, try date-time format (format: "2025-09-11-07:30-09:30")
+          if (updateResult.modifiedCount === 0 && slotId.includes('-')) {
+            const parts = slotId.split('-');
+            if (parts.length >= 5) {
+              const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+              const start = parts[3];
+              const end = parts[4];
+              
+              console.log(`🔍 [FORCE UPDATE] User Strategy 2 - Searching driving test slot: date=${date}, start=${start}, end=${end}`);
+              
+              updateResult = await User.updateOne(
+                {
+                  _id: instructorId,
+                  [`${scheduleField}.date`]: date,
+                  [`${scheduleField}.start`]: start,
+                  [`${scheduleField}.end`]: end
+                },
+                {
+                  $set: {
+                    [`${scheduleField}.$.status`]: status,
+                    [`${scheduleField}.$.paid`]: paid,
+                    [`${scheduleField}.$.paymentId`]: paymentId,
+                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.booked`]: status === 'booked'
+                  }
+                }
+              );
+              
+              console.log(`🎯 [FORCE UPDATE] User Strategy 2 (by date-time): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+            }
+          }
+          
+          // Strategy 3: If still not found, try to find by status=pending and date matching
+          if (updateResult.modifiedCount === 0 && slotId.includes('-')) {
+            const parts = slotId.split('-');
+            if (parts.length >= 5) {
+              const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
+              const start = parts[3];
+              
+              console.log(`🔍 [FORCE UPDATE] User Strategy 3 - Searching pending slot with date=${date}, start=${start}`);
+              
+              updateResult = await User.updateOne(
+                {
+                  _id: instructorId,
+                  [`${scheduleField}.date`]: date,
+                  [`${scheduleField}.start`]: start,
+                  [`${scheduleField}.status`]: 'pending'
+                },
+                {
+                  $set: {
+                    [`${scheduleField}.$.status`]: status,
+                    [`${scheduleField}.$.paid`]: paid,
+                    [`${scheduleField}.$.paymentId`]: paymentId,
+                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.booked`]: status === 'booked'
+                  }
+                }
+              );
+              
+              console.log(`🎯 [FORCE UPDATE] User Strategy 3 (by pending + date): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+            }
           }
         } else {
           // For driving lessons in User model
