@@ -193,8 +193,8 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
       console.log("🛒 [DEBUG] Response data:", data);
       
       if (data.redirectUrl) {
-        console.log("🛒 [DEBUG] Clearing cart and redirecting to:", data.redirectUrl);
-        clearCart();
+        console.log("🛒 [DEBUG] Redirecting to payment gateway:", data.redirectUrl);
+        console.log("🛒 [DEBUG] Cart will be cleared only after successful payment");
         window.location.href = data.redirectUrl;
       } else {
         console.error("🛒 [DEBUG] No redirectUrl in response:", data);

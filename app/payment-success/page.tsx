@@ -2,10 +2,12 @@
 import React, { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import { useCart } from "../context/CartContext";
 
 function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { clearCart } = useCart();
   const hasInitialized = useRef(false);
   const [countdown, setCountdown] = useState(5);
   const [transactionStatus, setTransactionStatus] = useState<string>("checking");
@@ -53,6 +55,10 @@ function PaymentSuccessContent() {
             
             if (transactionData.success) {
               setTransactionStatus("approved");
+              
+              // ✅ Clear cart after successful payment
+              console.log("🛒 Payment approved - clearing cart");
+              clearCart();
               
               try {
                 const orderResponse = await fetch(`/api/orders/details?orderId=${orderId}`);
@@ -180,7 +186,10 @@ function PaymentSuccessContent() {
                             slotId: appointment.slotId,
                             classType: appointment.classType,
                             instructorId: appointment.instructorId,
-                            orderType: orderData.order.orderType
+                            orderType: orderData.order.orderType,
+                            date: appointment.date,
+                            start: appointment.start,
+                            end: appointment.end
                           });
                           
                           const directUpdateResponse = await fetch('/api/instructors/update-slot-status', {
