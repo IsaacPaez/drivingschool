@@ -10,7 +10,7 @@ import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
-import { useScheduleSSE } from "@/hooks/useScheduleSSE";
+import { useScheduleWebSocket } from "@/hooks/useScheduleWebSocket";
 import { useRouter } from "next/navigation";
 
 // Google Maps configuration - removed as not needed for driving test
@@ -135,16 +135,16 @@ export default function BookNowPage() {
     }
   };
 
-  // Use SSE hook instead of polling
-  const { schedule: sseSchedule, error: sseError, isConnected } = useScheduleSSE(selectedInstructorId);
+  // Use WebSocket hook instead of SSE
+  const { schedule: wsSchedule, error: wsError, isConnected } = useScheduleWebSocket(selectedInstructorId);
 
-  // Debug SSE connection
+  // Debug WebSocket connection
   useEffect(() => {
     // Debug logs (commented out for production)
-    // if (sseError) console.log("❌ SSE Error:", sseError);
-    // if (isConnected) console.log("✅ SSE Connected successfully");
+    // if (wsError) console.log("❌ WebSocket Error:", wsError);
+    // if (isConnected) console.log("✅ WebSocket Connected successfully");
     // if (selectedInstructorId) console.log("🎯 Selected instructor ID:", selectedInstructorId);
-  }, [sseError, isConnected, selectedInstructorId]);
+  }, [wsError, isConnected, selectedInstructorId]);
 
   useEffect(() => {
     async function fetchLocations() {
@@ -166,26 +166,26 @@ export default function BookNowPage() {
     fetchLocations();
   }, []);
 
-  // Process SSE schedule data
+  // Process WebSocket schedule data
   useEffect(() => {
     if (!selectedInstructorId) {
       setIsLoadingSchedule(false);
       return;
     }
 
-    if (!sseSchedule) {
+    if (!wsSchedule) {
       setIsLoadingSchedule(true);
       return;
     }
     
-    // console.log('🔍 Processing SSE schedule data:', {
+    // console.log('🔍 Processing WebSocket schedule data:', {
     //   selectedInstructorId,
-    //   sseScheduleLength: Array.isArray(sseSchedule) ? sseSchedule.length : 'not array',
-    //   sseSchedule: sseSchedule
+    //   wsScheduleLength: Array.isArray(wsSchedule) ? wsSchedule.length : 'not array',
+    //   wsSchedule: wsSchedule
     // });
     
     // Los datos de schedule_driving_test ya son de tipo "driving test", no necesitamos filtrar
-    const scheduleSlots = Array.isArray(sseSchedule) ? sseSchedule as SlotWithDate[] : [];
+    const scheduleSlots = Array.isArray(wsSchedule) ? wsSchedule as SlotWithDate[] : [];
     
     // console.log('📋 Schedule slots to display:', scheduleSlots.length, scheduleSlots);
     
@@ -222,7 +222,7 @@ export default function BookNowPage() {
       // console.log("❌ No instructor base found for ID:", selectedInstructorId);
       setIsLoadingSchedule(false);
     }
-  }, [sseSchedule, selectedInstructorId, instructors]);
+  }, [wsSchedule, selectedInstructorId, instructors]);
 
   useEffect(() => {
     if (
@@ -644,11 +644,11 @@ export default function BookNowPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      userId,
-                      instructorId: selectedSlot.instructorId,
-                      date: selectedSlot.date,
-                      start: selectedSlot.start,
-                      end: selectedSlot.end,
+            userId,
+              instructorId: selectedSlot.instructorId,
+              date: selectedSlot.date,
+              start: selectedSlot.start,
+              end: selectedSlot.end,
                       classType: 'driving test',
               amount: selectedSlot.amount || 50,
               pickupLocation: '',
@@ -670,21 +670,21 @@ export default function BookNowPage() {
             title: 'Driving Test',
             price: selectedSlot.amount || 50,
             quantity: 1,
-            instructorId: selectedSlot.instructorId,
+                      instructorId: selectedSlot.instructorId,
             instructorName: selectedInstructor?.name || 'Unknown Instructor',
-            date: selectedSlot.date,
-            start: selectedSlot.start,
-            end: selectedSlot.end,
+                      date: selectedSlot.date,
+                      start: selectedSlot.start,
+                      end: selectedSlot.end,
             classType: 'driving test'
           });
 
-          setIsBookingModalOpen(false);
-          setSelectedSlot(null);
+                    setIsBookingModalOpen(false);
+                    setSelectedSlot(null);
           
           // No need to show confirmation modal - item is added to cart silently
           console.log('✅ Driving test added to cart successfully - no modal needed');
             
-        } catch (error) {
+              } catch (error) {
           console.error('❌ Error adding driving test to cart:', error);
           alert(`Error adding to cart: ${error.message || 'Please try again.'}`);
                 }
@@ -1010,7 +1010,7 @@ export default function BookNowPage() {
                       </div>
                     </div>
                   )}
-                  {sseError && (
+                  {wsError && (
                     <div className="absolute top-2 right-2 bg-red-100 border border-red-300 rounded px-3 py-1 z-20">
                       <p className="text-red-600 text-xs">Connection error</p>
                     </div>
