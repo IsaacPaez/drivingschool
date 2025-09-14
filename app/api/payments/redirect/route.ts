@@ -253,9 +253,20 @@ export async function GET(req: NextRequest) {
         
         let currentOrderType = 'general';
         
-        // Prioridad: 1. Si hay tickets/packages → package_class
+        // Prioridad: 1. Si hay tickets → ticket_class, packages → package_class
         if (hasTickets) {
-          currentOrderType = 'package_class';
+          // Distinguir entre ticket classes y packages
+          const hasTicketClasses = items.some(item => item.classType === 'ticket');
+          const hasPackages = items.some(item => item.packageDetails || item.title?.toLowerCase().includes('package'));
+          
+          if (hasTicketClasses && !hasPackages) {
+            currentOrderType = 'ticket_class';
+          } else if (hasPackages && !hasTicketClasses) {
+            currentOrderType = 'package_class';
+          } else {
+            // Si hay ambos, priorizar package_class
+            currentOrderType = 'package_class';
+          }
         }
         // 2. Si hay driving test + driving lesson → drivings  
         else if (hasDrivingTests && hasDrivingLessons) {
@@ -290,7 +301,7 @@ export async function GET(req: NextRequest) {
           
           // Crear appointments si es necesario
           let appointments: any[] = [];
-          if (hasDrivingTests || hasDrivingLessons) {
+          if (hasDrivingTests || hasDrivingLessons || hasTickets) {
             appointments = items.map(item => {
               if (item.classType === 'driving test') {
                 return {
@@ -313,6 +324,20 @@ export async function GET(req: NextRequest) {
                   start: item.start,
                   end: item.end,
                   classType: 'driving lesson',
+                  amount: item.price || 50,
+                  status: 'pending'
+                };
+              } else if (item.classType === 'ticket') {
+                return {
+                  slotId: item.ticketClassId || item.id,
+                  ticketClassId: item.ticketClassId,
+                  classId: item.id,
+                  instructorId: item.instructorId,
+                  instructorName: item.instructorName,
+                  date: item.date,
+                  start: item.start,
+                  end: item.end,
+                  classType: 'ticket_class',
                   amount: item.price || 50,
                   status: 'pending'
                 };
@@ -526,9 +551,20 @@ export async function POST(req: NextRequest) {
       let orderType = 'general';
       let appointments: any[] = [];
       
-      // Prioridad: 1. Si hay tickets/packages → package_class
+      // Prioridad: 1. Si hay tickets → ticket_class, packages → package_class
       if (hasTickets) {
-        orderType = 'package_class';
+        // Distinguir entre ticket classes y packages
+        const hasTicketClasses = cartItems.some(item => item.classType === 'ticket');
+        const hasPackages = cartItems.some(item => item.packageDetails || item.title?.toLowerCase().includes('package'));
+        
+        if (hasTicketClasses && !hasPackages) {
+          orderType = 'ticket_class';
+        } else if (hasPackages && !hasTicketClasses) {
+          orderType = 'package_class';
+        } else {
+          // Si hay ambos, priorizar package_class
+          orderType = 'package_class';
+        }
       }
       // 2. Si hay driving test + driving lesson → drivings  
       else if (hasDrivingTests && hasDrivingLessons) {
@@ -543,8 +579,8 @@ export async function POST(req: NextRequest) {
         orderType = 'driving_lesson';
       }
       
-      if (hasDrivingTests || hasDrivingLessons) {
-        // Crear appointments para driving tests y lessons
+      if (hasDrivingTests || hasDrivingLessons || hasTickets) {
+        // Crear appointments para driving tests, lessons y ticket classes
         appointments = cartItems.map(item => {
           if (item.classType === 'driving test') {
             return {
@@ -568,6 +604,21 @@ export async function POST(req: NextRequest) {
               start: item.start,
               end: item.end,
               classType: 'driving lesson',
+              amount: item.price || 50,
+              status: 'pending'
+            };
+          } else if (item.classType === 'ticket') {
+            // Para ticket classes, usar ticketClassId
+            return {
+              slotId: item.ticketClassId || item.id,
+              ticketClassId: item.ticketClassId,
+              classId: item.id,
+              instructorId: item.instructorId,
+              instructorName: item.instructorName,
+              date: item.date,
+              start: item.start,
+              end: item.end,
+              classType: 'ticket_class',
               amount: item.price || 50,
               status: 'pending'
             };
