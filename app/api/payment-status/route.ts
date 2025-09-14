@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (paymentStatus === 'completed') {
-      // Update all pending slots for this user and product to 'booked'
-      const result = await User.updateMany(
+      // Update all pending driving lesson slots for this user and product to 'booked'
+      const drivingLessonResult = await User.updateMany(
         {
           role: 'instructor',
           'schedule_driving_lesson': {
@@ -43,15 +43,42 @@ export async function POST(request: NextRequest) {
         }
       );
 
+      // Update all pending driving test slots for this user and product to 'booked'
+      const drivingTestResult = await User.updateMany(
+        {
+          role: 'instructor',
+          'schedule_driving_test': {
+            $elemMatch: {
+              studentId: userId,
+              selectedProduct: productId,
+              status: 'pending'
+            }
+          }
+        },
+        {
+          $set: {
+            'schedule_driving_test.$.status': 'booked',
+            'schedule_driving_test.$.paid': true,
+            'schedule_driving_test.$.paymentId': paymentId,
+            'schedule_driving_test.$.confirmedAt': new Date()
+          }
+        }
+      );
+
+      const totalUpdated = drivingLessonResult.modifiedCount + drivingTestResult.modifiedCount;
+      console.log(`✅ Payment confirmed: ${drivingLessonResult.modifiedCount} driving lessons + ${drivingTestResult.modifiedCount} driving tests updated`);
+
       return NextResponse.json({
         success: true,
         message: 'Payment confirmed and slots booked',
-        slotsUpdated: result.modifiedCount
+        slotsUpdated: totalUpdated,
+        drivingLessons: drivingLessonResult.modifiedCount,
+        drivingTests: drivingTestResult.modifiedCount
       });
 
     } else if (paymentStatus === 'failed' || paymentStatus === 'cancelled') {
-      // Revert pending slots back to available
-      const result = await User.updateMany(
+      // Revert pending driving lesson slots back to available
+      const drivingLessonResult = await User.updateMany(
         {
           role: 'instructor',
           'schedule_driving_lesson': {
@@ -76,10 +103,41 @@ export async function POST(request: NextRequest) {
         }
       );
 
+      // Revert pending driving test slots back to available
+      const drivingTestResult = await User.updateMany(
+        {
+          role: 'instructor',
+          'schedule_driving_test': {
+            $elemMatch: {
+              studentId: userId,
+              selectedProduct: productId,
+              status: 'pending'
+            }
+          }
+        },
+        {
+          $set: {
+            'schedule_driving_test.$.status': 'available',
+            'schedule_driving_test.$.studentId': null,
+            'schedule_driving_test.$.selectedProduct': null,
+            'schedule_driving_test.$.pickupLocation': null,
+            'schedule_driving_test.$.dropOffLocation': null,
+            'schedule_driving_test.$.paymentMethod': null,
+            'schedule_driving_test.$.requestDate': null,
+            'schedule_driving_test.$.paid': false
+          }
+        }
+      );
+
+      const totalReverted = drivingLessonResult.modifiedCount + drivingTestResult.modifiedCount;
+      console.log(`❌ Payment failed/cancelled: ${drivingLessonResult.modifiedCount} driving lessons + ${drivingTestResult.modifiedCount} driving tests reverted`);
+
       return NextResponse.json({
         success: true,
         message: 'Payment failed, slots returned to available',
-        slotsUpdated: result.modifiedCount
+        slotsUpdated: totalReverted,
+        drivingLessons: drivingLessonResult.modifiedCount,
+        drivingTests: drivingTestResult.modifiedCount
       });
     }
 
