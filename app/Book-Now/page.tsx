@@ -136,7 +136,7 @@ export default function BookNowPage() {
   };
 
   // Use SSE hook instead of polling
-  const { schedule: sseSchedule, error: sseError, isConnected } = useScheduleSSE(selectedInstructorId);
+  const { schedule: sseSchedule, error: sseError, isConnected, isReady } = useScheduleSSE(selectedInstructorId);
 
   // Debug SSE connection
   useEffect(() => {
@@ -173,7 +173,8 @@ export default function BookNowPage() {
       return;
     }
 
-    if (!sseSchedule) {
+    // Esperar a que el SSE entregue el primer payload estable
+    if (!isReady) {
       setIsLoadingSchedule(true);
       return;
     }
@@ -222,7 +223,7 @@ export default function BookNowPage() {
       // console.log("❌ No instructor base found for ID:", selectedInstructorId);
       setIsLoadingSchedule(false);
     }
-  }, [sseSchedule, selectedInstructorId, instructors]);
+  }, [sseSchedule, selectedInstructorId, instructors, isReady]);
 
   useEffect(() => {
     if (
