@@ -22,14 +22,19 @@ export async function GET(request: NextRequest) {
     
     // Filtrar por tipo de instructor
     if (type === 'driving-lessons') {
-      // Buscar instructores que tengan driving lessons o todos si no hay específicos
+      // Buscar instructores que tengan driving lessons en su schedule, independientemente de canTeachDrivingLesson
       filter = {
         $or: [
           { canTeachDrivingLesson: true },
           { category: 'driving-lessons' },
           { type: 'driving-lessons' },
           { specialization: { $in: ['driving', 'driving-lessons', 'road-skills'] } },
-          { schedule_driving_lesson: { $exists: true } }
+          { 
+            schedule_driving_lesson: { 
+              $exists: true, 
+              $not: { $size: 0 } 
+            } 
+          }
         ]
       };
     }

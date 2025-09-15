@@ -166,7 +166,7 @@ export default function BookNowPage() {
     fetchLocations();
   }, []);
 
-  // Process SSE schedule data
+  // Process SSE schedule data with debouncing
   useEffect(() => {
     if (!selectedInstructorId) {
       setIsLoadingSchedule(false);
@@ -179,16 +179,10 @@ export default function BookNowPage() {
       return;
     }
     
-    // console.log('🔍 Processing SSE schedule data:', {
-    //   selectedInstructorId,
-    //   sseScheduleLength: Array.isArray(sseSchedule) ? sseSchedule.length : 'not array',
-    //   sseSchedule: sseSchedule
-    // });
-    
+    // Debounce processing to avoid excessive updates
+    const timeoutId = setTimeout(() => {
     // Los datos de schedule_driving_test ya son de tipo "driving test", no necesitamos filtrar
     const scheduleSlots = Array.isArray(sseSchedule) ? sseSchedule as SlotWithDate[] : [];
-    
-    // console.log('📋 Schedule slots to display:', scheduleSlots.length, scheduleSlots);
     
     const groupedSchedule: Schedule[] = Object.values(
       scheduleSlots.reduce((acc, curr) => {
@@ -209,20 +203,18 @@ export default function BookNowPage() {
       }, {} as Record<string, { date: string; slots: Slot[] }>)
     );
     
-    // console.log('📅 Grouped schedule:', groupedSchedule);
-    
     // Busca el instructor base por ID
     const base = instructors.find(i => i._id === selectedInstructorId);
-    // console.log('👨‍🏫 Found instructor base:', base?.name, 'with ID:', base?._id);
     
     if (base) {
       setSelectedInstructor({ ...base, schedule: groupedSchedule });
       setIsLoadingSchedule(false);
-      // console.log("✅ Instructor schedule updated:", groupedSchedule.length, "days with slots");
     } else {
-      // console.log("❌ No instructor base found for ID:", selectedInstructorId);
       setIsLoadingSchedule(false);
     }
+    }, 100); // 100ms debounce
+
+    return () => clearTimeout(timeoutId);
   }, [sseSchedule, selectedInstructorId, instructors, isReady]);
 
   useEffect(() => {

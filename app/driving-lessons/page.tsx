@@ -87,7 +87,25 @@ function DrivingLessonsContent() {
     instructors.map(instructor => instructor._id), 
     [instructors]
   );
-  useAllDrivingLessonsSSE(instructorIds);
+  
+  // Only use SSE when we have instructors and they're not empty
+  const { 
+    schedules, 
+    getScheduleForInstructor, 
+    isConnectedForInstructor,
+    getAllSchedules 
+  } = useAllDrivingLessonsSSE(instructorIds.length > 0 ? instructorIds : []);
+
+  // Debug: Log SSE data
+  useEffect(() => {
+    if (schedules.size > 0) {
+      console.log("🔍 Debug - SSE data for all instructors:");
+      schedules.forEach((schedule, instructorId) => {
+        const instructor = instructors.find(i => i._id === instructorId);
+        console.log(`${instructor?.name || 'Unknown'} (${instructorId}): ${schedule.length} slots`);
+      });
+    }
+  }, [schedules, instructors]);
 
   // Function to immediately update selected slots to pending status locally
   const updateSlotsTopending = () => {
@@ -170,7 +188,7 @@ function DrivingLessonsContent() {
   const fetchInstructors = useCallback(async () => {
     console.log("🔄 Fetching instructors...");
     try {
-      const res = await fetch('/api/instructors?type=driving-lessons', {
+      const res = await fetch('/api/instructors?type=driving-lessons&includeSchedule=true', {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
@@ -182,6 +200,12 @@ function DrivingLessonsContent() {
       if (res.ok) {
         const data = await res.json();
         console.log('👨‍🏫 Instructors obtained:', data.length, 'instructors');
+        
+        // Debug: Log each instructor's schedule
+        data.forEach((instructor: Instructor) => {
+          const scheduleCount = instructor.schedule_driving_lesson?.length || 0;
+          console.log(`📋 ${instructor.name}: ${scheduleCount} driving lessons in schedule`);
+        });
         
         setInstructors(data);
         console.log('✅ Instructors updated successfully');

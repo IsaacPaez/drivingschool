@@ -11,151 +11,133 @@ interface InstructorSchedule {
   schedule: unknown[];
 }
 
+// Global connection manager for driving lessons
+const globalDrivingLessonsConnections = new Map<string, {
+  eventSource: EventSource;
+  refCount: number;
+  lastUsed: number;
+}>();
+
+const cleanupDrivingLessonsInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [key, conn] of globalDrivingLessonsConnections.entries()) {
+    if (now - conn.lastUsed > 30000) { // 30 seconds idle
+      conn.eventSource.close();
+      globalDrivingLessonsConnections.delete(key);
+    }
+  }
+}, 10000);
+
 export function useAllDrivingLessonsSSE(instructorIds: string[]) {
   const [schedules, setSchedules] = useState<Map<string, unknown[]>>(new Map());
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const [connections, setConnections] = useState<Map<string, boolean>>(new Map());
-  const eventSourceRefs = useRef<Map<string, EventSource>>(new Map());
-  const reconnectTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const reconnectAttempts = useRef<Map<string, number>>(new Map());
-
-  const createConnection = useCallback((instructorId: string) => {
-    // Clear any existing timeout
-    const existingTimeout = reconnectTimeouts.current.get(instructorId);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-      reconnectTimeouts.current.delete(instructorId);
-    }
-
-    // Close existing connection if any
-    const existingConnection = eventSourceRefs.current.get(instructorId);
-    if (existingConnection) {
-      existingConnection.close();
-    }
-
-    const eventSource = new EventSource(`/api/driving-lessons/schedule-updates?id=${instructorId}`);
-    eventSourceRefs.current.set(instructorId, eventSource);
-
-    eventSource.onopen = () => {
-      setConnections(prev => new Map(prev.set(instructorId, true)));
-      setErrors(prev => {
-        const newErrors = new Map(prev);
-        newErrors.delete(instructorId);
-        return newErrors;
-      });
-      // Reset reconnect attempts on successful connection
-      reconnectAttempts.current.set(instructorId, 0);
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data: ScheduleData = JSON.parse(event.data);
-        
-        // Only log initial data, not every update to reduce console spam
-        if (data.type === 'initial') {
-          console.log("📡 Driving Lessons SSE initial data received for instructor", instructorId, ":", data.schedule?.length || 0, "slots");
-        }
-        
-        if (data.type === 'initial' || data.type === 'update') {
-          if (data.schedule) {
-            setSchedules(prev => new Map(prev.set(instructorId, data.schedule!)));
-          }
-        } else if (data.type === 'error') {
-          // Only log actual server errors, not connection issues
-          if (data.message && !data.message.includes('Connection') && !data.message.includes('reconnect')) {
-            console.log("❌ Driving Lessons SSE Error for instructor", instructorId, ":", data.message);
-          }
-        }
-      } catch {
-        // Silently handle parse errors - they're usually from connection drops
-      }
-    };
-
-    eventSource.onerror = () => {
-      setConnections(prev => new Map(prev.set(instructorId, false)));
-      
-      // Implement exponential backoff for reconnection
-      const attempts = reconnectAttempts.current.get(instructorId) || 0;
-      const maxAttempts = 5;
-      
-      if (attempts < maxAttempts) {
-        const backoffTime = Math.min(1000 * Math.pow(2, attempts), 30000); // Max 30 seconds
-        reconnectAttempts.current.set(instructorId, attempts + 1);
-        
-        const timeout = setTimeout(() => {
-          if (instructorIds.includes(instructorId)) {
-            createConnection(instructorId);
-          }
-        }, backoffTime);
-        
-        reconnectTimeouts.current.set(instructorId, timeout);
-      }
-    };
-  }, [instructorIds]);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    // Only reconnect if the instructor IDs have actually changed
-    const currentIds = Array.from(eventSourceRefs.current.keys()).sort();
-    const newIds = [...instructorIds].sort();
-    
-    // Check if the arrays are the same
-    if (currentIds.length === newIds.length && 
-        currentIds.every((id, index) => id === newIds[index])) {
-      return;
-    }
+    if (!mountedRef.current) return;
 
-    // Clean up all existing connections and timeouts
-    const currentEventSources = eventSourceRefs.current;
-    const currentTimeouts = reconnectTimeouts.current;
-    const currentAttempts = reconnectAttempts.current;
+    // Clean up old connections that are no longer needed
+    const currentConnections = Array.from(globalDrivingLessonsConnections.keys());
+    const connectionsToRemove = currentConnections.filter(id => !instructorIds.includes(id));
     
-    currentEventSources.forEach((eventSource) => {
-      eventSource.close();
+    connectionsToRemove.forEach(instructorId => {
+      const connection = globalDrivingLessonsConnections.get(instructorId);
+      if (connection) {
+        connection.eventSource.close();
+        globalDrivingLessonsConnections.delete(instructorId);
+      }
     });
-    currentEventSources.clear();
-    
-    currentTimeouts.forEach((timeout) => {
-      clearTimeout(timeout);
-    });
-    currentTimeouts.clear();
-    currentAttempts.clear();
-    
-    setSchedules(new Map());
-    setErrors(new Map());
-    setConnections(new Map());
 
-    if (instructorIds.length === 0) {
-      return;
-    }
-
-    // Create SSE connections for each instructor
-    instructorIds.forEach((instructorId) => {
-      createConnection(instructorId);
+    // Create connections for new instructor IDs
+    instructorIds.forEach(instructorId => {
+      const connectionKey = `driving-lessons-${instructorId}`;
+      let connection = globalDrivingLessonsConnections.get(connectionKey);
+      
+      if (!connection) {
+        const eventSource = new EventSource(`/api/driving-lessons/schedule-updates?id=${instructorId}`);
+        
+        connection = {
+          eventSource,
+          refCount: 0,
+          lastUsed: Date.now()
+        };
+        
+        globalDrivingLessonsConnections.set(connectionKey, connection);
+        
+        eventSource.onopen = () => {
+          if (mountedRef.current) {
+            setConnections(prev => new Map(prev.set(instructorId, true)));
+            setErrors(prev => {
+              const newErrors = new Map(prev);
+              newErrors.delete(instructorId);
+              return newErrors;
+            });
+          }
+        };
+        
+        eventSource.onmessage = (event) => {
+          if (!mountedRef.current) return;
+          
+          try {
+            const data: ScheduleData = JSON.parse(event.data);
+            
+            if (data.type === 'initial' || data.type === 'update') {
+              if (data.schedule) {
+                setSchedules(prev => new Map(prev.set(instructorId, data.schedule!)));
+              }
+            } else if (data.type === 'error') {
+              if (data.message && !data.message.includes('Connection') && !data.message.includes('reconnect')) {
+                setErrors(prev => new Map(prev.set(instructorId, data.message!)));
+              }
+            }
+          } catch {
+            // Silently handle parse errors
+          }
+        };
+        
+        eventSource.onerror = () => {
+          if (mountedRef.current) {
+            setConnections(prev => new Map(prev.set(instructorId, false)));
+          }
+        };
+      }
+      
+      // Increment reference count
+      connection.refCount++;
+      connection.lastUsed = Date.now();
     });
 
     // Cleanup function
     return () => {
-      currentEventSources.forEach((eventSource) => {
-        eventSource.close();
-      });
-      currentEventSources.clear();
+      mountedRef.current = false;
       
-      currentTimeouts.forEach((timeout) => {
-        clearTimeout(timeout);
+      instructorIds.forEach(instructorId => {
+        const connectionKey = `driving-lessons-${instructorId}`;
+        const connection = globalDrivingLessonsConnections.get(connectionKey);
+        
+        if (connection) {
+          connection.refCount--;
+          connection.lastUsed = Date.now();
+          
+          // Close connection if no more references
+          if (connection.refCount <= 0) {
+            connection.eventSource.close();
+            globalDrivingLessonsConnections.delete(connectionKey);
+          }
+        }
       });
-      currentTimeouts.clear();
-      currentAttempts.clear();
       
       setConnections(new Map());
     };
-  }, [instructorIds, createConnection]);
+  }, [instructorIds]);
 
   // Manual cleanup function
   const disconnect = useCallback(() => {
-    eventSourceRefs.current.forEach((eventSource) => {
-      eventSource.close();
+    globalDrivingLessonsConnections.forEach((connection) => {
+      connection.eventSource.close();
     });
-    eventSourceRefs.current.clear();
+    globalDrivingLessonsConnections.clear();
     setConnections(new Map());
   }, []);
 
