@@ -393,9 +393,13 @@ export async function GET(req: NextRequest) {
                   end: item.end
                 });
                 
+                // Para ticket class, el slotId debe ser específico del slot seleccionado
+                // Crear un slotId único basado en la fecha y hora seleccionada
+                const ticketSlotId = `${item.ticketClassId}_${item.date}_${item.start}_${item.end}`;
+                
                 appointments.push({
-                  slotId: item.ticketClassId || item.id,
-                  ticketClassId: item.ticketClassId,
+                  slotId: ticketSlotId, // ← Usar slotId específico para el slot de ticket class
+                  ticketClassId: item.ticketClassId, // ← ID de la ticket class (para buscar en TicketClass collection)
                   classId: item.id,
                   studentId: userId, // ← AGREGAR studentId para payment-success
                   instructorId: item.instructorId,
@@ -407,6 +411,8 @@ export async function GET(req: NextRequest) {
                   amount: item.price || 50,
                   status: 'pending'
                 });
+                
+                console.log(`[API][redirect] GET - Created ticket appointment with slotId: ${ticketSlotId}`);
               } else {
                 console.log(`[API][redirect] GET - ⚠️ Unknown classType:`, item.classType, 'for item:', item.id);
               }
@@ -704,7 +710,7 @@ export async function POST(req: NextRequest) {
               });
             }
           } else if (item.classType === 'ticket') {
-            console.log(`[API][redirect] ✅ Creating TICKET CLASS appointment:`, {
+            console.log(`[API][redirect] POST - ✅ Creating TICKET CLASS appointment:`, {
               ticketClassId: item.ticketClassId,
               classId: item.id,
               studentId: userId,
@@ -713,9 +719,13 @@ export async function POST(req: NextRequest) {
               end: item.end
             });
             
+            // Para ticket class, el slotId debe ser específico del slot seleccionado
+            // Crear un slotId único basado en la fecha y hora seleccionada
+            const ticketSlotId = `${item.ticketClassId}_${item.date}_${item.start}_${item.end}`;
+            
             appointments.push({
-              slotId: item.ticketClassId || item.id,
-              ticketClassId: item.ticketClassId,
+              slotId: ticketSlotId, // ← Usar slotId específico para el slot de ticket class
+              ticketClassId: item.ticketClassId, // ← ID de la ticket class (para buscar en TicketClass collection)
               classId: item.id,
               studentId: userId, // ← AGREGAR studentId para payment-success
               instructorId: item.instructorId,
@@ -727,8 +737,10 @@ export async function POST(req: NextRequest) {
               amount: item.price || 50,
               status: 'pending'
             });
+            
+            console.log(`[API][redirect] POST - Created ticket appointment with slotId: ${ticketSlotId}`);
           } else {
-            console.log(`[API][redirect] ⚠️ Unknown classType:`, item.classType, 'for item:', item.id);
+            console.log(`[API][redirect] POST - ⚠️ Unknown classType:`, item.classType, 'for item:', item.id);
           }
         });
         
