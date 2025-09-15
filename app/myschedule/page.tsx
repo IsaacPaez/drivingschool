@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import InstructorCalendar from '../../components/TeachersCalendar/InstructorCalendar';
-import AuthRedirector from "../components/AuthRedirector";
+import AuthRedirector from "@/components/AuthRedirector";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useAuth } from "@/components/AuthContext";

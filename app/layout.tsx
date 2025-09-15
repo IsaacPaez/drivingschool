@@ -3,12 +3,12 @@ import "./globals.css";
 import { connectDB } from "@/lib/mongodb";
 import { SEO } from "@/models/SEO"; // ✅ Importamos el modelo SEO directamente
 import { Providers } from "./providers";
-import BodyWithDynamicBg from "./components/BodyWithDynamicBg";
+import BodyWithDynamicBg from "@/components/BodyWithDynamicBg";
 import ConditionalTrackingProvider from '@/components/ConditionalTrackingProvider';
 import { AuthProvider } from "@/components/AuthContext";
-import ErrorBoundary from "./components/ErrorBoundary";
-import GlobalErrorHandler from "./components/GlobalErrorHandler";
-import LayoutWrapper from "./components/LayoutWrapper";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import GlobalErrorHandler from "@/components/GlobalErrorHandler";
+import LayoutWrapper from "@/components/LayoutWrapper";
 
 // ✅ Generamos la metadata sin usar `fetch()`
 export async function generateMetadata(): Promise<Metadata> {
