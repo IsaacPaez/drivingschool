@@ -193,32 +193,55 @@ export async function GET(req: NextRequest) {
   let instructorChangeStream: unknown = null;
   
   try {
-    // Watch for changes in TicketClass collection
-    if (classId) {
-      // If filtering by classId, watch for changes in any ticket class with this classId
-      ticketClassChangeStream = mongoose.connection.collection('ticketclasses').watch([
-        { $match: { 'fullDocument.classId': new mongoose.Types.ObjectId(classId) } }
-      ]);
-    } else if (instructorId) {
-      // If filtering by instructorId, watch for changes for this instructor
-      ticketClassChangeStream = mongoose.connection.collection('ticketclasses').watch([
-        { $match: { 'fullDocument.instructorId': new mongoose.Types.ObjectId(instructorId) } }
-      ]);
-    }
+    // Watch for ALL changes in TicketClass collection - we'll filter in the callback
+    // This ensures we don't miss any updates due to complex matching
+    ticketClassChangeStream = mongoose.connection.collection('ticketclasses').watch();
 
     if (ticketClassChangeStream) {
-      (ticketClassChangeStream as unknown as { on: (event: string, callback: () => void) => void }).on('change', async () => {
+      (ticketClassChangeStream as unknown as { on: (event: string, callback: (change: any) => void) => void }).on('change', async (change) => {
         if (isStreamClosed) return;
         
-        console.log('🔔 TicketClass change detected!');
-        try {
-          const ticketClasses = await fetchTicketClasses();
-          sendEvent({ type: "update", ticketClasses });
-        } catch(error) {
-          console.error("Error fetching updated ticket classes:", error);
-          if (!isStreamClosed) {
-            sendEvent({ type: "error", message: "Failed to fetch updated data" });
+        // Check if this change is relevant to our current filters
+        let isRelevant = false;
+        
+        if (classId) {
+          // If we're filtering by classId, check if this change affects that class
+          if (change.fullDocument?.classId?.toString() === classId || 
+              change.updateDescription?.updatedFields) {
+            isRelevant = true;
           }
+        } else if (instructorId) {
+          // If we're filtering by instructorId, check if this change affects that instructor
+          if (change.fullDocument?.instructorId?.toString() === instructorId ||
+              change.updateDescription?.updatedFields) {
+            isRelevant = true;
+          }
+        } else {
+          // If no specific filters, all changes are relevant
+          isRelevant = true;
+        }
+        
+        if (isRelevant) {
+          console.log('🔔 Relevant TicketClass change detected!', {
+            operationType: change.operationType,
+            documentKey: change.documentKey,
+            classId: classId,
+            instructorId: instructorId,
+            updatedFields: change.updateDescription?.updatedFields
+          });
+          
+          try {
+            const ticketClasses = await fetchTicketClasses();
+            console.log('📡 Sending SSE update with', ticketClasses.length, 'ticket classes');
+            sendEvent({ type: "update", ticketClasses });
+          } catch(error) {
+            console.error("Error fetching updated ticket classes:", error);
+            if (!isStreamClosed) {
+              sendEvent({ type: "error", message: "Failed to fetch updated data" });
+            }
+          }
+        } else {
+          console.log('🔕 TicketClass change not relevant for current filters, skipping');
         }
       });
     }

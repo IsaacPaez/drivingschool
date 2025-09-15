@@ -443,6 +443,7 @@ export default function ScheduleTableImproved({
                     
                     // Find all slots for all instructors at this time and date
                     let slotsAtTime: { instructor: Instructor; lesson: ScheduleEntry }[] = [];
+                    let hasDrivingTestConflict = false;
                     
                     Object.values(groupedSchedule).forEach(({ instructor, schedule }) => {
                       const daySchedule = schedule.find(s => s.date === dateString);
@@ -455,7 +456,13 @@ export default function ScheduleTableImproved({
                           
                           // Check if this block overlaps with this slot
                           if (blockStartMin < slotEndMin && blockEndMin > slotStartMin) {
-                            slotsAtTime.push({ instructor, lesson: slot });
+                            // Check if this is a driving test (which should show as "-" in driving lessons view)
+                            if (slot.classType === 'driving test' || slot.classType === 'driving_test') {
+                              hasDrivingTestConflict = true;
+                            } else {
+                              // Only add driving lesson slots, not driving tests
+                              slotsAtTime.push({ instructor, lesson: slot });
+                            }
                           }
                         });
                       }
@@ -587,6 +594,13 @@ export default function ScheduleTableImproved({
                         // This block is covered by a slot that started in a previous row
                         return <React.Fragment key={date.toDateString()}></React.Fragment>;
                       }
+                    }
+                    
+                    // If there's a driving test conflict, show "-" (unavailable)
+                    if (hasDrivingTestConflict) {
+                      return (
+                        <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-gray-500 min-w-[80px] w-[80px] text-center text-xs">-</td>
+                      );
                     }
                     
                     // Always show something - if no slot, show "-"

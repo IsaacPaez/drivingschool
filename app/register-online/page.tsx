@@ -177,16 +177,8 @@ function RegisterOnlineContent() {
         setSelectedTicketClass(null);
         setIsOnlinePaymentLoading(false);
         
-        // Mostrar mensaje de confirmación
-        setConfirmationMessage(
-          `Class added to cart successfully!\n\n` +
-          `Class: ${classInfo.title}\n` +
-          `Date: ${selectedTicketClass.date}\n` +
-          `Time: ${selectedTicketClass.hour} - ${selectedTicketClass.endHour}\n` +
-          `Price: $${classPrice}\n\n` +
-          `You can now proceed to checkout to complete your payment.`
-        );
-        setShowConfirmation(true);
+        // No mostrar modal de confirmación - simplemente cerrar modal y agregar al carrito silenciosamente
+        console.log('✅ Ticket class added to cart successfully - modal closed');
         
       } catch (error) {
         console.error('❌ Error adding to cart:', error);
