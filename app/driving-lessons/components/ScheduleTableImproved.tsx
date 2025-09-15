@@ -61,6 +61,7 @@ interface ScheduleTableProps {
   selectedInstructorForSchedule: Instructor | null;
   selectedHours: number;
   onRequestSchedule: () => void;
+  onAuthRequired?: () => void;
 }
 
 export default function ScheduleTableImproved({
@@ -76,7 +77,8 @@ export default function ScheduleTableImproved({
   onSelectedSlotsChange,
   selectedInstructorForSchedule,
   selectedHours,
-  onRequestSchedule
+  onRequestSchedule,
+  onAuthRequired
 }: ScheduleTableProps) {
   
   // Use SSE hook for real-time schedule updates for all instructors
@@ -179,6 +181,12 @@ export default function ScheduleTableImproved({
 
   // Helper function to toggle slot selection
   const toggleSlotSelection = (lesson: ScheduleEntry): void => {
+    // Verificar si el usuario está autenticado antes de permitir la selección
+    if (!userId && onAuthRequired) {
+      onAuthRequired();
+      return;
+    }
+    
     const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
     const newSelectedSlots = new Set(selectedSlots);
     
@@ -761,6 +769,13 @@ export default function ScheduleTableImproved({
                 key={instructor._id}
                 className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => {
+                  // Verificar si el usuario está autenticado antes de permitir la selección
+                  if (!userId && onAuthRequired) {
+                    onAuthRequired();
+                    setShowMultipleInstructorsModal(false);
+                    return;
+                  }
+                  
                   const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
                   onSelectedSlotsChange(new Set([slotKey]));
                   setShowMultipleInstructorsModal(false);

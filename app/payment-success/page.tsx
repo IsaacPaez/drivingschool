@@ -168,7 +168,13 @@ function PaymentSuccessContent() {
                     );
                     
                     // Group driving lessons by instructor
-                    const drivingLessonsByInstructor = drivingLessons.reduce((acc, apt) => {
+                    interface DrivingLessonGroup {
+                      instructorId: string;
+                      classType: string;
+                      slotIds: string[];
+                    }
+                    
+                    const drivingLessonsByInstructor = drivingLessons.reduce((acc: Record<string, DrivingLessonGroup>, apt) => {
                       const key = apt.instructorId;
                       if (!acc[key]) {
                         acc[key] = {
@@ -221,8 +227,9 @@ function PaymentSuccessContent() {
                     // Process DRIVING LESSONS & DRIVING TESTS (batch by instructor)
                     for (const [instructorId, data] of Object.entries(drivingLessonsByInstructor)) {
                       try {
-                        const appointmentTypeDisplay = (data.classType === 'driving_test' || data.classType === 'driving test') ? 'driving test' : 'driving lesson';
-                        console.log(`🚗 Processing ${data.slotIds.length} ${appointmentTypeDisplay} slots for instructor ${instructorId}:`, data.slotIds);
+                        const groupData = data as DrivingLessonGroup;
+                        const appointmentTypeDisplay = (groupData.classType === 'driving_test' || groupData.classType === 'driving test') ? 'driving test' : 'driving lesson';
+                        console.log(`🚗 Processing ${groupData.slotIds.length} ${appointmentTypeDisplay} slots for instructor ${instructorId}:`, groupData.slotIds);
                         
                         // Update all slots for this instructor at once
                         const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
@@ -235,17 +242,17 @@ function PaymentSuccessContent() {
                             status: 'booked',
                             paid: true,
                             paymentId: orderId,
-                            classType: data.classType,
-                            slotIds: data.slotIds
+                            classType: groupData.classType,
+                            slotIds: groupData.slotIds
                           })
                         });
                         
                         if (slotUpdateResponse.ok) {
                           const slotResult = await slotUpdateResponse.json();
-                          console.log(`✅ ${data.slotIds.length} ${appointmentTypeDisplay} slots updated:`, slotResult);
+                          console.log(`✅ ${groupData.slotIds.length} ${appointmentTypeDisplay} slots updated:`, slotResult);
                         } else {
                           const errorText = await slotUpdateResponse.text();
-                          console.error(`❌ Failed to update ${data.slotIds.length} ${appointmentTypeDisplay} slots:`, errorText);
+                          console.error(`❌ Failed to update ${groupData.slotIds.length} ${appointmentTypeDisplay} slots:`, errorText);
                           allProcessed = false;
                         }
                       } catch (error) {
