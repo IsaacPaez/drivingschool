@@ -364,6 +364,7 @@ export async function GET(req: NextRequest) {
                   slotId: item.ticketClassId || item.id,
                   ticketClassId: item.ticketClassId,
                   classId: item.id,
+                  studentId: userId, // ← AGREGAR studentId para payment-success
                   instructorId: item.instructorId,
                   instructorName: item.instructorName,
                   date: item.date,
@@ -654,6 +655,7 @@ export async function POST(req: NextRequest) {
               slotId: item.ticketClassId || item.id,
               ticketClassId: item.ticketClassId,
               classId: item.id,
+              studentId: userId, // ← AGREGAR studentId para payment-success
               instructorId: item.instructorId,
               instructorName: item.instructorName,
               date: item.date,
