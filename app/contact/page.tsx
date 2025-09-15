@@ -1,6 +1,6 @@
 "use client";
 
-import ContactForm from "@/app/components/ContactForm";
+import ContactForm from "@/components/ContactForm";
 
 const ContactPage = () => {
   return (
