@@ -52,14 +52,14 @@ export async function GET(req: NextRequest) {
       return new Response(stream.readable, { status: 404 });
     }
     
-    // Get only driving lessons
-    const drivingLessons = instructor.get('schedule_driving_lesson', { lean: true }) || [];
+    // Get only driving tests
+    const drivingTests = instructor.get('schedule_driving_test', { lean: true }) || [];
     
-    console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${drivingLessons.length} driving lessons`);
+    console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${drivingTests.length} driving tests`);
     
-    sendEvent({ type: "initial", schedule: drivingLessons });
+    sendEvent({ type: "initial", schedule: drivingTests });
   } catch (error) {
-    console.error("Error fetching initial driving lessons schedule:", error);
+    console.error("Error fetching initial driving test schedule:", error);
     sendEvent({ type: "error", message: "Failed to fetch initial data" });
   }
 
@@ -122,15 +122,15 @@ export async function GET(req: NextRequest) {
           try {
             const instructor = await Instructor.findById(instructorId);
             if (instructor) {
-              // Get only driving lessons
-              const drivingLessons = instructor.get('schedule_driving_lesson', { lean: true }) || [];
+              // Get only driving tests
+              const drivingTests = instructor.get('schedule_driving_test', { lean: true }) || [];
               
-              sendEvent({ type: "update", schedule: drivingLessons });
+              sendEvent({ type: "update", schedule: drivingTests });
               lastUpdateTime = Date.now();
             }
           } catch(err) {
             if (!isWriterClosed) {
-              console.error("Error fetching updated driving lessons schedule for broadcast:", err);
+              console.error("Error fetching updated driving test schedule for broadcast:", err);
               sendEvent({ type: "error", message: "Failed to fetch updated data" });
             }
           }

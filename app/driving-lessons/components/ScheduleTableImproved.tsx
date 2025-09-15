@@ -308,10 +308,9 @@ export default function ScheduleTableImproved({
         <span className="text-[#10B981]">Available Schedules</span>
       </h2>
 
-      {/* Connection Status Indicator */}
+      {/* Connection Status Indicator - Only show when there are actual connection errors */}
       {(() => {
         const hasConnectionErrors = instructors.some(instructor => getErrorForInstructor(instructor._id));
-        const allConnected = instructors.every(instructor => isConnectedForInstructor(instructor._id));
         
         if (hasConnectionErrors) {
           return (
@@ -326,19 +325,7 @@ export default function ScheduleTableImproved({
           );
         }
         
-        if (!allConnected && !hasConnectionErrors) {
-          return (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-center">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
-                <span className="text-blue-800 text-sm">
-                  Conectando con los instructores...
-                </span>
-              </div>
-            </div>
-          );
-        }
-        
+        // Remove the "Conectando con los instructores..." message
         return null;
       })()}
 
