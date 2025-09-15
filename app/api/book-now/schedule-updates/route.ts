@@ -1,4 +1,7 @@
 import { NextRequest } from "next/server";
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { connectDB } from "@/lib/mongodb";
 import Instructor from "@/models/Instructor";
 import mongoose from "mongoose";
