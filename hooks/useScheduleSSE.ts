@@ -25,8 +25,9 @@ export function useScheduleSSE(instructorId: string | null) {
       eventSourceRef.current.close();
     }
 
-    // Create new EventSource connection
-    const eventSource = new EventSource(`/api/book-now/schedule-updates?id=${instructorId}`);
+    // Create new EventSource connection (absolute URL for production reliability)
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const eventSource = new EventSource(`${baseUrl}/api/book-now/schedule-updates?id=${instructorId}`);
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
@@ -58,6 +59,25 @@ export function useScheduleSSE(instructorId: string | null) {
       console.error('SSE connection error:', event);
       setError('Connection lost. Trying to reconnect...');
       setIsConnected(false);
+      // Trigger reconnect by resetting instructorId connection after short delay
+      // We don't have control of instructorId here, so we close and let useEffect recreate on next render
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      // Soft retry: reopen after 1.5s
+      setTimeout(() => {
+        if (!eventSourceRef.current && instructorId) {
+          const retry = new EventSource(`${baseUrl}/api/book-now/schedule-updates?id=${instructorId}`);
+          eventSourceRef.current = retry;
+          retry.onopen = () => {
+            setIsConnected(true);
+            setError(null);
+          };
+          retry.onmessage = eventSource.onmessage;
+          retry.onerror = eventSource.onerror as any;
+        }
+      }, 1500);
     };
 
     // Cleanup function

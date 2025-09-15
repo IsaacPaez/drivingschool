@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+solcuion sseimport { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Instructor from "@/models/Instructor";
 
