@@ -177,7 +177,7 @@ function PaymentSuccessContent() {
                             },
                             body: JSON.stringify({
                               ticketClassId: appointment.ticketClassId,
-                              studentId: appointment.studentId,
+                              studentId: userId, // Usar userId de searchParams en lugar de appointment.studentId
                               orderId: orderId,
                               orderNumber: orderDetails?.orderNumber
                             })
