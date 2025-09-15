@@ -537,6 +537,7 @@ function DrivingLessonsContent() {
           selectedInstructorForSchedule={selectedInstructorForSchedule}
           selectedHours={selectedHours}
           onRequestSchedule={handleRequestSchedule}
+          onAuthRequired={() => setShowLogin(true)}
           key={`schedule-${Date.now()}`}
         />
       </div>
