@@ -273,6 +273,39 @@ export async function POST(req: NextRequest) {
               console.error(`❌ [FORCE UPDATE] Strategy 4 error:`, error);
             }
           }
+          
+          // Strategy 5: Direct update using arrayFilters (most reliable method)
+          if (updateResult.modifiedCount === 0) {
+            console.log(`🔍 [FORCE UPDATE] Strategy 5 - Using arrayFilters for slotId: ${slotId}`);
+            
+            try {
+              const result = await Instructor.updateOne(
+                { _id: instructorId },
+                {
+                  $set: {
+                    [`${scheduleField}.$[slot].status`]: status,
+                    [`${scheduleField}.$[slot].paid`]: paid,
+                    [`${scheduleField}.$[slot].paymentId`]: paymentId,
+                    [`${scheduleField}.$[slot].confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$[slot].studentName`]: status === 'available' ? 'Available' : '',
+                    [`${scheduleField}.$[slot].booked`]: status === 'booked'
+                  }
+                },
+                {
+                  arrayFilters: [{ "slot._id": slotId }]
+                }
+              );
+              
+              if (result.modifiedCount > 0) {
+                updateResult = result;
+                console.log(`✅ [FORCE UPDATE] Strategy 5 (arrayFilters): SUCCESS`);
+              } else {
+                console.log(`❌ [FORCE UPDATE] Strategy 5 (arrayFilters): NO MATCH`);
+              }
+            } catch (error) {
+              console.error(`❌ [FORCE UPDATE] Strategy 5 error:`, error);
+            }
+          }
         }
     } else {
       // Try User model
@@ -448,6 +481,39 @@ export async function POST(req: NextRequest) {
               );
               
               console.log(`🎯 [FORCE UPDATE] User Strategy 3 (by pending + date): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+            }
+          }
+          
+          // Strategy 4: Direct update using arrayFilters for User model (most reliable method)
+          if (updateResult.modifiedCount === 0) {
+            console.log(`🔍 [FORCE UPDATE] User Strategy 4 - Using arrayFilters for slotId: ${slotId}`);
+            
+            try {
+              const result = await User.updateOne(
+                { _id: instructorId },
+                {
+                  $set: {
+                    [`${scheduleField}.$[slot].status`]: status,
+                    [`${scheduleField}.$[slot].paid`]: paid,
+                    [`${scheduleField}.$[slot].paymentId`]: paymentId,
+                    [`${scheduleField}.$[slot].confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$[slot].studentName`]: status === 'available' ? 'Available' : '',
+                    [`${scheduleField}.$[slot].booked`]: status === 'booked'
+                  }
+                },
+                {
+                  arrayFilters: [{ "slot._id": slotId }]
+                }
+              );
+              
+              if (result.modifiedCount > 0) {
+                updateResult = result;
+                console.log(`✅ [FORCE UPDATE] User Strategy 4 (arrayFilters): SUCCESS`);
+              } else {
+                console.log(`❌ [FORCE UPDATE] User Strategy 4 (arrayFilters): NO MATCH`);
+              }
+            } catch (error) {
+              console.error(`❌ [FORCE UPDATE] User Strategy 4 error:`, error);
             }
           }
         }
