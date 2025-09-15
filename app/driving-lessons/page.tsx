@@ -537,7 +537,9 @@ function DrivingLessonsContent() {
           selectedInstructorForSchedule={selectedInstructorForSchedule}
           selectedHours={selectedHours}
           onRequestSchedule={handleRequestSchedule}
-          onAuthRequired={() => setShowLogin(true)}
+          onAuthRequired={() => {
+            setShowAuthWarning(true);
+          }}
           key={`schedule-${Date.now()}`}
         />
       </div>
@@ -583,7 +585,7 @@ function DrivingLessonsContent() {
       <AuthWarningModal
         isOpen={showAuthWarning}
         onClose={() => setShowAuthWarning(false)}
-        onLogin={() => setShowLogin(true)}
+        onLogin={() => {}}
       />
 
       {/* Login Modal */}
