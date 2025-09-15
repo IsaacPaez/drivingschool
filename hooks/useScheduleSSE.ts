@@ -10,6 +10,7 @@ export function useScheduleSSE(instructorId: string | null) {
   const [schedule, setSchedule] = useState<unknown[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [hasInitial, setHasInitial] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export function useScheduleSSE(instructorId: string | null) {
       setSchedule([]);
       setError(null);
       setIsConnected(false);
+      setHasInitial(false);
       return;
     }
 
@@ -29,6 +31,7 @@ export function useScheduleSSE(instructorId: string | null) {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const eventSource = new EventSource(`${baseUrl}/api/book-now/schedule-updates?id=${instructorId}`);
     eventSourceRef.current = eventSource;
+    setHasInitial(false);
 
     eventSource.onopen = () => {
       setIsConnected(true);
@@ -38,15 +41,17 @@ export function useScheduleSSE(instructorId: string | null) {
     eventSource.onmessage = (event) => {
       try {
         const data: ScheduleData = JSON.parse(event.data);
-        console.log("📡 SSE data received for instructor", instructorId, ":", data);
         
         if (data.type === 'initial' || data.type === 'update') {
           if (data.schedule) {
             // console.log("📅 Setting schedule:", data.schedule.length, "slots");
             setSchedule(data.schedule);
           }
+          // Mark stream as ready once we receive any payload
+          if (!hasInitial) {
+            setHasInitial(true);
+          }
         } else if (data.type === 'error') {
-          console.log("❌ SSE Error:", data.message);
           setError(data.message || 'Unknown error occurred');
         }
       } catch (err) {
@@ -56,28 +61,11 @@ export function useScheduleSSE(instructorId: string | null) {
     };
 
     eventSource.onerror = (event) => {
-      console.error('SSE connection error:', event);
-      setError('Connection lost. Trying to reconnect...');
+      // Do not manually close/recreate; let EventSource auto-retry.
+      // Just reflect the transient state in UI.
+      console.warn('SSE connection issue, browser will retry automatically.', event);
+      setError('Connection issue. Reconnecting...');
       setIsConnected(false);
-      // Trigger reconnect by resetting instructorId connection after short delay
-      // We don't have control of instructorId here, so we close and let useEffect recreate on next render
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      // Soft retry: reopen after 1.5s
-      setTimeout(() => {
-        if (!eventSourceRef.current && instructorId) {
-          const retry = new EventSource(`${baseUrl}/api/book-now/schedule-updates?id=${instructorId}`);
-          eventSourceRef.current = retry;
-          retry.onopen = () => {
-            setIsConnected(true);
-            setError(null);
-          };
-          retry.onmessage = eventSource.onmessage;
-          retry.onerror = eventSource.onerror as any;
-        }
-      }, 1500);
     };
 
     // Cleanup function
@@ -87,7 +75,9 @@ export function useScheduleSSE(instructorId: string | null) {
         eventSourceRef.current = null;
       }
       setIsConnected(false);
+      setHasInitial(false);
     };
+  // It's important that hasInitial is not a dependency here to avoid recreating the stream
   }, [instructorId]);
 
   // Manual cleanup function
@@ -103,6 +93,7 @@ export function useScheduleSSE(instructorId: string | null) {
     schedule,
     error,
     isConnected,
+    isReady: hasInitial,
     disconnect
   };
 } 
