@@ -330,7 +330,14 @@ export async function GET(req: NextRequest) {
             appointments = [];
             
             // Procesar cada item del carrito
-            items.forEach(item => {
+            console.log(`[API][redirect] GET - Processing ${items.length} items for appointments:`);
+            items.forEach((item, index) => {
+              console.log(`[API][redirect] GET - Processing item ${index}:`, {
+                classType: item.classType,
+                ticketClassId: item.ticketClassId,
+                id: item.id,
+                title: item.title
+              });
               if (item.classType === 'driving test') {
                 appointments.push({
                   slotId: item.slotId || `${item.date}-${item.start}-${item.end}`, // Use real slotId from cart
@@ -377,6 +384,15 @@ export async function GET(req: NextRequest) {
                   });
                 }
               } else if (item.classType === 'ticket') {
+                console.log(`[API][redirect] GET - ✅ Creating TICKET CLASS appointment:`, {
+                  ticketClassId: item.ticketClassId,
+                  classId: item.id,
+                  studentId: userId,
+                  date: item.date,
+                  start: item.start,
+                  end: item.end
+                });
+                
                 appointments.push({
                   slotId: item.ticketClassId || item.id,
                   ticketClassId: item.ticketClassId,
@@ -391,9 +407,21 @@ export async function GET(req: NextRequest) {
                   amount: item.price || 50,
                   status: 'pending'
                 });
+              } else {
+                console.log(`[API][redirect] GET - ⚠️ Unknown classType:`, item.classType, 'for item:', item.id);
               }
             });
           }
+          
+          console.log(`[API][redirect] GET - 🎯 Final appointments created: ${appointments.length}`);
+          appointments.forEach((apt, index) => {
+            console.log(`[API][redirect] GET - Appointment ${index}:`, {
+              classType: apt.classType,
+              ticketClassId: apt.ticketClassId,
+              slotId: apt.slotId,
+              studentId: apt.studentId
+            });
+          });
           
           const orderData: any = {
             userId,
