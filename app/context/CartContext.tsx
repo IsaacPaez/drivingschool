@@ -394,9 +394,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   const clearCart = async () => {
     console.log('🗑️ [CartContext] Clearing cart completely...');
     
-    // First, handle ticket classes before clearing the cart
+    // First, handle ticket classes and driving lesson packages before clearing the cart
     if (user?._id && cart.length > 0) {
       const ticketClassItems = cart.filter(item => item.ticketClassId);
+      const drivingLessonItems = cart.filter(item => Array.isArray(item.selectedSlots) && item.selectedSlots.length > 0);
       
       if (ticketClassItems.length > 0) {
         console.log(`🗑️ [CartContext] Removing ${ticketClassItems.length} ticket class(es) and their student requests...`);
@@ -417,6 +418,34 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           } catch (error) {
             console.warn(`⚠️ [CartContext] Failed to remove ticket class ${item.title}:`, error);
           }
+        }
+      }
+
+      if (drivingLessonItems.length > 0) {
+        console.log(`🗑️ [CartContext] Freeing slots for ${drivingLessonItems.length} driving lesson package(s)...`);
+        try {
+          // Free all driving-lesson slots in parallel
+          await Promise.all(
+            drivingLessonItems.map(item =>
+              fetch("/api/cart/remove-driving-lesson-package", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  userId: user._id,
+                  itemId: item.id,
+                  selectedSlots: item.selectedSlots
+                })
+              }).then(async res => {
+                if (!res.ok) {
+                  const data = await res.json().catch(() => ({}));
+                  console.warn('[CartContext] Failed to free driving lesson slots:', res.status, data?.error);
+                }
+              })
+            )
+          );
+          console.log('✅ [CartContext] Driving lesson slots freed');
+        } catch (error) {
+          console.warn('[CartContext] Failed freeing driving lesson slots during clearCart:', error);
         }
       }
     }

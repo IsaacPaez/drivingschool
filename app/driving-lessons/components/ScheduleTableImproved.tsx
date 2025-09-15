@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Modal from "@/components/Modal";
 import { useAllDrivingLessonsSSE } from "@/hooks/useAllDrivingLessonsSSE";
+import { useCart } from "@/app/context/CartContext";
 
 interface Instructor {
   _id: string;
@@ -87,6 +88,28 @@ export default function ScheduleTableImproved({
     getAllSchedules 
   } = useAllDrivingLessonsSSE(instructorIds);
   
+  // Access cart to know which pending slots are still in the cart
+  const { cart } = useCart();
+  const pendingSlotKeysInCart = React.useMemo(() => {
+    const keys = new Set<string>();
+    cart.forEach((item: any) => {
+      if (Array.isArray(item.selectedSlots)) {
+        item.selectedSlots.forEach((k: string) => keys.add(k));
+      }
+    });
+    return keys;
+  }, [cart]);
+
+  // Helper to decide availability, considering pending-but-not-in-cart as available
+  const isEffectivelyAvailable = React.useCallback((lesson: any): boolean => {
+    if (!lesson) return false;
+    if ((lesson.status === 'available' || lesson.status === 'free') && !lesson.paid) return true;
+    const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
+    const isUsersPending = lesson.status === 'pending' && lesson.studentId && userId && lesson.studentId.toString() === userId;
+    if (isUsersPending && !pendingSlotKeysInCart.has(slotKey)) return true;
+    return false;
+  }, [pendingSlotKeysInCart, userId]);
+  
   const [showMultipleInstructorsModal, setShowMultipleInstructorsModal] = useState(false);
   const [multipleInstructorsData, setMultipleInstructorsData] = useState<{
     instructors: { instructor: Instructor; lesson: ScheduleEntry }[];
@@ -108,7 +131,11 @@ export default function ScheduleTableImproved({
   const pad = (n: number) => n.toString().padStart(2, '0');
   
   const formatDate = (date: Date) => {
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    // Use UTC methods to avoid timezone issues
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    return `${year}-${pad(month)}-${pad(day)}`;
   };
 
   const timeToMinutes = React.useCallback((time: string): number => {
@@ -164,7 +191,7 @@ export default function ScheduleTableImproved({
         if (sseSchedule && Array.isArray(sseSchedule)) {
           lesson = sseSchedule.find((l: any) => {
             const lessonKey = `${l.date}-${l.start}-${l.end}`;
-            return lessonKey === slotKey && l.status === "available";
+            return lessonKey === slotKey && isEffectivelyAvailable(l);
           }) || null;
         }
         
@@ -172,7 +199,7 @@ export default function ScheduleTableImproved({
         if (!lesson && instructor.schedule_driving_lesson) {
           lesson = instructor.schedule_driving_lesson.find(l => {
             const lessonKey = `${l.date}-${l.start}-${l.end}`;
-            return lessonKey === slotKey && l.status === "available";
+            return lessonKey === slotKey && isEffectivelyAvailable(l);
           });
         }
         
@@ -186,7 +213,7 @@ export default function ScheduleTableImproved({
     });
     
     return Math.round(totalMinutes / 60 * 100) / 100;
-  }, [instructors, selectedSlots, timeToMinutes, getScheduleForInstructor]);
+  }, [instructors, selectedSlots, timeToMinutes, getScheduleForInstructor, isEffectivelyAvailable]);
 
   // Function to create grouped schedule like Book-Now
   const createGroupedSchedule = () => {
@@ -441,6 +468,11 @@ export default function ScheduleTableImproved({
                   {weekDates.map((date) => {
                     const dateString = formatDate(date);
                     
+                    // Debug: Log date formatting for first time block
+                    if (block.start === '06:00') {
+                      console.log(`🗓️ Date formatting: ${date.toDateString()} -> ${dateString}`);
+                    }
+                    
                     // Find all slots for all instructors at this time and date
                     let slotsAtTime: { instructor: Instructor; lesson: ScheduleEntry }[] = [];
                     let hasDrivingTestConflict = false;
@@ -448,6 +480,10 @@ export default function ScheduleTableImproved({
                     Object.values(groupedSchedule).forEach(({ instructor, schedule }) => {
                       const daySchedule = schedule.find(s => s.date === dateString);
                       if (daySchedule && Array.isArray(daySchedule.slots)) {
+                        // Debug: Log when slots are found
+                        if (daySchedule.slots.length > 0 && block.start === '15:00') {
+                          console.log(`🎯 Found slots for ${dateString}:`, daySchedule.slots.map(s => `${s.start}-${s.end} ${s.status}`));
+                        }
                         daySchedule.slots.forEach(slot => {
                           const slotStartMin = timeToMinutes(slot.start);
                           const slotEndMin = timeToMinutes(slot.end);
@@ -479,6 +515,11 @@ export default function ScheduleTableImproved({
                       );
                     });
                     
+                    // Debug: Log when no slots found
+                    if (slotsAtTime.length === 0 && !hasDrivingTestConflict) {
+                      console.log(`🔍 No slots found for ${dateString} at ${block.start}-${block.end}`);
+                    }
+                    
                     // Handle multiple instructors in the same time block
                     if (slotsAtTime.length > 0) {
                       // Find the slot that starts at this exact block (for rowSpan)
@@ -498,8 +539,10 @@ export default function ScheduleTableImproved({
                         // Check if there are multiple instructors in this time block
                         const multipleInstructors = slotsAtTime.length > 1;
                         
-                        // Slot available for booking
-                        if ((slot.status === 'available' || slot.status === 'free') && !slot.paid) {
+                        // Slot available for booking (or pending but no longer present in user's cart -> treat as available immediately)
+                        const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
+                        const isPendingButNotInCart = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId && !pendingSlotKeysInCart.has(slotKey);
+                        if (((slot.status === 'available' || slot.status === 'free') && !slot.paid) || isPendingButNotInCart) {
                           const isSelected = isSlotSelected(slot);
                           
                           if (multipleInstructors) {
@@ -558,8 +601,8 @@ export default function ScheduleTableImproved({
                             );
                           }
                         }
-                        // Slot pending del usuario actual - Solo si es realmente del usuario actual
-                        if (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId && slot.studentName && slot.studentName.trim() !== '') {
+                        // Slot pending del usuario actual - Solo si sigue en el carrito del usuario
+                        if (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId && slot.studentName && slot.studentName.trim() !== '' && pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`)) {
                           return (
                             <td 
                               key={date.toDateString()} 
@@ -592,7 +635,8 @@ export default function ScheduleTableImproved({
                         );
                       } else {
                         // This block is covered by a slot that started in a previous row
-                        return <React.Fragment key={date.toDateString()}></React.Fragment>;
+                        // Don't render anything for this cell (it's covered by rowSpan from above)
+                        return null;
                       }
                     }
                     
@@ -604,6 +648,7 @@ export default function ScheduleTableImproved({
                     }
                     
                     // Always show something - if no slot, show "-"
+                    console.log(`✅ Showing "-" for ${dateString} at ${block.start}-${block.end}`);
                     return (
                       <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px] text-center text-xs">-</td>
                     );

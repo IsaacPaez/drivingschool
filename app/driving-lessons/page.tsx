@@ -408,18 +408,35 @@ function DrivingLessonsContent() {
   };
 
   const getWeekDates = (date: Date) => {
-    const base = new Date(date);
-    base.setDate(base.getDate() + weekOffset * 7);
-    const startOfWeek = new Date(base);
-    startOfWeek.setDate(base.getDate() - startOfWeek.getDay());
+    // Use UTC methods to avoid timezone issues
+    const base = new Date(date.getTime());
+    base.setUTCDate(base.getUTCDate() + weekOffset * 7);
+    
+    const startOfWeek = new Date(base.getTime());
+    const dayOfWeek = startOfWeek.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+    startOfWeek.setUTCDate(startOfWeek.getUTCDate() - dayOfWeek);
+    
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(startOfWeek);
-      d.setDate(startOfWeek.getDate() + i);
+      const d = new Date(startOfWeek.getTime());
+      d.setUTCDate(startOfWeek.getUTCDate() + i);
       return d;
     });
   };
 
   const weekDates = selectedDate ? getWeekDates(selectedDate) : [];
+  
+  // Debug: Log week dates generation
+  React.useEffect(() => {
+    if (weekDates.length > 0) {
+      console.log('🗓️ Week dates generated:');
+      weekDates.forEach((date, index) => {
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayName = dayNames[date.getUTCDay()];
+        const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+        console.log(`  ${index}: ${dayName} ${dateStr} (${date.toDateString()})`);
+      });
+    }
+  }, [weekDates]);
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
