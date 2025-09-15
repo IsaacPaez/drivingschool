@@ -177,7 +177,7 @@ function PaymentSuccessContent() {
                             },
                             body: JSON.stringify({
                               ticketClassId: appointment.ticketClassId,
-                              studentId: appointment.studentId,
+                              studentId: userId, // Usar userId de searchParams en lugar de appointment.studentId
                               orderId: orderId,
                               orderNumber: orderDetails?.orderNumber
                             })
@@ -198,34 +198,21 @@ function PaymentSuccessContent() {
                           const appointmentTypeDisplay = (appointment.classType === 'driving_test' || appointment.classType === 'driving test') ? 'driving test' : 'driving lesson';
                           console.log(`🚗 Processing ${appointmentTypeDisplay}: ${appointment.slotId}`);
                           
-                          // Use different endpoints for driving test vs driving lesson
-                          const isDrivingTest = appointment.classType === 'driving_test' || appointment.classType === 'driving test';
-                          const endpoint = isDrivingTest 
-                            ? '/api/instructors/update-driving-test-status'  // Clean endpoint - ONLY status
-                            : '/api/instructors/update-slot-status';         // Full endpoint for driving lessons
-                          
-                          const requestBody = isDrivingTest 
-                            ? {
-                                slotId: appointment.slotId,
-                                instructorId: appointment.instructorId,
-                                status: 'booked'
-                              }
-                            : {
-                                slotId: appointment.slotId,
-                                instructorId: appointment.instructorId,
-                                status: 'booked',
-                                paid: true,
-                                paymentId: orderId,
-                                confirmedAt: new Date().toISOString(),
-                                classType: appointment.classType
-                              };
-                          
-                          const slotUpdateResponse = await fetch(endpoint, {
+                          // Use the SAME endpoint for both driving test and driving lesson - it works!
+                          const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
                             method: 'POST',
                             headers: {
                               'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify(requestBody)
+                            body: JSON.stringify({
+                              slotId: appointment.slotId,
+                              instructorId: appointment.instructorId,
+                              status: 'booked',
+                              paid: true,
+                              paymentId: orderId,
+                              confirmedAt: new Date().toISOString(),
+                              classType: appointment.classType
+                            })
                           });
                           
                           if (slotUpdateResponse.ok) {
