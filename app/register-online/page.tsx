@@ -137,41 +137,29 @@ function RegisterOnlineContent() {
         const classPrice = classData.price || 50; // Precio por defecto
         
         // Step 1: Agregar a studentRequests en la ticketclass
-        const ticketClassUpdateRes = await fetch(`/api/ticketclasses/request`, {
+        // Usar el nuevo endpoint que hace ambas cosas: reservar slot Y agregar al carrito
+        const addToCartRes = await fetch('/api/cart/add-ticket-class', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            studentId: userId,
+            userId: userId,
             ticketClassId: selectedTicketClass._id,
-            classId: classInfo._id,
             date: selectedTicketClass.date,
             start: selectedTicketClass.hour,
             end: selectedTicketClass.endHour,
-            paymentMethod: 'online'
+            instructorId: selectedTicketClass.instructorInfo?._id,
+            instructorName: selectedTicketClass.instructorInfo?.name,
+            amount: classPrice,
+            title: classInfo.title
           }),
         });
         
-        if (!ticketClassUpdateRes.ok) {
-          const updateErrorData = await ticketClassUpdateRes.json();
-          throw new Error(updateErrorData.error || 'Failed to reserve class slot');
+        if (!addToCartRes.ok) {
+          const errorData = await addToCartRes.json();
+          throw new Error(errorData.error || 'Failed to add ticket class to cart');
         }
         
-        // Step 2: Agregar al carrito
-        const cartItem = {
-          id: classInfo._id,
-          title: classInfo.title,
-          price: classPrice,
-          quantity: 1,
-          classType: 'ticket',
-          ticketClassId: selectedTicketClass._id,
-          date: selectedTicketClass.date,
-          start: selectedTicketClass.hour,
-          end: selectedTicketClass.endHour,
-          instructorId: selectedTicketClass.instructorInfo?._id,
-          instructorName: selectedTicketClass.instructorInfo?.name
-        };
-        
-        await addToCart(cartItem);
+        console.log('✅ Ticket class added to cart via dedicated endpoint');
         
         setIsBookingModalOpen(false);
         setSelectedTicketClass(null);
