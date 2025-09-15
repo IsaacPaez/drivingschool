@@ -106,7 +106,6 @@ export async function POST(req: NextRequest) {
               $set: {
                 [`${scheduleField}.$.orderId`]: savedOrder._id.toString(),
                 [`${scheduleField}.$.orderNumber`]: savedOrder.orderNumber,
-                [`${scheduleField}.$.studentName`]: 'Pending Payment'
               }
             }
           );
@@ -124,7 +123,6 @@ export async function POST(req: NextRequest) {
               $set: {
                 [`${scheduleField}.$.orderId`]: savedOrder._id.toString(),
                 [`${scheduleField}.$.orderNumber`]: savedOrder.orderNumber,
-                [`${scheduleField}.$.studentName`]: 'Pending Payment'
               }
             }
           );
