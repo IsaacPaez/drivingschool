@@ -6,7 +6,7 @@ import Instructor from "@/models/Instructor";
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-    const { slotId, instructorId, status, paid, paymentId, confirmedAt, classType } = await req.json();
+    const { slotId, instructorId, status, paid, paymentId, classType } = await req.json();
 
     console.log('🔄 [FORCE UPDATE] Updating slot status:', {
       slotId,
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
               [`${scheduleField}.$.status`]: status,
               [`${scheduleField}.$.paid`]: paid,
               [`${scheduleField}.$.paymentId`]: paymentId,
-              [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+              [`${scheduleField}.$.confirmedAt`]: new Date(),
               [`${scheduleField}.$.booked`]: status === 'booked'
             }
           }
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
                   [`${scheduleField}.$.status`]: status,
                   [`${scheduleField}.$.paid`]: paid,
                   [`${scheduleField}.$.paymentId`]: paymentId,
-                  [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                  [`${scheduleField}.$.confirmedAt`]: new Date(),
                   [`${scheduleField}.$.booked`]: status === 'booked'
                 }
               }
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
                   [`${scheduleField}.$.status`]: status,
                   [`${scheduleField}.$.paid`]: paid,
                   [`${scheduleField}.$.paymentId`]: paymentId,
-                  [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                  [`${scheduleField}.$.confirmedAt`]: new Date(),
                   [`${scheduleField}.$.booked`]: status === 'booked'
                 }
               }
@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
           console.log(`🔍 [FORCE UPDATE] Strategy 1 - Searching driving lesson by _id: ${slotId}`);
           
           // Strategy 1: Try to update by _id directly
+          
           updateResult = await Instructor.updateOne(
             {
               _id: instructorId,
@@ -133,10 +134,7 @@ export async function POST(req: NextRequest) {
               $set: {
                 [`${scheduleField}.$.status`]: status,
                 [`${scheduleField}.$.paid`]: paid,
-                [`${scheduleField}.$.paymentId`]: paymentId,
-                [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
-                [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '', // Leave empty when booked
-                [`${scheduleField}.$.booked`]: status === 'booked'
+                [`${scheduleField}.$.paymentId`]: paymentId
               }
             }
           );
@@ -185,6 +183,7 @@ export async function POST(req: NextRequest) {
               
               console.log(`🔍 [FORCE UPDATE] Strategy 2 - Searching driving lesson by date-time: date=${date}, start=${start}, end=${end}`);
               
+              
               updateResult = await Instructor.updateOne(
                 {
                   _id: instructorId,
@@ -196,10 +195,7 @@ export async function POST(req: NextRequest) {
                   $set: {
                     [`${scheduleField}.$.status`]: status,
                     [`${scheduleField}.$.paid`]: paid,
-                    [`${scheduleField}.$.paymentId`]: paymentId,
-                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
-                    [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
-                    [`${scheduleField}.$.booked`]: status === 'booked'
+                    [`${scheduleField}.$.paymentId`]: paymentId
                   }
                 }
               );
@@ -229,7 +225,7 @@ export async function POST(req: NextRequest) {
                     [`${scheduleField}.$.status`]: status,
                     [`${scheduleField}.$.paid`]: paid,
                     [`${scheduleField}.$.paymentId`]: paymentId,
-                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.confirmedAt`]: new Date(),
                     [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
                     [`${scheduleField}.$.booked`]: status === 'booked'
                   }
@@ -255,7 +251,7 @@ export async function POST(req: NextRequest) {
                     [`${scheduleField}.$.status`]: status,
                     [`${scheduleField}.$.paid`]: paid,
                     [`${scheduleField}.$.paymentId`]: paymentId,
-                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.confirmedAt`]: new Date(),
                     [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
                     [`${scheduleField}.$.booked`]: status === 'booked'
                   }
@@ -279,16 +275,14 @@ export async function POST(req: NextRequest) {
             console.log(`🔍 [FORCE UPDATE] Strategy 5 - Using arrayFilters for slotId: ${slotId}`);
             
             try {
+              
               const result = await Instructor.updateOne(
                 { _id: instructorId },
                 {
                   $set: {
                     [`${scheduleField}.$[slot].status`]: status,
                     [`${scheduleField}.$[slot].paid`]: paid,
-                    [`${scheduleField}.$[slot].paymentId`]: paymentId,
-                    [`${scheduleField}.$[slot].confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
-                    [`${scheduleField}.$[slot].studentName`]: status === 'available' ? 'Available' : '',
-                    [`${scheduleField}.$[slot].booked`]: status === 'booked'
+                    [`${scheduleField}.$[slot].paymentId`]: paymentId
                   }
                 },
                 {
@@ -325,7 +319,7 @@ export async function POST(req: NextRequest) {
                 [`${scheduleField}.$.status`]: status,
                 [`${scheduleField}.$.paid`]: paid,
                 [`${scheduleField}.$.paymentId`]: paymentId,
-                [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                [`${scheduleField}.$.confirmedAt`]: new Date(),
                 [`${scheduleField}.$.booked`]: status === 'booked'
               }
             }
@@ -355,7 +349,7 @@ export async function POST(req: NextRequest) {
                     [`${scheduleField}.$.status`]: status,
                     [`${scheduleField}.$.paid`]: paid,
                     [`${scheduleField}.$.paymentId`]: paymentId,
-                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.confirmedAt`]: new Date(),
                     [`${scheduleField}.$.booked`]: status === 'booked'
                   }
                 }
@@ -386,7 +380,7 @@ export async function POST(req: NextRequest) {
                     [`${scheduleField}.$.status`]: status,
                     [`${scheduleField}.$.paid`]: paid,
                     [`${scheduleField}.$.paymentId`]: paymentId,
-                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.confirmedAt`]: new Date(),
                     [`${scheduleField}.$.booked`]: status === 'booked'
                   }
                 }
@@ -410,7 +404,7 @@ export async function POST(req: NextRequest) {
                 [`${scheduleField}.$.status`]: status,
                 [`${scheduleField}.$.paid`]: paid,
                 [`${scheduleField}.$.paymentId`]: paymentId,
-                [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                [`${scheduleField}.$.confirmedAt`]: new Date(),
                 [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '', // Leave empty when booked
                 [`${scheduleField}.$.booked`]: status === 'booked'
               }
@@ -441,7 +435,7 @@ export async function POST(req: NextRequest) {
                     [`${scheduleField}.$.status`]: status,
                     [`${scheduleField}.$.paid`]: paid,
                     [`${scheduleField}.$.paymentId`]: paymentId,
-                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.confirmedAt`]: new Date(),
                     [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
                     [`${scheduleField}.$.booked`]: status === 'booked'
                   }
@@ -473,7 +467,7 @@ export async function POST(req: NextRequest) {
                     [`${scheduleField}.$.status`]: status,
                     [`${scheduleField}.$.paid`]: paid,
                     [`${scheduleField}.$.paymentId`]: paymentId,
-                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.confirmedAt`]: new Date(),
                     [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
                     [`${scheduleField}.$.booked`]: status === 'booked'
                   }
@@ -496,7 +490,7 @@ export async function POST(req: NextRequest) {
                     [`${scheduleField}.$[slot].status`]: status,
                     [`${scheduleField}.$[slot].paid`]: paid,
                     [`${scheduleField}.$[slot].paymentId`]: paymentId,
-                    [`${scheduleField}.$[slot].confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$[slot].confirmedAt`]: new Date(),
                     [`${scheduleField}.$[slot].studentName`]: status === 'available' ? 'Available' : '',
                     [`${scheduleField}.$[slot].booked`]: status === 'booked'
                   }

@@ -58,6 +58,14 @@ export async function POST(req: NextRequest) {
         mapped.studentId = apt.studentId;
       }
       
+      // Preserve driving lesson specific fields
+      if (apt.pickupLocation) {
+        mapped.pickupLocation = apt.pickupLocation;
+      }
+      if (apt.dropoffLocation) {
+        mapped.dropoffLocation = apt.dropoffLocation;
+      }
+      
       console.log('🎯 Mapped appointment:', mapped);
       return mapped;
     });

@@ -115,6 +115,26 @@ export default function ScheduleTableImproved({
     if (isUsersPending && !pendingSlotKeysInCart.has(slotKey)) return true;
     return false;
   }, [pendingSlotKeysInCart, userId]);
+
+  // Debug: Log userId and user bookings
+  useEffect(() => {
+    console.log('🔍 [USER BOOKINGS DEBUG] userId:', userId);
+    if (userId) {
+      const allSchedules = getAllSchedules();
+      if (allSchedules.length > 0) {
+        console.log('🔍 [USER BOOKINGS DEBUG] Checking for user bookings...');
+        allSchedules.forEach(({ instructorId, schedule }) => {
+          const userBookings = (schedule as any[]).filter(slot => 
+            slot.studentId && slot.studentId.toString() === userId && 
+            (slot.status === 'booked' || slot.status === 'scheduled' || slot.paid)
+          );
+          if (userBookings.length > 0) {
+            console.log(`🔍 [USER BOOKINGS DEBUG] Found ${userBookings.length} bookings for instructor ${instructorId}:`, userBookings);
+          }
+        });
+      }
+    }
+  }, [userId, getAllSchedules]);
   
   const [showMultipleInstructorsModal, setShowMultipleInstructorsModal] = useState(false);
   const [multipleInstructorsData, setMultipleInstructorsData] = useState<{
@@ -505,6 +525,33 @@ export default function ScheduleTableImproved({
                         (lesson.status === 'pending' && lesson.studentId && (!userId || lesson.studentId.toString() !== userId))
                       );
                     });
+                    
+                    // Add back user's own bookings so they can see them
+                    if (userId) {
+                      const allSchedules = getAllSchedules();
+                      allSchedules.forEach(({ instructorId, schedule }) => {
+                        const instructor = instructors.find(inst => inst._id === instructorId);
+                        if (instructor) {
+                          const userBookings = (schedule as any[]).filter(slot => 
+                            slot.studentId && slot.studentId.toString() === userId && 
+                            (slot.status === 'booked' || slot.status === 'scheduled' || slot.paid) &&
+                            slot.date === dateString &&
+                            timeToMinutes(slot.start) <= timeToMinutes(block.start) &&
+                            timeToMinutes(slot.end) > timeToMinutes(block.start)
+                          );
+                          
+                          userBookings.forEach(booking => {
+                            // Only add if not already in slotsAtTime
+                            const alreadyExists = slotsAtTime.some(({ lesson }) => 
+                              (lesson as any)._id === (booking as any)._id
+                            );
+                            if (!alreadyExists) {
+                              slotsAtTime.push({ instructor, lesson: booking });
+                            }
+                          });
+                        }
+                      });
+                    }
                     
                     // Debug: Log when no slots found
                     if (slotsAtTime.length === 0 && !hasDrivingTestConflict) {
