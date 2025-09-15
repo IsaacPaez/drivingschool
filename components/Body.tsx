@@ -43,6 +43,7 @@ const Body = () => {
             width={900}
             height={400}
             className="w-full h-[260px] sm:h-[320px] md:h-[340px] lg:h-[360px] xl:h-[400px] object-cover rounded-lg shadow-md transition-all duration-500"
+            style={{ width: "auto", height: "auto" }}
           />
         </motion.div>
       </div>
