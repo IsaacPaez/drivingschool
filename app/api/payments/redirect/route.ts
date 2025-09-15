@@ -161,6 +161,23 @@ export async function GET(req: NextRequest) {
         console.log("[API][redirect] Items válidos para pago:", validItems.length);
         console.log("[API][redirect] Items inválidos filtrados:", user.cart.length - validItems.length);
         
+        // Debug detailed cart items
+        user.cart.forEach((item, index) => {
+          console.log(`[API][redirect] Cart item ${index}:`, {
+            id: item.id,
+            classType: item.classType,
+            ticketClassId: item.ticketClassId,
+            price: item.price,
+            amount: item.amount,
+            title: item.title,
+            hasValidPrice: (typeof item.price === 'number' && !isNaN(item.price) && item.price > 0) ||
+                          (typeof item.amount === 'number' && !isNaN(item.amount) && item.amount > 0),
+            hasValidId: !!(item.id || item.classType),
+            hasValidTitle: !!(item.title || item.classType),
+            isValid: validItems.includes(item)
+          });
+        });
+        
         if (validItems.length === 0) {
           console.log("[API][redirect] No hay items válidos en el carrito para procesar pago");
           return NextResponse.json({ 
@@ -604,7 +621,15 @@ export async function POST(req: NextRequest) {
         appointments = [];
         
         // Procesar cada item del carrito
-        cartItems.forEach(item => {
+        console.log(`[API][redirect] Processing ${cartItems.length} cart items for appointments:`);
+        cartItems.forEach((item, index) => {
+          console.log(`[API][redirect] Processing item ${index}:`, {
+            classType: item.classType,
+            ticketClassId: item.ticketClassId,
+            id: item.id,
+            title: item.title
+          });
+          
           if (item.classType === 'driving test') {
             appointments.push({
               slotId: item.slotId || `${item.date}-${item.start}-${item.end}`, // Use real slotId from cart
@@ -651,6 +676,15 @@ export async function POST(req: NextRequest) {
               });
             }
           } else if (item.classType === 'ticket') {
+            console.log(`[API][redirect] ✅ Creating TICKET CLASS appointment:`, {
+              ticketClassId: item.ticketClassId,
+              classId: item.id,
+              studentId: userId,
+              date: item.date,
+              start: item.start,
+              end: item.end
+            });
+            
             appointments.push({
               slotId: item.ticketClassId || item.id,
               ticketClassId: item.ticketClassId,
@@ -665,10 +699,21 @@ export async function POST(req: NextRequest) {
               amount: item.price || 50,
               status: 'pending'
             });
+          } else {
+            console.log(`[API][redirect] ⚠️ Unknown classType:`, item.classType, 'for item:', item.id);
           }
         });
         
         // orderType ya se determinó arriba con la lógica de prioridad
+        console.log(`[API][redirect] 🎯 Final appointments created: ${appointments.length}`);
+        appointments.forEach((apt, index) => {
+          console.log(`[API][redirect] Appointment ${index}:`, {
+            classType: apt.classType,
+            ticketClassId: apt.ticketClassId,
+            slotId: apt.slotId,
+            studentId: apt.studentId
+          });
+        });
       }
 
       // Procesar items del carrito para el payment gateway
