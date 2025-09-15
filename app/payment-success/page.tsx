@@ -37,9 +37,15 @@ function PaymentSuccessContent() {
         return true;
       }
       
-      // Check each appointment slot status
+      // Check each appointment slot status (ONLY for driving lessons and driving tests)
       let allVerified = true;
       for (const appointment of appointments) {
+        // Skip verification for ticket classes - they don't have slots in instructors
+        if (appointment.classType === 'ticket_class' || appointment.ticketClassId) {
+          console.log(`🎫 Skipping verification for ticket class: ${appointment.ticketClassId}`);
+          continue;
+        }
+        
         if (appointment.slotId && appointment.instructorId) {
           try {
             // Check the actual slot status in the database

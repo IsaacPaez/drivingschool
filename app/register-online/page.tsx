@@ -161,7 +161,7 @@ function RegisterOnlineContent() {
         
         console.log('✅ Ticket class added to cart via dedicated endpoint');
         
-        // IMPORTANTE: Actualizar el contexto del carrito para sincronizar el frontend
+       // IMPORTANTE: Actualizar el contexto del carrito para sincronizar el frontend
         const responseData = await addToCartRes.json();
         if (responseData.cartItem) {
           // Usar el cartItem que viene del endpoint para actualizar el contexto
