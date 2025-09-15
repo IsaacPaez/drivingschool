@@ -221,7 +221,6 @@ function PaymentSuccessContent() {
                               status: 'booked',
                               paid: true,
                               paymentId: orderId,
-                              confirmedAt: new Date().toISOString(),
                               classType: appointment.classType
                             })
                           });

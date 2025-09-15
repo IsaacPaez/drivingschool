@@ -366,7 +366,9 @@ export async function GET(req: NextRequest) {
                       end: slot.end,
                       classType: 'driving_lesson',
                       amount: amountPerSlot,
-                      status: 'pending'
+                      status: 'pending',
+                      pickupLocation: item.packageDetails?.pickupLocation || '',
+                      dropoffLocation: item.packageDetails?.dropoffLocation || ''
                     });
                   });
                 } else {
@@ -380,7 +382,9 @@ export async function GET(req: NextRequest) {
                     end: item.end || '12:00',
                     classType: 'driving_lesson',
                     amount: item.price || 50,
-                    status: 'pending'
+                    status: 'pending',
+                    pickupLocation: item.packageDetails?.pickupLocation || '',
+                    dropoffLocation: item.packageDetails?.dropoffLocation || ''
                   });
                 }
               } else if (item.classType === 'ticket') {
@@ -692,7 +696,9 @@ export async function POST(req: NextRequest) {
                   end: slot.end,
                   classType: 'driving_lesson',
                   amount: amountPerSlot,
-                  status: 'pending'
+                  status: 'pending',
+                  pickupLocation: item.packageDetails?.pickupLocation || '',
+                  dropoffLocation: item.packageDetails?.dropoffLocation || ''
                 });
               });
             } else {
@@ -706,7 +712,9 @@ export async function POST(req: NextRequest) {
                 end: item.end || '12:00',
                 classType: 'driving_lesson',
                 amount: item.price || 50,
-                status: 'pending'
+                status: 'pending',
+                pickupLocation: item.packageDetails?.pickupLocation || '',
+                dropoffLocation: item.packageDetails?.dropoffLocation || ''
               });
             }
           } else if (item.classType === 'ticket') {
