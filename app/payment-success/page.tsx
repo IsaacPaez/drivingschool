@@ -520,7 +520,7 @@ function PaymentSuccessContent() {
             <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl">
               <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+            </svg>
             </div>
             <div className="absolute inset-0 bg-emerald-400/40 rounded-full blur-2xl scale-125 animate-pulse"></div>
           </div>
@@ -531,7 +531,7 @@ function PaymentSuccessContent() {
             <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl">
               <svg className="w-12 h-12 text-white animate-spin" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            </svg>
             </div>
             <div className="absolute inset-0 bg-amber-400/40 rounded-full blur-2xl scale-125 animate-pulse"></div>
           </div>
@@ -542,7 +542,7 @@ function PaymentSuccessContent() {
             <div className="w-24 h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl">
               <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            </svg>
             </div>
             <div className="absolute inset-0 bg-red-400/40 rounded-full blur-2xl scale-125 animate-pulse"></div>
           </div>
@@ -692,28 +692,28 @@ function PaymentSuccessContent() {
                   
                   {/* Card Back */}
                   <div className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl p-12 border border-white/20 h-full flex flex-col justify-center">
-                    <div className="text-center">
+        <div className="text-center">
                       {/* Floating Status Icon */}
                       <div className="relative mb-6">
-                        {getStatusIcon()}
+          {getStatusIcon()}
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-blue-500/20 rounded-full blur-xl scale-150 -z-10 animate-pulse"></div>
                       </div>
-                      
+          
                       <h1 className={`text-4xl font-black mb-6 ${statusInfo.statusClass} tracking-tight`}>
-                        {statusInfo.title}
-                      </h1>
-                      
+            {statusInfo.title}
+          </h1>
+          
                       <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border border-gray-200/50">
                         <p className="text-xl text-gray-800 mb-2 font-semibold">
-                          {statusInfo.subtitle}
-                        </p>
-                        
+            {statusInfo.subtitle}
+          </p>
+          
                         <p className="text-base text-gray-600">
-                          {statusInfo.description}
-                        </p>
+            {statusInfo.description}
+          </p>
                       </div>
 
-                      {orderDetails && transactionStatus === "approved" && (
+          {orderDetails && transactionStatus === "approved" && (
                         <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-4 mb-6 shadow-sm">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center">
@@ -721,15 +721,15 @@ function PaymentSuccessContent() {
                                 <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
-                              </div>
+                </div>
                               <h3 className="text-lg font-bold text-emerald-800">Order Confirmed</h3>
-                            </div>
+                </div>
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white">
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
                               COMPLETED
-                            </span>
+                  </span>
                           </div>
                           
                           <div className="grid grid-cols-2 gap-3">
@@ -740,15 +740,15 @@ function PaymentSuccessContent() {
                             <div className="bg-white/70 rounded-lg p-3 border border-emerald-200/50">
                               <div className="text-xs text-gray-600 font-medium mb-1">Amount</div>
                               <div className="text-lg font-bold text-emerald-600">${orderDetails.total}</div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
+                </div>
+              </div>
+            </div>
+          )}
+          
                       {/* Countdown Timer */}
                       {showCountdown && (
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-4 shadow-sm animate-fade-in">
-                          <div className="flex items-center justify-center space-x-2">
+            <div className="flex items-center justify-center space-x-2">
                             <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-spin">
                               <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -757,8 +757,8 @@ function PaymentSuccessContent() {
                             <p className="text-xs font-semibold text-blue-700">
                               Redirecting in <span className="text-sm text-blue-800 font-bold">{countdown}</span> seconds
                             </p>
-                          </div>
-                        </div>
+            </div>
+          </div>
                       )}
                       
 
@@ -810,7 +810,7 @@ export default function PaymentSuccess() {
               
               {/* Main Card */}
               <div className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl p-12 border border-white/20">
-                <div className="text-center">
+          <div className="text-center">
                   {/* Loading Icon */}
                   <div className="relative mb-8">
                     <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl border-4 border-white">
