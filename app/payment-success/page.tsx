@@ -161,89 +161,95 @@ function PaymentSuccessContent() {
                     
                     let allProcessed = true;
                     
-                    // Process each appointment based on its type
-                    for (const appointment of orderData.order.appointments) {
-                      console.log(`📋 Processing appointment:`, {
-                        classType: appointment.classType,
-                        ticketClassId: appointment.ticketClassId,
-                        slotId: appointment.slotId,
-                        instructorId: appointment.instructorId
-                      });
-                      
+                    // Group appointments by type for batch processing
+                    const ticketClasses = orderData.order.appointments.filter(apt => apt.classType === 'ticket_class' || apt.ticketClassId);
+                    const drivingLessons = orderData.order.appointments.filter(apt => 
+                      (apt.classType === 'driving_lesson' || apt.classType === 'driving_test' || apt.classType === 'driving test') && apt.slotId
+                    );
+                    
+                    // Group driving lessons by instructor
+                    const drivingLessonsByInstructor = drivingLessons.reduce((acc, apt) => {
+                      const key = apt.instructorId;
+                      if (!acc[key]) {
+                        acc[key] = {
+                          instructorId: apt.instructorId,
+                          classType: apt.classType,
+                          slotIds: []
+                        };
+                      }
+                      acc[key].slotIds.push(apt.slotId);
+                      return acc;
+                    }, {});
+                    
+                    // Process TICKET CLASSES
+                    for (const appointment of ticketClasses) {
                       try {
-                        // Handle TICKET CLASSES
-                        if (appointment.classType === 'ticket_class' || appointment.ticketClassId) {
-                          console.log(`🎫 Processing ticket class for enrollment:`, {
+                        console.log(`🎫 Processing ticket class for enrollment:`, {
+                          ticketClassId: appointment.ticketClassId,
+                          studentId: userId,
+                          orderId: orderId,
+                          orderNumber: orderDetails?.orderNumber
+                        });
+                        
+                        const enrollResponse = await fetch('/api/ticketclasses/enroll-student', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
                             ticketClassId: appointment.ticketClassId,
                             studentId: userId,
                             orderId: orderId,
                             orderNumber: orderDetails?.orderNumber
-                          });
-                          
-                          // Move student from studentRequests to students array
-                          const enrollResponse = await fetch('/api/ticketclasses/enroll-student', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              ticketClassId: appointment.ticketClassId,
-                              studentId: userId, // Usar userId de searchParams en lugar de appointment.studentId
-                              orderId: orderId,
-                              orderNumber: orderDetails?.orderNumber
-                            })
-                          });
-                          
-                          if (enrollResponse.ok) {
-                            const enrollResult = await enrollResponse.json();
-                            console.log(`✅ Student enrolled in ticket class successfully:`, enrollResult);
-                          } else {
-                            const errorText = await enrollResponse.text();
-                            console.error(`❌ Failed to enroll student in ticket class:`, errorText);
-                            allProcessed = false;
-                          }
-                        }
+                          })
+                        });
                         
-                        // Handle DRIVING LESSONS & DRIVING TESTS (flexible matching)
-                        else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test' || appointment.classType === 'driving test') && appointment.slotId) {
-                          const appointmentTypeDisplay = (appointment.classType === 'driving_test' || appointment.classType === 'driving test') ? 'driving test' : 'driving lesson';
-                          console.log(`🚗 Processing ${appointmentTypeDisplay}: ${appointment.slotId}`);
-                          
-                          // Use the SAME endpoint for both driving test and driving lesson - it works!
-                          const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              slotId: appointment.slotId,
-                              instructorId: appointment.instructorId,
-                              status: 'booked',
-                              paid: true,
-                              paymentId: orderId,
-                              classType: appointment.classType
-                            })
-                          });
-                          
-                          if (slotUpdateResponse.ok) {
-                            const slotResult = await slotUpdateResponse.json();
-                            console.log(`✅ ${appointmentTypeDisplay} slot ${appointment.slotId} updated:`, slotResult);
-                          } else {
-                            const errorText = await slotUpdateResponse.text();
-                            console.error(`❌ Failed to update ${appointmentTypeDisplay} slot ${appointment.slotId}:`, errorText);
-                            allProcessed = false;
-                          }
+                        if (enrollResponse.ok) {
+                          const enrollResult = await enrollResponse.json();
+                          console.log(`✅ Student enrolled in ticket class successfully:`, enrollResult);
+                        } else {
+                          const errorText = await enrollResponse.text();
+                          console.error(`❌ Failed to enroll student in ticket class:`, errorText);
+                          allProcessed = false;
                         }
-                        
-                        else {
-                          console.log(`⏭️ Skipping appointment - no recognized type or missing data`);
-                          console.log(`🔍 DEBUG - Appointment classType:`, `"${appointment.classType}"`);
-                          console.log(`🔍 DEBUG - Appointment slotId:`, appointment.slotId);
-                          console.log(`🔍 DEBUG - Full appointment:`, appointment);
-                        }
-                        
                       } catch (error) {
-                        console.error(`❌ Error processing appointment:`, error);
+                        console.error(`❌ Error processing ticket class:`, error);
+                        allProcessed = false;
+                      }
+                    }
+                    
+                    // Process DRIVING LESSONS & DRIVING TESTS (batch by instructor)
+                    for (const [instructorId, data] of Object.entries(drivingLessonsByInstructor)) {
+                      try {
+                        const appointmentTypeDisplay = (data.classType === 'driving_test' || data.classType === 'driving test') ? 'driving test' : 'driving lesson';
+                        console.log(`🚗 Processing ${data.slotIds.length} ${appointmentTypeDisplay} slots for instructor ${instructorId}:`, data.slotIds);
+                        
+                        // Update all slots for this instructor at once
+                        const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            instructorId: instructorId,
+                            status: 'booked',
+                            paid: true,
+                            paymentId: orderId,
+                            classType: data.classType,
+                            slotIds: data.slotIds
+                          })
+                        });
+                        
+                        if (slotUpdateResponse.ok) {
+                          const slotResult = await slotUpdateResponse.json();
+                          console.log(`✅ ${data.slotIds.length} ${appointmentTypeDisplay} slots updated:`, slotResult);
+                        } else {
+                          const errorText = await slotUpdateResponse.text();
+                          console.error(`❌ Failed to update ${data.slotIds.length} ${appointmentTypeDisplay} slots:`, errorText);
+                          allProcessed = false;
+                        }
+                      } catch (error) {
+                        console.error(`❌ Error processing driving lessons for instructor ${instructorId}:`, error);
                         allProcessed = false;
                       }
                     }
