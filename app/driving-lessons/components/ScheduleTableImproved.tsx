@@ -26,6 +26,7 @@ interface ScheduleEntry {
   studentId?: string;
   studentName?: string;
   paid?: boolean;
+  paymentMethod?: string;
 }
 
 interface Product {
@@ -106,6 +107,9 @@ export default function ScheduleTableImproved({
     if ((lesson.status === 'available' || lesson.status === 'free') && !lesson.paid) return true;
     const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
     const isUsersPending = lesson.status === 'pending' && lesson.studentId && userId && lesson.studentId.toString() === userId;
+    // If it's pending of this user but payment method is physical (pay at location), DO NOT treat as available
+    if (isUsersPending && lesson.paymentMethod === 'physical') return false;
+    // Otherwise, if it's user's pending but no longer in cart, treat as available
     if (isUsersPending && !pendingSlotKeysInCart.has(slotKey)) return true;
     return false;
   }, [pendingSlotKeysInCart, userId]);
@@ -303,12 +307,6 @@ export default function ScheduleTableImproved({
       <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 mt-12">
         <span className="text-[#10B981]">Available Schedules</span>
       </h2>
-      <p className="text-center text-gray-600 mb-6 text-sm">
-        {selectedInstructorForSchedule 
-          ? `Showing ${selectedInstructorForSchedule.name}'s schedule. Green slots are available for booking.`
-          : 'Please select an instructor first to view their available schedule.'
-        }
-      </p>
 
       {/* Connection Status Indicator */}
       {(() => {
@@ -541,7 +539,8 @@ export default function ScheduleTableImproved({
                         
                         // Slot available for booking (or pending but no longer present in user's cart -> treat as available immediately)
                         const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
-                        const isPendingButNotInCart = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId && !pendingSlotKeysInCart.has(slotKey);
+                        const isUsersPendingHere = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
+                        const isPendingButNotInCart = isUsersPendingHere && !pendingSlotKeysInCart.has(slotKey) && slot.paymentMethod !== 'physical';
                         if (((slot.status === 'available' || slot.status === 'free') && !slot.paid) || isPendingButNotInCart) {
                           const isSelected = isSlotSelected(slot);
                           
@@ -601,8 +600,9 @@ export default function ScheduleTableImproved({
                             );
                           }
                         }
-                        // Slot pending del usuario actual - Solo si sigue en el carrito del usuario
-                        if (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId && slot.studentName && slot.studentName.trim() !== '' && pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`)) {
+                        // Slot pending del usuario actual - mostrar si sigue en el carrito o si es 'physical' (pago en sitio)
+                        const isUsersPending = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
+                        if (isUsersPending && (pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`) || slot.paymentMethod === 'physical')) {
                           return (
                             <td 
                               key={date.toDateString()} 
@@ -611,12 +611,14 @@ export default function ScheduleTableImproved({
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
                               <div className="text-xs">{slot.start} - {slot.end}</div>
-                              <div className="text-xs">Your Pending</div>
+                              <div className="text-xs">Pending</div>
                             </td>
                           );
                         }
+                        
                         // Slot booked del usuario actual
-                        if ((slot.status === 'scheduled' || slot.status === 'booked' || slot.paid) && slot.studentId && userId && slot.studentId.toString() === userId) {
+                        const isUsersBooked = (slot.status === 'scheduled' || slot.status === 'booked' || slot.paid) && slot.studentId && userId && slot.studentId.toString() === userId;
+                        if (isUsersBooked) {
                           return (
                             <td 
                               key={date.toDateString()} 
@@ -625,7 +627,37 @@ export default function ScheduleTableImproved({
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
                               <div className="text-xs">{slot.start} - {slot.end}</div>
-                              <div className="text-xs">Your Booking</div>
+                              <div className="text-xs">Booked</div>
+                            </td>
+                          );
+                        }
+                        
+                        // Slot pending de otro usuario - mostrar como no disponible
+                        if (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() !== userId) {
+                          return (
+                            <td 
+                              key={date.toDateString()} 
+                              rowSpan={rowSpan}
+                              className="border border-gray-300 py-1 bg-gray-300 text-gray-600 font-bold min-w-[80px] w-[80px]"
+                            >
+                              <div className="text-xs font-semibold">Driving Lesson</div>
+                              <div className="text-xs">{slot.start} - {slot.end}</div>
+                              <div className="text-xs">Reserved</div>
+                            </td>
+                          );
+                        }
+                        
+                        // Slot booked de otro usuario - mostrar como no disponible
+                        if ((slot.status === 'scheduled' || slot.status === 'booked' || slot.paid) && slot.studentId && userId && slot.studentId.toString() !== userId) {
+                          return (
+                            <td 
+                              key={date.toDateString()} 
+                              rowSpan={rowSpan}
+                              className="border border-gray-300 py-1 bg-red-200 text-red-800 font-bold min-w-[80px] w-[80px]"
+                            >
+                              <div className="text-xs font-semibold">Driving Lesson</div>
+                              <div className="text-xs">{slot.start} - {slot.end}</div>
+                              <div className="text-xs">Booked</div>
                             </td>
                           );
                         }
