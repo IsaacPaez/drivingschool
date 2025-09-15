@@ -516,8 +516,10 @@ function DrivingLessonsContent() {
           products={products}
           selectedProduct={selectedProduct}
           onProductSelect={handleProductSelect}
-          onRequestSchedule={handleRequestSchedule}
-          selectedHours={selectedHours}
+          instructors={instructors}
+          selectedInstructorForSchedule={selectedInstructorForSchedule}
+          onInstructorSelect={setSelectedInstructorForSchedule}
+          getScheduleForInstructor={getScheduleForInstructor}
         />
 
         {/* Right Side - Schedule Table Improved */}
@@ -533,7 +535,8 @@ function DrivingLessonsContent() {
           selectedSlots={selectedSlots}
           onSelectedSlotsChange={setSelectedSlots}
           selectedInstructorForSchedule={selectedInstructorForSchedule}
-          onInstructorSelect={setSelectedInstructorForSchedule}
+          selectedHours={selectedHours}
+          onRequestSchedule={handleRequestSchedule}
           key={`schedule-${Date.now()}`}
         />
       </div>

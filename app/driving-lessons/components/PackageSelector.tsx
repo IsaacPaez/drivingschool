@@ -19,14 +19,38 @@ interface Product {
 }
 
 
+interface Instructor {
+  _id: string;
+  name: string;
+  photo?: string;
+  email?: string;
+  schedule_driving_lesson?: ScheduleEntry[];
+}
+
+interface ScheduleEntry {
+  date: string;
+  start: string;
+  end: string;
+  status: string;
+  classType?: string;
+  pickupLocation?: string;
+  dropoffLocation?: string;
+  selectedProduct?: string;
+  studentId?: string;
+  studentName?: string;
+  paid?: boolean;
+}
+
 interface PackageSelectorProps {
   selectedDate: Date | null;
   onDateChange: (value: CalendarValue) => void;
   products: Product[];
   selectedProduct: Product | null;
   onProductSelect: (product: Product | null) => void;
-  onRequestSchedule: () => void;
-  selectedHours: number;
+  instructors: Instructor[];
+  selectedInstructorForSchedule: Instructor | null;
+  onInstructorSelect: (instructor: Instructor | null) => void;
+  getScheduleForInstructor: (instructorId: string) => any;
 }
 
 export default function PackageSelector({
@@ -35,8 +59,10 @@ export default function PackageSelector({
   products,
   selectedProduct,
   onProductSelect,
-  onRequestSchedule,
-  selectedHours
+  instructors,
+  selectedInstructorForSchedule,
+  onInstructorSelect,
+  getScheduleForInstructor
 }: PackageSelectorProps) {
   return (
     <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
@@ -83,65 +109,69 @@ export default function PackageSelector({
         </select>
       </div>
 
-      {/* Selected Package Info */}
-      {selectedProduct && (
-        <div className="bg-blue-50 p-4 rounded-lg mt-6 w-full">
-          <h3 className="font-bold text-blue-800 mb-2">Selected Package:</h3>
-          <p className="text-blue-700"><strong>Package:</strong> {selectedProduct.title}</p>
-          <p className="text-blue-700"><strong>Price:</strong> ${selectedProduct.price}</p>
-          {selectedProduct.duration && (
-            <p className="text-blue-700"><strong>Duration:</strong> {selectedProduct.duration} hours</p>
-          )}
-          <p className="text-blue-700"><strong>Description:</strong> {selectedProduct.description}</p>
-          
-          {/* Hours Selection Status */}
-          <div className="mt-3 p-3 bg-white rounded border">
-            <p className="text-gray-700 font-medium">
-              <strong>Hours selected:</strong> {selectedHours} of {selectedProduct.duration || 0} available
-            </p>
-            {selectedHours > 0 && selectedHours < (selectedProduct.duration || 0) && (
-              <p className="text-orange-600 text-sm mt-1">
-                Please select {(selectedProduct.duration || 0) - selectedHours} more hours to continue
-              </p>
-            )}
-            {selectedHours === (selectedProduct.duration || 0) && selectedHours > 0 && (
-              <p className="text-green-600 text-sm mt-1">
-                ✓ Perfect! You have selected all required hours.
-              </p>
-            )}
-            {selectedHours > (selectedProduct.duration || 0) && (
-              <p className="text-red-600 text-sm mt-1">
-                You have selected too many hours. Please deselect {selectedHours - (selectedProduct.duration || 0)} hours.
-              </p>
-            )}
-          </div>
-          
-          {/* Request Schedule Button */}
-          <div className="mt-4">
-            {selectedHours === (selectedProduct.duration || 0) && selectedHours > 0 ? (
-              <button
-                onClick={onRequestSchedule}
-                className="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
+      {/* Available Instructors */}
+      <div className="w-full mb-6">
+        <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
+          Available Instructors
+        </h3>
+        <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 justify-center">
+          {instructors.map((instructor) => {
+            // Use SSE data first, fallback to static data
+            const sseSchedule = getScheduleForInstructor(instructor._id);
+            const scheduleToUse = sseSchedule && sseSchedule.length > 0 ? sseSchedule : instructor.schedule_driving_lesson;
+            
+            const availableCount = scheduleToUse?.filter(
+              (lesson: ScheduleEntry) => lesson.status === "available"
+            ).length || 0;
+            const isSelected = selectedInstructorForSchedule?._id === instructor._id;
+
+            return (
+              <div
+                key={instructor._id}
+                className={`border-2 rounded-lg p-3 text-center bg-white shadow-lg cursor-pointer transition-all duration-200 ease-in-out hover:shadow-xl hover:scale-105 flex-shrink-0 w-[110px] ${
+                  isSelected 
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                }`}
+                onClick={() => onInstructorSelect(isSelected ? null : instructor)}
               >
-                Request Schedule ({selectedHours} hours selected)
-              </button>
-            ) : (
-              <button
-                disabled
-                className="w-full bg-gray-400 text-white px-4 py-3 rounded-lg font-semibold cursor-not-allowed"
-              >
-                {selectedHours === 0 
-                  ? "Select hours from schedule to continue" 
-                  : `Select ${selectedProduct.duration || 0} hours to continue`
-                }
-              </button>
-            )}
-            <p className="text-sm text-blue-600 mt-2 text-center">
-              Click to request a custom schedule for this package
-            </p>
-          </div>
+                <div className="relative mb-2">
+                  <Image
+                    src={instructor.photo || '/default-instructor.png'}
+                    alt={instructor.name}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full mx-auto object-cover border border-white shadow-md"
+                  />
+                  {isSelected && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  )}
+                </div>
+                <h4 className="font-semibold text-sm text-gray-800 truncate mb-1 capitalize">{instructor.name}</h4>
+                <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                  availableCount > 0 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {availableCount} available
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+        
+        {/* Show count when many instructors */}
+        {instructors.length > 2 && (
+          <div className="text-center mt-3">
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {instructors.length} instructors available
+            </span>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
