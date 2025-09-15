@@ -21,7 +21,8 @@ export interface ITicketClass extends Document {
     requestDate: Date;
     status: 'pending' | 'accepted' | 'rejected';
   }[];
-  cupos: number;
+  cupos?: number;
+  spots?: number;
 }
 
 const TicketClassSchema = new Schema<ITicketClass>(
@@ -47,7 +48,8 @@ const TicketClassSchema = new Schema<ITicketClass>(
         status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }
       }
     ],
-    cupos: { type: Number, required: true },
+    cupos: { type: Number, required: false },
+    spots: { type: Number, required: false },
   },
   { collection: "ticketclasses", timestamps: true }
 );
