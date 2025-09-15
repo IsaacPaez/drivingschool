@@ -316,7 +316,7 @@ export async function GET(req: NextRequest) {
             items.forEach(item => {
               if (item.classType === 'driving test') {
                 appointments.push({
-                  slotId: `${item.date}-${item.start}-${item.end}`,
+                  slotId: item.slotId || `${item.date}-${item.start}-${item.end}`, // Use real slotId from cart
                   instructorId: item.instructorId,
                   instructorName: item.instructorName,
                   date: item.date,
@@ -606,7 +606,7 @@ export async function POST(req: NextRequest) {
         cartItems.forEach(item => {
           if (item.classType === 'driving test') {
             appointments.push({
-              slotId: `${item.date}-${item.start}-${item.end}`,
+              slotId: item.slotId || `${item.date}-${item.start}-${item.end}`, // Use real slotId from cart
               instructorId: item.instructorId,
               instructorName: item.instructorName,
               date: item.date,
