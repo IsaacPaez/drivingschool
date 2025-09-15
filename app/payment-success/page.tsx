@@ -167,7 +167,12 @@ function PaymentSuccessContent() {
                       try {
                         // Handle TICKET CLASSES
                         if (appointment.classType === 'ticket_class' || appointment.ticketClassId) {
-                          console.log(`🎫 Processing ticket class: ${appointment.ticketClassId}`);
+                          console.log(`🎫 Processing ticket class for enrollment:`, {
+                            ticketClassId: appointment.ticketClassId,
+                            studentId: userId,
+                            orderId: orderId,
+                            orderNumber: orderDetails?.orderNumber
+                          });
                           
                           // Move student from studentRequests to students array
                           const enrollResponse = await fetch('/api/ticketclasses/enroll-student', {
@@ -357,6 +362,13 @@ function PaymentSuccessContent() {
                           console.log(`🎫 Reverting ticket class: ${appointment.ticketClassId}`);
                           
                           // Call API to remove student from studentRequests (revert the add-to-cart action)
+                          const studentIdToRevert = userId || orderData.order.userId;
+                          console.log(`🔄 Reverting ticket class with:`, {
+                            ticketClassId: appointment.ticketClassId,
+                            userId: studentIdToRevert,
+                            orderUserId: orderData.order.userId
+                          });
+                          
                           const ticketRevertResponse = await fetch('/api/register-online/cancel-request', {
                             method: 'POST',
                             headers: {
@@ -364,7 +376,7 @@ function PaymentSuccessContent() {
                             },
                             body: JSON.stringify({
                               ticketClassId: appointment.ticketClassId,
-                              userId: orderData.order.userId
+                              userId: studentIdToRevert
                             })
                           });
                           
