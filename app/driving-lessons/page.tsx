@@ -13,6 +13,7 @@ import ScheduleTableImproved from "./components/ScheduleTableImproved";
 import BookingModal from "./components/BookingModal";
 import RequestModal from "./components/RequestModal";
 import ConfirmationModal from "./components/ConfirmationModal";
+import ScheduleSuccessModal from "./components/ScheduleSuccessModal";
 import AuthWarningModal from "./components/AuthWarningModal";
 
 interface Instructor {
@@ -72,6 +73,7 @@ function DrivingLessonsContent() {
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [showSuccessPendingModal, setShowSuccessPendingModal] = useState(false);
   const [selectedHours, setSelectedHours] = useState(0);
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
   const [forceUpdate, setForceUpdate] = useState(0);
@@ -387,8 +389,8 @@ function DrivingLessonsContent() {
           return; // Don't continue with the rest of the function
         }
       } else {
-        // Schedule request submitted silently - no alert needed
-        console.log('✅ Schedule request submitted successfully without showing alert');
+        // Pay at location: show success modal like Driving Test
+        setShowSuccessPendingModal(true);
       }
 
       // Close the modal
@@ -543,6 +545,15 @@ function DrivingLessonsContent() {
         isOpen={showConfirmation}
         onClose={() => setShowConfirmation(false)}
         message={confirmationMessage}
+      />
+
+      {/* Success Modal for Pay at Location */}
+      <ScheduleSuccessModal
+        isOpen={showSuccessPendingModal}
+        onClose={() => setShowSuccessPendingModal(false)}
+        packageTitle={selectedProduct?.title}
+        price={selectedProduct?.price}
+        slot={selectedSlot ? { date: selectedSlot.date, start: selectedSlot.start, end: selectedSlot.end } : null}
       />
 
       {/* Auth Warning Modal */}

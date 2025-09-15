@@ -68,14 +68,14 @@ export async function POST(req: NextRequest) {
             console.log(`🔍 [FORCE UPDATE] Strategy 2 - Searching driving test slot: date=${date}, start=${start}, end=${end}`);
             
             updateResult = await Instructor.updateOne(
-              {
-                _id: instructorId,
+        {
+          _id: instructorId,
                 [`${scheduleField}.date`]: date,
                 [`${scheduleField}.start`]: start,
                 [`${scheduleField}.end`]: end
-              },
-              {
-                $set: {
+        },
+        {
+          $set: {
                   [`${scheduleField}.$.status`]: status,
                   [`${scheduleField}.$.paid`]: paid,
                   [`${scheduleField}.$.paymentId`]: paymentId,
@@ -119,24 +119,25 @@ export async function POST(req: NextRequest) {
             console.log(`🎯 [FORCE UPDATE] Strategy 3 (by pending + date): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
           }
         }
-      } else {
-        // For driving lessons, use slotId directly
-        updateResult = await Instructor.updateOne(
-          {
-            _id: instructorId,
-            [`${scheduleField}._id`]: slotId
-          },
-          {
-            $set: {
-              [`${scheduleField}.$.status`]: status,
-              [`${scheduleField}.$.paid`]: paid,
-              [`${scheduleField}.$.paymentId`]: paymentId,
-              [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
-              [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : 'Confirmed'
+        } else {
+          // For driving lessons, use slotId directly
+          updateResult = await Instructor.updateOne(
+            {
+              _id: instructorId,
+              [`${scheduleField}._id`]: slotId
+            },
+            {
+              $set: {
+                [`${scheduleField}.$.status`]: status,
+                [`${scheduleField}.$.paid`]: paid,
+                [`${scheduleField}.$.paymentId`]: paymentId,
+                [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '', // Leave empty when booked
+                [`${scheduleField}.$.booked`]: status === 'booked'
+              }
             }
-          }
-        );
-      }
+          );
+        }
     } else {
       // Try User model
       instructor = await User.findById(instructorId);
@@ -238,7 +239,8 @@ export async function POST(req: NextRequest) {
                 [`${scheduleField}.$.paid`]: paid,
                 [`${scheduleField}.$.paymentId`]: paymentId,
                 [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
-                [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : 'Confirmed'
+                [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '', // Leave empty when booked
+                [`${scheduleField}.$.booked`]: status === 'booked'
               }
             }
           );

@@ -277,8 +277,8 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
             {cart.length === 0 ? (
               <div className="text-center">
                 <p className="text-gray-500 dark:text-black mb-4">
-                  Your cart is empty.
-                </p>
+                Your cart is empty.
+              </p>
                 
                 {/* Botón de limpiar carrito siempre disponible */}
                 <button
@@ -576,22 +576,22 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                               ) : (
                                 // Fallback to basic slot information
                                 item.selectedSlots?.map((slot: string, index: number) => {
-                                  const [date, start, end] = slot.split('-');
-                                  return (
-                                    <div key={index} className="flex items-center justify-between bg-white p-2 rounded border border-blue-100">
-                                      <div className="flex items-center">
-                                        <svg className="w-3 h-3 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span className="text-xs text-blue-800 font-medium">{date}</span>
-                                        <span className="text-xs text-blue-600 mx-2">•</span>
+                                const [date, start, end] = slot.split('-');
+                                return (
+                                  <div key={index} className="flex items-center justify-between bg-white p-2 rounded border border-blue-100">
+                                    <div className="flex items-center">
+                                      <svg className="w-3 h-3 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      <span className="text-xs text-blue-800 font-medium">{date}</span>
+                                      <span className="text-xs text-blue-600 mx-2">•</span>
                                         <span className="text-xs text-blue-700 font-semibold">{start} - {end}</span>
-                                      </div>
-                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                        PENDING
-                                      </span>
                                     </div>
-                                  );
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                      PENDING
+                                    </span>
+                                  </div>
+                                );
                                 }) || []
                               )}
                             </div>
