@@ -46,6 +46,18 @@ export async function POST(req: NextRequest) {
         amount: apt.amount,
         status: 'pending'
       };
+      
+      // Preserve ticket class specific fields
+      if (apt.ticketClassId) {
+        mapped.ticketClassId = apt.ticketClassId;
+      }
+      if (apt.classId) {
+        mapped.classId = apt.classId;
+      }
+      if (apt.studentId) {
+        mapped.studentId = apt.studentId;
+      }
+      
       console.log('🎯 Mapped appointment:', mapped);
       return mapped;
     });
