@@ -16,9 +16,8 @@ export async function POST(req: NextRequest) {
       end,
       classType,
       amount,
-      paymentMethod,
-      pickupLocation,
-      dropoffLocation
+      paymentMethod
+      // Removed pickupLocation and dropoffLocation - not needed for driving tests
     } = await req.json();
 
     // Validar datos requeridos
@@ -74,9 +73,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Actualizar el slot a status "pending"
+    // Actualizar el slot a status "pending" - SOLO campos necesarios para driving test
     slot.status = 'pending';
     slot.studentId = studentId;
+    slot.booked = false;
+    slot.classType = classType || 'driving test';
+    slot.amount = amount || 50;
+    slot.paymentMethod = paymentMethod || 'instructor';
+    slot.reservedAt = new Date();
+    
     // Buscar el nombre del estudiante y guardarlo correctamente
     const student = await User.findById(studentId);
     let fullName = "";
@@ -88,13 +93,28 @@ export async function POST(req: NextRequest) {
       fullName += " " + student.lastName;
     }
     slot.studentName = fullName;
-    slot.booked = false; // No está completamente reservado hasta que se confirme el pago
-    slot.classType = classType || 'driving test';
-    if (slot.amount !== undefined) slot.amount = amount || 50;
-    if (slot.paymentMethod !== undefined) slot.paymentMethod = paymentMethod || 'instructor';
-    if (slot.pickupLocation !== undefined) slot.pickupLocation = pickupLocation || "";
-    if (slot.dropoffLocation !== undefined) slot.dropoffLocation = dropoffLocation || "";
-    if (slot.reservedAt !== undefined) slot.reservedAt = new Date(); // Timestamp para limpiar slots pendientes después de 24h
+    
+    // ELIMINAR EXPLÍCITAMENTE campos de driving lessons para driving tests
+    delete slot.pickupLocation;
+    delete slot.dropoffLocation;
+    delete slot.selectedProduct;
+
+    // Asegurar limpieza también a nivel de BD (maneja subdocs existentes)
+    await Instructor.updateOne(
+      {
+        _id: instructorId,
+        'schedule_driving_test.date': date,
+        'schedule_driving_test.start': start,
+        'schedule_driving_test.end': end
+      },
+      {
+        $unset: {
+          'schedule_driving_test.$.pickupLocation': "",
+          'schedule_driving_test.$.dropoffLocation': "",
+          'schedule_driving_test.$.selectedProduct': ""
+        }
+      }
+    );
 
     // Mark the instructor document as modified to trigger save
     instructor.markModified('schedule_driving_test');

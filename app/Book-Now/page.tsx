@@ -650,9 +650,7 @@ export default function BookNowPage() {
               start: selectedSlot.start,
               end: selectedSlot.end,
                       classType: 'driving test',
-              amount: selectedSlot.amount || 50,
-              pickupLocation: '',
-              dropoffLocation: ''
+              amount: selectedSlot.amount || 50
                     }),
                   });
                   

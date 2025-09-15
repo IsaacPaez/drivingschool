@@ -16,10 +16,9 @@ export async function POST(req: NextRequest) {
       end,
       classType,
       amount,
-      pickupLocation,
-      dropoffLocation,
       orderId,
       orderNumber
+      // Removed pickupLocation and dropoffLocation - not needed for driving tests
     } = await req.json();
 
     console.log('🛒 Adding driving test to cart:', {
@@ -108,19 +107,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Crear el item del carrito
+    // Crear el item del carrito - SOLO campos necesarios para driving test
     const cartItem = {
       instructorId: instructorId,
       instructorName: instructor.name,
       instructorPhoto: instructor.photo || "",
-      slotId: slot._id.toString(), // ← AGREGAR EL _ID DEL SLOT
+      slotId: slot._id.toString(),
       date: date,
       start: start,
       end: end,
       classType: classType || "driving test",
       amount: amount || 50,
-      pickupLocation: pickupLocation || "",
-      dropoffLocation: dropoffLocation || "",
       orderId: orderId || null,
       orderNumber: orderNumber || null,
       addedAt: new Date()
@@ -153,10 +150,35 @@ export async function POST(req: NextRequest) {
     user.cart.push(cartItem);
     await user.save();
 
-    // Actualizar el slot a status "pending" - SOLO los campos necesarios
+    // Actualizar el slot a status "pending" - SOLO los campos necesarios para driving test
     slot.status = 'pending';
     slot.studentId = userId;
+    slot.studentName = user.name || 'Pending Student';
+    slot.reservedAt = new Date();
+    slot.paymentMethod = 'online'; // Default payment method for online booking
     
+    // ELIMINAR EXPLÍCITAMENTE campos de driving lessons para driving tests
+    delete slot.pickupLocation;
+    delete slot.dropoffLocation;
+    delete slot.selectedProduct;
+
+    // También limpiar a nivel de BD con $unset por si ya existen en subdocumento
+    await Instructor.updateOne(
+      {
+        _id: instructorId,
+        'schedule_driving_test.date': date,
+        'schedule_driving_test.start': start,
+        'schedule_driving_test.end': end
+      },
+      {
+        $unset: {
+          'schedule_driving_test.$.pickupLocation': "",
+          'schedule_driving_test.$.dropoffLocation': "",
+          'schedule_driving_test.$.selectedProduct': ""
+        }
+      }
+    );
+
     await instructor.save();
 
     console.log('✅ Driving test added to cart successfully');

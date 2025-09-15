@@ -58,6 +58,16 @@ export async function POST(request: Request) {
     foundSlot.status = 'available';
     foundSlot.booked = false;
     foundSlot.studentId = null;
+    foundSlot.studentName = undefined as unknown as string;
+    foundSlot.reservedAt = undefined as unknown as Date;
+    foundSlot.paymentMethod = undefined as unknown as string;
+    foundSlot.orderId = undefined as unknown as string;
+    foundSlot.orderNumber = undefined as unknown as string;
+    
+    // Limpiar campos que solo aplican a driving lessons
+    delete (foundSlot as any).pickupLocation;
+    delete (foundSlot as any).dropoffLocation;
+    delete (foundSlot as any).selectedProduct;
     
     // Mark the correct schedule as modified
     instructor.markModified(scheduleType);
