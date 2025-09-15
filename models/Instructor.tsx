@@ -47,9 +47,11 @@ const ScheduleSlotSchema = new Schema<ScheduleSlot>({
   studentId: { type: String, default: null }, // Changed to String to support custom IDs
   status: { type: String, enum: ['free', 'scheduled', 'cancelled', 'available', 'pending', 'booked'], default: 'free' },
   classType: { type: String, default: 'lesson' }, // Nuevo campo para el tipo de clase
-  pickupLocation: { type: String, default: '' },
-  dropoffLocation: { type: String, default: '' },
-  selectedProduct: { type: String, default: '' },
+  // Locations and selectedProduct are only applicable to driving lessons.
+  // Remove defaults so they are not created as empty strings for driving tests.
+  pickupLocation: { type: String },
+  dropoffLocation: { type: String },
+  selectedProduct: { type: String },
   studentName: { type: String, default: '' },
   paid: { type: Boolean, default: false },
   amount: { type: Number, default: 0 },

@@ -30,6 +30,16 @@ export async function GET(req: NextRequest) {
     }
   };
   
+  // Heartbeat to keep the connection alive on serverless hosts (e.g., Vercel)
+  // Sends a small ping every 15 seconds so intermediaries don't close the stream
+  let heartbeat: ReturnType<typeof setInterval> | null = setInterval(() => {
+    try {
+      writer.write(encoder.encode(`: ping\n\n`));
+    } catch {
+      // Ignore, connection likely closed
+    }
+  }, 15000);
+  
   // Connect to the database
   try {
     await connectDB();
@@ -110,6 +120,10 @@ export async function GET(req: NextRequest) {
     if (changeStream) {
       changeStream.close();
     }
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      heartbeat = null;
+    }
     writer.close().catch((err) => {
       console.warn("Error closing SSE writer:", err);
     });
@@ -120,6 +134,8 @@ export async function GET(req: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      // Allow the Vercel preview/production domains
+      'Access-Control-Allow-Origin': '*',
     },
   });
 } 

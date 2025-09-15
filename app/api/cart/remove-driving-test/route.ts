@@ -112,14 +112,20 @@ export async function POST(req: NextRequest) {
 
     await user.save();
 
-    // Free the slot - set status back to available and remove student info
+    // Free the slot - set status back to available and remove ALL student info
     slot.status = 'available';
     slot.studentId = undefined;
+    slot.studentName = undefined;
     slot.booked = false;
-    slot.pickupLocation = "";
-    slot.dropoffLocation = "";
+    slot.reservedAt = undefined;
+    slot.paymentMethod = undefined;
     slot.orderId = undefined;
     slot.orderNumber = undefined;
+    
+    // Remove any driving lesson specific fields that shouldn't be here
+    delete slot.pickupLocation;
+    delete slot.dropoffLocation;
+    delete slot.selectedProduct;
     
     await instructor.save();
 
