@@ -169,25 +169,26 @@ function PaymentSuccessContent() {
                         if (appointment.classType === 'ticket_class' || appointment.ticketClassId) {
                           console.log(`🎫 Processing ticket class: ${appointment.ticketClassId}`);
                           
-                          // Call the orders/update-status endpoint to move from studentRequests to students
-                          const ticketUpdateResponse = await fetch('/api/orders/update-status', {
+                          // Move student from studentRequests to students array
+                          const enrollResponse = await fetch('/api/ticketclasses/enroll-student', {
                             method: 'POST',
                             headers: {
                               'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
+                              ticketClassId: appointment.ticketClassId,
+                              studentId: appointment.studentId,
                               orderId: orderId,
-                              status: 'completed',
-                              paymentStatus: 'completed'
+                              orderNumber: orderDetails?.orderNumber
                             })
                           });
                           
-                          if (ticketUpdateResponse.ok) {
-                            const ticketResult = await ticketUpdateResponse.json();
-                            console.log(`✅ Ticket class processed successfully:`, ticketResult);
+                          if (enrollResponse.ok) {
+                            const enrollResult = await enrollResponse.json();
+                            console.log(`✅ Student enrolled in ticket class successfully:`, enrollResult);
                           } else {
-                            const errorText = await ticketUpdateResponse.text();
-                            console.error(`❌ Failed to process ticket class:`, errorText);
+                            const errorText = await enrollResponse.text();
+                            console.error(`❌ Failed to enroll student in ticket class:`, errorText);
                             allProcessed = false;
                           }
                         }
@@ -197,20 +198,34 @@ function PaymentSuccessContent() {
                           const appointmentTypeDisplay = (appointment.classType === 'driving_test' || appointment.classType === 'driving test') ? 'driving test' : 'driving lesson';
                           console.log(`🚗 Processing ${appointmentTypeDisplay}: ${appointment.slotId}`);
                           
-                          const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
+                          // Use different endpoints for driving test vs driving lesson
+                          const isDrivingTest = appointment.classType === 'driving_test' || appointment.classType === 'driving test';
+                          const endpoint = isDrivingTest 
+                            ? '/api/instructors/update-driving-test-status'  // Clean endpoint - ONLY status
+                            : '/api/instructors/update-slot-status';         // Full endpoint for driving lessons
+                          
+                          const requestBody = isDrivingTest 
+                            ? {
+                                slotId: appointment.slotId,
+                                instructorId: appointment.instructorId,
+                                status: 'booked'
+                              }
+                            : {
+                                slotId: appointment.slotId,
+                                instructorId: appointment.instructorId,
+                                status: 'booked',
+                                paid: true,
+                                paymentId: orderId,
+                                confirmedAt: new Date().toISOString(),
+                                classType: appointment.classType
+                              };
+                          
+                          const slotUpdateResponse = await fetch(endpoint, {
                             method: 'POST',
                             headers: {
                               'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({
-                              slotId: appointment.slotId,
-                              instructorId: appointment.instructorId,
-                              status: 'booked',
-                              paid: true,
-                              paymentId: orderId,
-                              confirmedAt: new Date().toISOString(),
-                              classType: appointment.classType
-                            })
+                            body: JSON.stringify(requestBody)
                           });
                           
                           if (slotUpdateResponse.ok) {

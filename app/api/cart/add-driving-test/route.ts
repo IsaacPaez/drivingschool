@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
       instructorId: instructorId,
       instructorName: instructor.name,
       instructorPhoto: instructor.photo || "",
+      slotId: slot._id.toString(), // ← AGREGAR EL _ID DEL SLOT
       date: date,
       start: start,
       end: end,
@@ -152,20 +153,9 @@ export async function POST(req: NextRequest) {
     user.cart.push(cartItem);
     await user.save();
 
-    // Actualizar el slot a status "pending"
+    // Actualizar el slot a status "pending" - SOLO los campos necesarios
     slot.status = 'pending';
     slot.studentId = userId;
-    slot.booked = false; // Aún no está completamente reservado hasta que se pague
-    slot.pickupLocation = pickupLocation || "";
-    slot.dropoffLocation = dropoffLocation || "";
-    
-    // Add order information if provided
-    if (orderId) {
-      slot.orderId = orderId;
-    }
-    if (orderNumber) {
-      slot.orderNumber = orderNumber;
-    }
     
     await instructor.save();
 

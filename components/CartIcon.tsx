@@ -403,6 +403,98 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                         </div>
                       )}
 
+                      {/* Ticket Class Details */}
+                      {item.ticketClassId && (
+                        <div className="bg-gradient-to-r from-red-50 to-rose-50 p-4 rounded-lg border border-red-200 shadow-sm">
+                          <div className="flex items-center mb-3">
+                            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-semibold text-red-900">
+                                Traffic Law & Substance Abuse Class
+                              </h4>
+                              <p className="text-xs text-red-600">
+                                Online course enrollment
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2 mb-3">
+                            <div className="flex items-center text-xs text-red-700">
+                              <svg className="w-3 h-3 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="font-medium">Course Type:</span> Online Traffic Law Course
+                            </div>
+                            
+                            <div className="flex items-center text-xs text-red-700">
+                              <svg className="w-3 h-3 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="font-medium">Duration:</span> 4 Hours
+                            </div>
+
+                            {/* Show selected slot date and time if available */}
+                            {item.date && item.start && item.end && (
+                              <>
+                                <div className="flex items-center text-xs text-red-700">
+                                  <svg className="w-3 h-3 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  <span className="font-medium">Date:</span> {(() => {
+                                    try {
+                                      let dateStr = item.date;
+                                      
+                                      // Handle ISO date format (2025-09-11T00:00:00.000Z)
+                                      if (dateStr.includes('T')) {
+                                        dateStr = dateStr.split('T')[0]; // Extract only the date part
+                                      }
+                                      
+                                      // Parse the date string correctly to avoid timezone issues
+                                      const [year, month, day] = dateStr.split('-').map(Number);
+                                      const date = new Date(year, month - 1, day); // month is 0-indexed
+                                      
+                                      return date.toLocaleDateString('en-US', { 
+                                        weekday: 'short', 
+                                        year: 'numeric', 
+                                        month: 'short', 
+                                        day: 'numeric' 
+                                      });
+                                    } catch (error) {
+                                      console.error('Error parsing date:', item.date, error);
+                                      return 'Invalid Date';
+                                    }
+                                  })()}
+                                </div>
+                                
+                                <div className="flex items-center text-xs text-red-700">
+                                  <svg className="w-3 h-3 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="font-medium">Time:</span> {item.start} - {item.end}
+                                </div>
+                              </>
+                            )}
+                            
+                            <div className="flex items-center text-xs text-red-700">
+                              <svg className="w-3 h-3 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <span className="font-medium">Access:</span> Immediate after payment
+                            </div>
+                          </div>
+                          
+                          <div className="bg-red-100 p-2 rounded border-l-4 border-red-400">
+                            <p className="text-xs text-red-800">
+                              <span className="font-medium">Note:</span> Course access will be provided via email after successful payment completion.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Package Details (for driving lessons without order yet) */}
                       {!item.orderId && item.packageDetails && item.selectedSlots && (
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 shadow-sm">
@@ -453,27 +545,55 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                           
                           <div className="mb-3">
                             <h5 className="text-xs font-semibold text-blue-800 mb-2">
-                              Selected Time Slots ({item.selectedSlots.length})
+                              Selected Time Slots ({item.selectedSlots?.length || 0})
                             </h5>
                             <div className="space-y-1">
-                              {item.selectedSlots.map((slot: string, index: number) => {
-                                const [date, start, end] = slot.split('-');
-                                return (
+                              {item.slotDetails && item.slotDetails.length > 0 ? (
+                                // Use detailed slot information if available
+                                item.slotDetails.map((slotDetail: any, index: number) => (
                                   <div key={index} className="flex items-center justify-between bg-white p-2 rounded border border-blue-100">
-                                    <div className="flex items-center">
-                                      <svg className="w-3 h-3 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                      </svg>
-                                      <span className="text-xs text-blue-800 font-medium">{date}</span>
-                                      <span className="text-xs text-blue-600 mx-2">•</span>
-                                      <span className="text-xs text-blue-700">{start}-{end}</span>
+                                    <div className="flex flex-col space-y-1">
+                                      <div className="flex items-center">
+                                        <svg className="w-3 h-3 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="text-xs text-blue-800 font-medium">{slotDetail.date}</span>
+                                        <span className="text-xs text-blue-600 mx-2">•</span>
+                                        <span className="text-xs text-blue-700 font-semibold">{slotDetail.start} - {slotDetail.end}</span>
+                                      </div>
+                                      <div className="flex items-center ml-5">
+                                        <svg className="w-3 h-3 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        <span className="text-xs text-green-700 font-medium">{slotDetail.instructorName}</span>
+                                      </div>
                                     </div>
                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                                       PENDING
                                     </span>
                                   </div>
-                                );
-                              })}
+                                ))
+                              ) : (
+                                // Fallback to basic slot information
+                                item.selectedSlots?.map((slot: string, index: number) => {
+                                  const [date, start, end] = slot.split('-');
+                                  return (
+                                    <div key={index} className="flex items-center justify-between bg-white p-2 rounded border border-blue-100">
+                                      <div className="flex items-center">
+                                        <svg className="w-3 h-3 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="text-xs text-blue-800 font-medium">{date}</span>
+                                        <span className="text-xs text-blue-600 mx-2">•</span>
+                                        <span className="text-xs text-blue-700 font-semibold">{start} - {end}</span>
+                                      </div>
+                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                        PENDING
+                                      </span>
+                                    </div>
+                                  );
+                                }) || []
+                              )}
                             </div>
                           </div>
                           

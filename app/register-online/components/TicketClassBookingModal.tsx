@@ -56,7 +56,30 @@ export default function TicketClassBookingModal({
                 <strong>Instructor:</strong> {selectedTicketClass.instructorInfo?.name || 'TBD'}
               </p>
               <p className="mb-2">
-                <strong>Date:</strong> {selectedTicketClass.date}
+                <strong>Date:</strong> {(() => {
+                  try {
+                    let dateStr = selectedTicketClass.date;
+                    
+                    // Handle ISO date format (2025-09-14T00:00:00.000Z)
+                    if (dateStr.includes('T')) {
+                      dateStr = dateStr.split('T')[0]; // Extract only the date part
+                    }
+                    
+                    // Parse the date string correctly to avoid timezone issues
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    const date = new Date(year, month - 1, day); // month is 0-indexed
+                    
+                    return date.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    });
+                  } catch (error) {
+                    console.error('Error parsing date:', selectedTicketClass.date, error);
+                    return selectedTicketClass.date;
+                  }
+                })()}
               </p>
               <p className="mb-2">
                 <strong>Time:</strong> {selectedTicketClass.hour} - {selectedTicketClass.endHour}

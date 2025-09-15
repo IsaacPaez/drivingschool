@@ -42,7 +42,7 @@ export default function useRegisterOnlineSSE(instructorId: string | null, classI
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = 10;
 
   const connectSSE = () => {
     // Close existing connection
@@ -92,10 +92,13 @@ export default function useRegisterOnlineSSE(instructorId: string | null, classI
         try {
           const data: SSEData = JSON.parse(event.data);
           
+          console.log('📡 [SSE] Received data:', data.type, data.ticketClasses?.length || 0, 'classes');
+          
           if (data.type === 'initial' || data.type === 'update') {
             if (data.ticketClasses) {
               setTicketClasses(data.ticketClasses);
               setIsLoading(false);
+              console.log('✅ [SSE] Ticket classes updated in UI');
             }
           } else if (data.type === 'error') {
             setError(data.message || 'Unknown error occurred');

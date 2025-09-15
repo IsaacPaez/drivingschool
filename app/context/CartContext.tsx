@@ -345,6 +345,41 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
         console.error("❌ Error removing driving test appointment:", error);
         alert('Error removing appointment from cart');
       }
+    } else if (itemToRemove && itemToRemove.ticketClassId) {
+      // This is a ticket class - remove student request first
+      console.log('🗑️ Removing ticket class and student request...');
+      
+      try {
+        const response = await fetch("/api/cart/remove-ticket-class", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            userId: user._id, 
+            ticketClassId: itemToRemove.ticketClassId,
+            itemId: id
+          }),
+        });
+
+        if (response.ok) {
+          let updatedCart: CartItem[] = [];
+          setCart((prevCart) => {
+            updatedCart = prevCart.filter((item) => item.id !== id);
+            return updatedCart;
+          });
+          setTimeout(() => saveCartToDB(updatedCart), 50);
+          console.log("✅ Ticket class removed and student request deleted");
+          
+          // SSE will automatically update the schedule - no need to refresh page
+          console.log("📡 SSE will automatically update the ticket class with removed request");
+        } else {
+          const errorData = await response.json();
+          console.error("❌ Failed to remove ticket class:", errorData.error);
+          alert(`Error removing ticket class: ${errorData.error}`);
+        }
+      } catch (error) {
+        console.error("❌ Error removing ticket class:", error);
+        alert('Error removing ticket class from cart');
+      }
     } else {
       // Regular cart item - just remove from cart
       let updatedCart: CartItem[] = [];
@@ -358,6 +393,34 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
 
   const clearCart = async () => {
     console.log('🗑️ [CartContext] Clearing cart completely...');
+    
+    // First, handle ticket classes before clearing the cart
+    if (user?._id && cart.length > 0) {
+      const ticketClassItems = cart.filter(item => item.ticketClassId);
+      
+      if (ticketClassItems.length > 0) {
+        console.log(`🗑️ [CartContext] Removing ${ticketClassItems.length} ticket class(es) and their student requests...`);
+        
+        // Remove each ticket class individually to clean up studentRequests
+        for (const item of ticketClassItems) {
+          try {
+            await fetch("/api/cart/remove-ticket-class", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                userId: user._id, 
+                ticketClassId: item.ticketClassId,
+                itemId: item.id
+              }),
+            });
+            console.log(`✅ [CartContext] Ticket class ${item.title} student request removed`);
+          } catch (error) {
+            console.warn(`⚠️ [CartContext] Failed to remove ticket class ${item.title}:`, error);
+          }
+        }
+      }
+    }
+    
     setCart([]);
     localStorage.removeItem("cart");
     
