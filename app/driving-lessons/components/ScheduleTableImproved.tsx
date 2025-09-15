@@ -344,13 +344,13 @@ export default function ScheduleTableImproved({
               <p className="text-blue-700 text-sm"><strong>Price:</strong> ${selectedProduct.price}</p>
               {selectedProduct.duration && (
                 <p className="text-blue-700 text-sm"><strong>Duration:</strong> {selectedProduct.duration} hours</p>
-              )}
-            </div>
+                  )}
+                </div>
             <div>
               <p className="text-blue-700 text-sm"><strong>Description:</strong> {selectedProduct.description}</p>
-            </div>
-          </div>
-          
+                </div>
+        </div>
+        
           {/* Hours Selection Status */}
           <div className="mt-3 p-3 bg-white rounded-lg border-2 border-blue-200 shadow-sm">
             <p className="text-gray-700 font-medium text-center mb-1 text-sm">
@@ -370,9 +370,9 @@ export default function ScheduleTableImproved({
               <p className="text-red-600 text-xs text-center">
                 You have selected too many hours. Please deselect {selectedHours - (selectedProduct.duration || 0)} hours.
               </p>
-            )}
-          </div>
-          
+        )}
+      </div>
+      
           {/* Request Schedule Button */}
           <div className="mt-3">
             {selectedHours === (selectedProduct.duration || 0) && selectedHours > 0 ? (

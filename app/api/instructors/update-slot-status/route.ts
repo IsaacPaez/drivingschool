@@ -120,7 +120,10 @@ export async function POST(req: NextRequest) {
           }
         }
         } else {
-          // For driving lessons, use slotId directly
+          // For driving lessons, try multiple strategies
+          console.log(`🔍 [FORCE UPDATE] Strategy 1 - Searching driving lesson by _id: ${slotId}`);
+          
+          // Strategy 1: Try to update by _id directly
           updateResult = await Instructor.updateOne(
             {
               _id: instructorId,
@@ -137,6 +140,139 @@ export async function POST(req: NextRequest) {
               }
             }
           );
+          
+          console.log(`🔍 [FORCE UPDATE] Strategy 1 Query:`, {
+            instructorId,
+            scheduleField,
+            slotId,
+            query: {
+              _id: instructorId,
+              [`${scheduleField}._id`]: slotId
+            }
+          });
+          
+          console.log(`🎯 [FORCE UPDATE] Strategy 1 (by _id): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+          
+          // Strategy 1.5: If not found, try to find the instructor first and check the actual slot structure
+          if (updateResult.modifiedCount === 0) {
+            console.log(`🔍 [FORCE UPDATE] Strategy 1.5 - Debugging instructor and slot structure...`);
+            const debugInstructor = await Instructor.findById(instructorId);
+            if (debugInstructor && debugInstructor.schedule_driving_lesson) {
+              console.log(`🔍 [FORCE UPDATE] Found instructor with ${debugInstructor.schedule_driving_lesson.length} driving lesson slots`);
+              const matchingSlot = debugInstructor.schedule_driving_lesson.find((slot: any) => slot._id.toString() === slotId);
+              if (matchingSlot) {
+                console.log(`✅ [FORCE UPDATE] Found matching slot:`, {
+                  slotId: matchingSlot._id,
+                  status: matchingSlot.status,
+                  date: matchingSlot.date,
+                  start: matchingSlot.start,
+                  end: matchingSlot.end
+                });
+              } else {
+                console.log(`❌ [FORCE UPDATE] No matching slot found with _id: ${slotId}`);
+                console.log(`🔍 [FORCE UPDATE] Available slot _ids:`, debugInstructor.schedule_driving_lesson.map((slot: any) => slot._id.toString()));
+              }
+            }
+          }
+          
+          // Strategy 2: If not found, try the special format "driving_lesson_instructorId_date_start_timestamp"
+          if (updateResult.modifiedCount === 0 && slotId.startsWith('driving_lesson_')) {
+            const parts = slotId.split('_');
+            if (parts.length >= 6) {
+              const date = parts[2]; // 2025-09-19
+              const start = parts[3]; // 12:30
+              const end = parts[4]; // 14:30
+              
+              console.log(`🔍 [FORCE UPDATE] Strategy 2 - Searching driving lesson by date-time: date=${date}, start=${start}, end=${end}`);
+              
+              updateResult = await Instructor.updateOne(
+                {
+                  _id: instructorId,
+                  [`${scheduleField}.date`]: date,
+                  [`${scheduleField}.start`]: start,
+                  [`${scheduleField}.end`]: end
+                },
+                {
+                  $set: {
+                    [`${scheduleField}.$.status`]: status,
+                    [`${scheduleField}.$.paid`]: paid,
+                    [`${scheduleField}.$.paymentId`]: paymentId,
+                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
+                    [`${scheduleField}.$.booked`]: status === 'booked'
+                  }
+                }
+              );
+              
+              console.log(`🎯 [FORCE UPDATE] Strategy 2 (by date-time): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+            }
+          }
+          
+          // Strategy 3: If still not found, try to find by status=pending and date matching
+          if (updateResult.modifiedCount === 0 && slotId.startsWith('driving_lesson_')) {
+            const parts = slotId.split('_');
+            if (parts.length >= 6) {
+              const date = parts[2]; // 2025-09-19
+              const start = parts[3]; // 12:30
+              
+              console.log(`🔍 [FORCE UPDATE] Strategy 3 - Searching pending slot with date=${date}, start=${start}`);
+              
+              updateResult = await Instructor.updateOne(
+                {
+                  _id: instructorId,
+                  [`${scheduleField}.date`]: date,
+                  [`${scheduleField}.start`]: start,
+                  [`${scheduleField}.status`]: 'pending'
+                },
+                {
+                  $set: {
+                    [`${scheduleField}.$.status`]: status,
+                    [`${scheduleField}.$.paid`]: paid,
+                    [`${scheduleField}.$.paymentId`]: paymentId,
+                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
+                    [`${scheduleField}.$.booked`]: status === 'booked'
+                  }
+                }
+              );
+              
+              console.log(`🎯 [FORCE UPDATE] Strategy 3 (by pending + date): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+            }
+          }
+          
+          // Strategy 4: Use findOneAndUpdate with arrayFilters for more precise matching
+          if (updateResult.modifiedCount === 0) {
+            console.log(`🔍 [FORCE UPDATE] Strategy 4 - Using findOneAndUpdate with arrayFilters for slotId: ${slotId}`);
+            
+            try {
+              const result = await Instructor.findOneAndUpdate(
+                {
+                  _id: instructorId,
+                  [`${scheduleField}._id`]: slotId
+                },
+                {
+                  $set: {
+                    [`${scheduleField}.$.status`]: status,
+                    [`${scheduleField}.$.paid`]: paid,
+                    [`${scheduleField}.$.paymentId`]: paymentId,
+                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
+                    [`${scheduleField}.$.booked`]: status === 'booked'
+                  }
+                },
+                { new: true }
+              );
+              
+              if (result) {
+                updateResult = { modifiedCount: 1, matchedCount: 1 };
+                console.log(`✅ [FORCE UPDATE] Strategy 4 (findOneAndUpdate): SUCCESS`);
+              } else {
+                console.log(`❌ [FORCE UPDATE] Strategy 4 (findOneAndUpdate): NO MATCH`);
+              }
+            } catch (error) {
+              console.error(`❌ [FORCE UPDATE] Strategy 4 error:`, error);
+            }
+          }
         }
     } else {
       // Try User model
@@ -227,7 +363,10 @@ export async function POST(req: NextRequest) {
             }
           }
         } else {
-          // For driving lessons in User model
+          // For driving lessons in User model, try multiple strategies
+          console.log(`🔍 [FORCE UPDATE] User Strategy 1 - Searching driving lesson by _id: ${slotId}`);
+          
+          // Strategy 1: Try to update by _id directly
           updateResult = await User.updateOne(
             {
               _id: instructorId,
@@ -244,6 +383,73 @@ export async function POST(req: NextRequest) {
               }
             }
           );
+          
+          console.log(`🎯 [FORCE UPDATE] User Strategy 1 (by _id): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+          
+          // Strategy 2: If not found, try the special format "driving_lesson_instructorId_date_start_timestamp"
+          if (updateResult.modifiedCount === 0 && slotId.startsWith('driving_lesson_')) {
+            const parts = slotId.split('_');
+            if (parts.length >= 6) {
+              const date = parts[2]; // 2025-09-19
+              const start = parts[3]; // 12:30
+              const end = parts[4]; // 14:30
+              
+              console.log(`🔍 [FORCE UPDATE] User Strategy 2 - Searching driving lesson by date-time: date=${date}, start=${start}, end=${end}`);
+              
+              updateResult = await User.updateOne(
+                {
+                  _id: instructorId,
+                  [`${scheduleField}.date`]: date,
+                  [`${scheduleField}.start`]: start,
+                  [`${scheduleField}.end`]: end
+                },
+                {
+                  $set: {
+                    [`${scheduleField}.$.status`]: status,
+                    [`${scheduleField}.$.paid`]: paid,
+                    [`${scheduleField}.$.paymentId`]: paymentId,
+                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
+                    [`${scheduleField}.$.booked`]: status === 'booked'
+                  }
+                }
+              );
+              
+              console.log(`🎯 [FORCE UPDATE] User Strategy 2 (by date-time): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+            }
+          }
+          
+          // Strategy 3: If still not found, try to find by status=pending and date matching
+          if (updateResult.modifiedCount === 0 && slotId.startsWith('driving_lesson_')) {
+            const parts = slotId.split('_');
+            if (parts.length >= 6) {
+              const date = parts[2]; // 2025-09-19
+              const start = parts[3]; // 12:30
+              
+              console.log(`🔍 [FORCE UPDATE] User Strategy 3 - Searching pending slot with date=${date}, start=${start}`);
+              
+              updateResult = await User.updateOne(
+                {
+                  _id: instructorId,
+                  [`${scheduleField}.date`]: date,
+                  [`${scheduleField}.start`]: start,
+                  [`${scheduleField}.status`]: 'pending'
+                },
+                {
+                  $set: {
+                    [`${scheduleField}.$.status`]: status,
+                    [`${scheduleField}.$.paid`]: paid,
+                    [`${scheduleField}.$.paymentId`]: paymentId,
+                    [`${scheduleField}.$.confirmedAt`]: confirmedAt ? new Date(confirmedAt) : null,
+                    [`${scheduleField}.$.studentName`]: status === 'available' ? 'Available' : '',
+                    [`${scheduleField}.$.booked`]: status === 'booked'
+                  }
+                }
+              );
+              
+              console.log(`🎯 [FORCE UPDATE] User Strategy 3 (by pending + date): ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+            }
+          }
         }
       } else {
         console.error('❌ [FORCE UPDATE] Instructor not found in either User or Instructor collection:', instructorId);
