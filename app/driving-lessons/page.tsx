@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import "@/globals.css";
 import { useAuth } from "@/components/AuthContext";
 import { useCart } from "@/app/context/CartContext";
@@ -76,7 +76,6 @@ function DrivingLessonsContent() {
   const [showSuccessPendingModal, setShowSuccessPendingModal] = useState(false);
   const [selectedHours, setSelectedHours] = useState(0);
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
-  const [forceUpdate, setForceUpdate] = useState(0);
   const [initialLoading, setInitialLoading] = useState(true);
 
   const { user } = useAuth();
@@ -88,12 +87,7 @@ function DrivingLessonsContent() {
     instructors.map(instructor => instructor._id), 
     [instructors]
   );
-  const { 
-    getScheduleForInstructor, 
-    getErrorForInstructor, 
-    isConnectedForInstructor,
-    getAllSchedules 
-  } = useAllDrivingLessonsSSE(instructorIds);
+  useAllDrivingLessonsSSE(instructorIds);
 
   // Function to immediately update selected slots to pending status locally
   const updateSlotsTopending = () => {
@@ -173,7 +167,7 @@ function DrivingLessonsContent() {
   }, []);
 
   // Fetch driving lesson instructors on load (basic info only, schedules come via SSE)
-  const fetchInstructors = async () => {
+  const fetchInstructors = useCallback(async () => {
     console.log("🔄 Fetching instructors...");
     try {
       const res = await fetch('/api/instructors?type=driving-lessons', {
@@ -204,12 +198,12 @@ function DrivingLessonsContent() {
     } catch (error) {
       console.error('❌ Error getting instructors:', error);
     }
-  };
+  }, [selectedInstructorForSchedule]);
 
   useEffect(() => {
     console.log("🔄 useEffect running - fetching instructors");
     fetchInstructors();
-  }, []);
+  }, [fetchInstructors]);
 
   // useEffect to monitor changes in instructors state
   useEffect(() => {
@@ -409,7 +403,7 @@ function DrivingLessonsContent() {
     }
   };
 
-  const getWeekDates = (date: Date) => {
+  const getWeekDates = useCallback((date: Date) => {
     // Use UTC methods to avoid timezone issues
     const base = new Date(date.getTime());
     base.setUTCDate(base.getUTCDate() + weekOffset * 7);
@@ -423,9 +417,11 @@ function DrivingLessonsContent() {
       d.setUTCDate(startOfWeek.getUTCDate() + i);
       return d;
     });
-  };
+  }, [weekOffset]);
 
-  const weekDates = selectedDate ? getWeekDates(selectedDate) : [];
+  const weekDates = useMemo(() => {
+    return selectedDate ? getWeekDates(selectedDate) : [];
+  }, [selectedDate, getWeekDates]);
   
   // Debug: Log week dates generation
   React.useEffect(() => {
@@ -514,7 +510,7 @@ function DrivingLessonsContent() {
           onSelectedSlotsChange={setSelectedSlots}
           selectedInstructorForSchedule={selectedInstructorForSchedule}
           onInstructorSelect={setSelectedInstructorForSchedule}
-          key={`schedule-${forceUpdate}`}
+          key={`schedule-${Date.now()}`}
         />
       </div>
 
@@ -535,7 +531,6 @@ function DrivingLessonsContent() {
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
         selectedProduct={selectedProduct}
-        selectedSlots={selectedSlots}
         selectedHours={selectedHours}
         onRequestSchedule={handleRequestScheduleWithLocations}
       />

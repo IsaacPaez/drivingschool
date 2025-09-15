@@ -24,7 +24,6 @@ interface RequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedProduct: Product | null;
-  selectedSlots: Set<string>;
   selectedHours: number;
   onRequestSchedule: (pickupLocation: string, dropoffLocation: string, paymentMethod: 'online' | 'physical') => void;
 }
@@ -33,7 +32,6 @@ export default function RequestModal({
   isOpen,
   onClose,
   selectedProduct,
-  selectedSlots,
   selectedHours,
   onRequestSchedule
 }: RequestModalProps) {
@@ -48,6 +46,7 @@ export default function RequestModal({
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: LIBRARIES,
+    preventGoogleFontsLoading: true,
   });
 
   // Google Maps Autocomplete handlers

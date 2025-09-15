@@ -17,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const seo = await SEO.findOne(); // 🔹 Buscamos los datos de SEO
 
     return {
+      metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
       title: seo?.metaTitle || "Driving School",
       description: seo?.metaDescription || "Learn road skills for life",
       robots: seo?.robotsTxt || "index, follow",
@@ -29,6 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch (error) {
     console.error("❌ Error obteniendo los datos SEO:", error);
     return {
+      metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
       title: "Driving School",
       description: "Learn road skills for life",
     };

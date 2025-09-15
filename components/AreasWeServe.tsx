@@ -155,7 +155,7 @@ const AreasWeServe = () => {
                     nextEl: ".swiper-button-next-areas",
                     prevEl: ".swiper-button-prev-areas",
                   }}
-                  loop
+                  loop={areas.length >= 3}
                   className="w-full"
                 >
                   {areas.map((area) => (
@@ -221,11 +221,13 @@ const AreasWeServe = () => {
           )}
         </div>
 
-        {/* Mapa premium alineado */}
-        <div className="lg:w-1/2 w-full flex justify-center mb-8 lg:mb-0">
-          <div className="w-full max-w-[1200px] min-w-[600px] rounded-3xl overflow-hidden shadow-xl border border-gray-100 bg-white" style={{height: '700px', display: 'flex', alignItems: 'stretch'}}>
-            <div style={{width: '100%', height: '100%'}}>
-              <LocationMap />
+        {/* Mapa premium alineado con bordes mejorados para móvil */}
+        <div className="lg:w-1/2 w-full flex justify-center mb-8 lg:mb-0 px-4 lg:px-0">
+          <div className="w-full max-w-[1200px] lg:min-w-[600px] rounded-3xl overflow-hidden shadow-xl border-4 border-gray-200 bg-white" style={{height: '700px', display: 'flex', alignItems: 'stretch'}}>
+            <div style={{width: '100%', height: '100%', padding: '8px'}}>
+              <div className="w-full h-full rounded-2xl overflow-hidden border-2 border-gray-100">
+                <LocationMap />
+              </div>
             </div>
           </div>
         </div>
