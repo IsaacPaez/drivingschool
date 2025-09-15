@@ -24,9 +24,11 @@ export async function GET(req: NextRequest) {
 
   const sendEvent = (data: SSEEvent) => {
     try {
-      writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+      const payload = `data: ${JSON.stringify(data)}\n\n`;
+      writer.write(encoder.encode(payload));
     } catch {
-      console.warn("SSE stream closed prematurely.");
+      // Connection likely closed, silently handle
+      console.warn("SSE connection closed during write attempt");
     }
   };
   
@@ -59,16 +61,6 @@ export async function GET(req: NextRequest) {
     
     console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${drivingLessons.length} driving lessons + ${drivingTests.length} driving tests = ${fullSchedule.length} total slots`);
     
-    if (fullSchedule.length > 0) {
-      console.log("📅 Sample slots:", fullSchedule.slice(0, 3).map(s => ({ 
-        date: s.date, 
-        start: s.start, 
-        end: s.end, 
-        status: s.status,
-        classType: s.classType || 'driving_lesson'
-      })));
-    }
-    
     sendEvent({ type: "initial", schedule: fullSchedule });
   } catch (error) {
     console.error("Error fetching initial driving lessons schedule:", error);
@@ -79,15 +71,35 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let changeStream: any = null;
   let updateTimeout: NodeJS.Timeout | null = null;
+  let heartbeatInterval: NodeJS.Timeout | null = null;
   let lastUpdateTime = 0;
   const UPDATE_THROTTLE_MS = 1000; // Only send updates every 1 second max
+  let isWriterClosed = false;
+
+  // Setup heartbeat to keep connection alive
+  heartbeatInterval = setInterval(() => {
+    if (!isWriterClosed) {
+      try {
+        writer.write(encoder.encode(': heartbeat\n\n'));
+      } catch {
+        clearInterval(heartbeatInterval!);
+      }
+    } else {
+      clearInterval(heartbeatInterval!);
+    }
+  }, 30000); // Send heartbeat every 30 seconds
   
   try {
     changeStream = mongoose.connection.collection('instructors').watch([
       { $match: { 'documentKey._id': new mongoose.Types.ObjectId(instructorId) } }
-    ]);
+    ], {
+      fullDocument: 'updateLookup', // Get full document after change
+      resumeAfter: undefined // Don't try to resume from a specific point
+    });
 
     changeStream.on('change', async () => {
+      if (isWriterClosed) return;
+      
       try {
         const now = Date.now();
         
@@ -102,13 +114,16 @@ export async function GET(req: NextRequest) {
         } else {
           // Otherwise, debounce the update
           updateTimeout = setTimeout(async () => {
-            await sendUpdate();
+            if (!isWriterClosed) {
+              await sendUpdate();
+            }
           }, UPDATE_THROTTLE_MS - (now - lastUpdateTime));
         }
         
         async function sendUpdate() {
+          if (isWriterClosed) return;
+          
           try {
-            console.log(`🔄 Change detected for instructor ${instructorId} - sending update`);
             const instructor = await Instructor.findById(instructorId);
             if (instructor) {
               // Get both driving lessons and driving tests
@@ -118,24 +133,32 @@ export async function GET(req: NextRequest) {
               // Combine both schedules
               const updatedSchedule = [...drivingLessons, ...drivingTests];
               
-              console.log(`🔄 Updated schedule for ${instructorId}: ${drivingLessons.length} driving lessons + ${drivingTests.length} driving tests = ${updatedSchedule.length} total slots`);
               sendEvent({ type: "update", schedule: updatedSchedule });
               lastUpdateTime = Date.now();
             }
           } catch(err) {
-            console.error("Error fetching updated driving lessons schedule for broadcast:", err);
-            sendEvent({ type: "error", message: "Failed to fetch updated data" });
+            if (!isWriterClosed) {
+              console.error("Error fetching updated driving lessons schedule for broadcast:", err);
+              sendEvent({ type: "error", message: "Failed to fetch updated data" });
+            }
           }
         }
       } catch(err) {
-        console.error("Error in change stream handler:", err);
-        sendEvent({ type: "error", message: "Failed to process change" });
+        if (!isWriterClosed) {
+          console.error("Error in change stream handler:", err);
+        }
       }
     });
 
     changeStream.on('error', (error: Error) => {
-      console.error("Change stream error:", error);
-      sendEvent({ type: "error", message: "Database change stream error" });
+      if (!isWriterClosed) {
+        console.error("Change stream error:", error);
+        sendEvent({ type: "error", message: "Database change stream error" });
+      }
+    });
+
+    changeStream.on('close', () => {
+      console.log("Change stream closed for instructor:", instructorId);
     });
 
   } catch (error) {
@@ -145,11 +168,15 @@ export async function GET(req: NextRequest) {
 
   // Handle client disconnect
   req.signal.addEventListener('abort', () => {
+    isWriterClosed = true;
     if (changeStream) {
       changeStream.close();
     }
     if (updateTimeout) {
       clearTimeout(updateTimeout);
+    }
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
     }
     writer.close().catch((err) => {
       console.warn("Error closing SSE writer:", err);
@@ -159,8 +186,11 @@ export async function GET(req: NextRequest) {
   return new Response(stream.readable, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'X-Accel-Buffering': 'no', // Disable Nginx buffering
     },
   });
 }
