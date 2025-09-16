@@ -117,22 +117,24 @@ const Resources = () => {
             </div>
           )}
 
-          {/* VISTA PC: Layout estático original */}
+          {/* VISTA PC: Una sola fila, sin wrap, tamaño fluido con clamp */}
           {!isMobile && (
-            <div className="hidden md:flex gap-4 flex-wrap justify-center">
+            <div className="hidden md:flex gap-6 flex-nowrap justify-center">
               {resources.map((resource, index) => (
                 <div
                   key={index}
-                  className="min-w-[140px] max-w-[160px] h-[200px] bg-white rounded-2xl border border-[#e5e7eb] flex flex-col items-center justify-center text-center p-3 mx-1 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-2 hover:border-[#27ae60] group cursor-pointer"
-                  style={{ flex: '0 0 150px' }}
+                  className="bg-white rounded-2xl border border-[#e5e7eb] flex flex-col items-center justify-center text-center p-3 mx-1 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-2 hover:border-[#27ae60] group cursor-pointer
+                             w-[clamp(120px,9vw,180px)] h-[clamp(170px,14vw,200px)]"
+                  style={{ flex: '0 0 auto' }}
                 >
-                  <div className="flex items-center justify-center h-18 w-18 mb-3 rounded-full bg-white transition-all duration-300 overflow-hidden" style={{height:'72px',width:'72px'}}>
+                  <div className="flex items-center justify-center mb-3 rounded-full bg-white transition-all duration-300 overflow-hidden
+                                  h-[clamp(48px,4.8vw,72px)] w-[clamp(48px,4.8vw,72px)]">
                     <Image
                       src={resource.image}
                       alt={resource.title}
-                      width={64}
-                      height={64}
-                      className="object-contain w-12 h-12"
+                      width={72}
+                      height={72}
+                      className="object-contain w-[clamp(36px,3.6vw,56px)] h-[clamp(36px,3.6vw,56px)]"
                     />
                   </div>
                   {resource.href ? (
