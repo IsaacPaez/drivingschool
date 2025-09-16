@@ -119,31 +119,37 @@ export async function POST(req: NextRequest) {
           const currentSlotData = currentSlot.toObject ? currentSlot.toObject() : currentSlot;
           console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: currentSlotData after conversion:`, currentSlotData);
           
-          // Create updated slot by explicitly preserving all critical fields
+          // Create updated slot by preserving ALL existing fields and only updating specific ones
           const updatedSlot = {
-            _id: currentSlotData._id,
-            date: currentSlotData.date || "",
-            start: currentSlotData.start || "",
-            end: currentSlotData.end || "",
-            classType: currentSlotData.classType || "driving lesson",
-            pickupLocation: currentSlotData.pickupLocation || "",
-            dropoffLocation: currentSlotData.dropoffLocation || "",
-            selectedProduct: currentSlotData.selectedProduct || "",
-            studentId: currentSlotData.studentId || "",
-            studentName: currentSlotData.studentName || "",
-            amount: currentSlotData.amount || 0,
-            orderId: currentSlotData.orderId || "",
-            orderNumber: currentSlotData.orderNumber || "",
-            reservedAt: currentSlotData.reservedAt || new Date(),
-            booked: currentSlotData.booked || false,
-            // Update these fields
+            // Preserve ALL existing fields exactly as they are
+            ...currentSlotData,
+            // Only update these specific fields
             status: setFields.status,
             ...(setFields.paid !== undefined && { paid: setFields.paid }),
             ...(setFields.paymentId && { paymentId: setFields.paymentId }),
             ...(setFields.confirmedAt && { confirmedAt: setFields.confirmedAt })
           };
           
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Updated slot data AFTER merge:`, {
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: BEFORE update - Original slot data:`, {
+            _id: currentSlotData._id,
+            status: currentSlotData.status,
+            paid: currentSlotData.paid,
+            pickupLocation: currentSlotData.pickupLocation,
+            dropoffLocation: currentSlotData.dropoffLocation,
+            studentId: currentSlotData.studentId,
+            studentName: currentSlotData.studentName,
+            date: currentSlotData.date,
+            start: currentSlotData.start,
+            end: currentSlotData.end,
+            classType: currentSlotData.classType,
+            orderId: currentSlotData.orderId,
+            orderNumber: currentSlotData.orderNumber,
+            amount: currentSlotData.amount,
+            reservedAt: currentSlotData.reservedAt,
+            booked: currentSlotData.booked
+          });
+          
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: AFTER update - Updated slot data:`, {
             _id: updatedSlot._id,
             status: updatedSlot.status,
             paid: updatedSlot.paid,
@@ -160,22 +166,6 @@ export async function POST(req: NextRequest) {
             amount: updatedSlot.amount,
             reservedAt: updatedSlot.reservedAt,
             booked: updatedSlot.booked
-          });
-          
-          // Log the updated slot data for debugging
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Updated slot data:`, {
-            _id: updatedSlot._id,
-            status: updatedSlot.status,
-            paid: updatedSlot.paid,
-            studentId: updatedSlot.studentId,
-            studentName: updatedSlot.studentName,
-            pickupLocation: updatedSlot.pickupLocation,
-            dropoffLocation: updatedSlot.dropoffLocation,
-            selectedProduct: updatedSlot.selectedProduct,
-            date: updatedSlot.date,
-            start: updatedSlot.start,
-            end: updatedSlot.end,
-            classType: updatedSlot.classType
           });
           
           console.log(`✅ [DRIVING LESSON UPDATE] ULTRA ROBUST: Proceeding with slot update`);
