@@ -31,21 +31,27 @@ export async function processTicketClasses(appointments: Appointment[], userId: 
   let allProcessed = true;
   for (const appointment of appointments) {
     try {
-      const enrollResponse = await fetch('/api/ticketclasses/enroll-student', {
+      // Use the new specific route for ticket classes
+      const updateResponse = await fetch('/api/ticketclasses/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ticketClassId: appointment.ticketClassId,
           studentId: userId,
-          orderId: orderId,
-          orderNumber: orderNumber
+          status: 'confirmed',
+          paymentId: orderId,
+          orderId: orderId
         })
       });
 
-      if (!enrollResponse.ok) {
+      if (!updateResponse.ok) {
+        console.error(`❌ Failed to update ticket class status for ${appointment.ticketClassId}`);
         allProcessed = false;
+      } else {
+        console.log(`✅ Successfully updated ticket class status for ${appointment.ticketClassId}`);
       }
-    } catch (_error) {
+    } catch (error) {
+      console.error(`❌ Error updating ticket class ${appointment.ticketClassId}:`, error);
       allProcessed = false;
     }
   }
@@ -78,18 +84,29 @@ export async function updateInstructorSlotsBatch(grouped: Record<string, Driving
         status: 'booked',
         paid: true,
         paymentId: orderId,
-        classType: data.classType,
         slotIds: data.slotIds
       };
-      const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
+
+      // Use specific route based on class type
+      const isDrivingTest = data.classType === 'driving_test';
+      const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
+      
+      console.log(`🎯 Using ${isDrivingTest ? 'driving test' : 'driving lesson'} specific route: ${endpoint}`);
+      
+      const slotUpdateResponse = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      
       if (!slotUpdateResponse.ok) {
+        console.error(`❌ Failed to update ${isDrivingTest ? 'driving test' : 'driving lesson'} slots for instructor ${instructorId}`);
         allProcessed = false;
+      } else {
+        console.log(`✅ Successfully updated ${isDrivingTest ? 'driving test' : 'driving lesson'} slots for instructor ${instructorId}`);
       }
-    } catch (_error) {
+    } catch (error) {
+      console.error(`❌ Error updating slots for instructor ${instructorId}:`, error);
       allProcessed = false;
     }
   }
@@ -101,7 +118,12 @@ export async function forceUpdateLegacySlots(order: OrderDataShape, orderId: str
   for (const appointment of order.appointments || []) {
     if (appointment.slotId) {
       try {
-        const directUpdateResponse = await fetch('/api/instructors/update-slot-status', {
+        const isDrivingTest = appointment.classType === 'driving_test' || order.orderType === 'driving_test';
+        const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
+        
+        console.log(`🎯 [LEGACY] Using ${isDrivingTest ? 'driving test' : 'driving lesson'} specific route: ${endpoint}`);
+        
+        const directUpdateResponse = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -109,15 +131,18 @@ export async function forceUpdateLegacySlots(order: OrderDataShape, orderId: str
             instructorId: appointment.instructorId,
             status: 'booked',
             paid: true,
-            paymentId: orderId,
-            confirmedAt: new Date().toISOString(),
-            classType: appointment.classType || order.orderType
+            paymentId: orderId
           })
         });
+        
         if (!directUpdateResponse.ok) {
+          console.error(`❌ [LEGACY] Failed to update ${isDrivingTest ? 'driving test' : 'driving lesson'} slot ${appointment.slotId}`);
           allSlotsUpdated = false;
+        } else {
+          console.log(`✅ [LEGACY] Successfully updated ${isDrivingTest ? 'driving test' : 'driving lesson'} slot ${appointment.slotId}`);
         }
-      } catch (_error) {
+      } catch (error) {
+        console.error(`❌ [LEGACY] Error updating slot ${appointment.slotId}:`, error);
         allSlotsUpdated = false;
       }
     }
@@ -130,16 +155,25 @@ export async function revertAppointmentsOnFailure(order: OrderDataShape, userId?
     try {
       if (appointment.classType === 'ticket_class' || appointment.ticketClassId) {
         const studentIdToRevert = userId || order.userId;
-        await fetch('/api/register-online/cancel-request', {
+        
+        // Use the new specific route for ticket classes
+        await fetch('/api/ticketclasses/update-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ticketClassId: appointment.ticketClassId,
-            userId: studentIdToRevert
+            studentId: studentIdToRevert,
+            status: 'cancelled'
           })
         });
+        
+        console.log(`🔄 Reverted ticket class ${appointment.ticketClassId} for student ${studentIdToRevert}`);
+        
       } else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test') && appointment.slotId) {
-        await fetch('/api/instructors/update-slot-status', {
+        const isDrivingTest = appointment.classType === 'driving_test';
+        const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
+        
+        await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -147,13 +181,14 @@ export async function revertAppointmentsOnFailure(order: OrderDataShape, userId?
             instructorId: appointment.instructorId,
             status: 'available',
             paid: false,
-            paymentId: null,
-            confirmedAt: null,
-            classType: appointment.classType
+            paymentId: null
           })
         });
+        
+        console.log(`🔄 Reverted ${isDrivingTest ? 'driving test' : 'driving lesson'} slot ${appointment.slotId}`);
       }
-    } catch (_error) {
+    } catch (error) {
+      console.error(`❌ Error reverting appointment:`, error);
       // continue best-effort
     }
   }
