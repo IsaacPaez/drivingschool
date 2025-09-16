@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Strategy 1: Update by ObjectId
-    if (objectIdList.length > 0) {
+    // Strategy 1: Update by slotId directly (most common case)
+    if (slotsToUpdate.length > 0) {
       const updateResult = await Instructor.updateOne(
         { _id: instructorId },
         {
@@ -78,31 +78,12 @@ export async function POST(req: NextRequest) {
           }
         },
         {
-          arrayFilters: [{ "slot._id": { $in: objectIdList } }]
+          arrayFilters: [{ "slot._id": { $in: slotsToUpdate } }]
         }
       );
       totalModified += updateResult.modifiedCount;
-      console.log(`🎯 [DRIVING TEST UPDATE] Strategy 1 (by ObjectId): ${updateResult.modifiedCount} slots updated`);
-    }
-
-    // Strategy 2: Update by string ID (for date-time format slots)
-    if (stringIdList.length > 0) {
-      const updateResult = await Instructor.updateOne(
-        { _id: instructorId },
-        {
-          $set: {
-            [`schedule_driving_test.$[slot].status`]: setFields.status,
-            ...(setFields.paid !== undefined ? { [`schedule_driving_test.$[slot].paid`]: setFields.paid } : {}),
-            ...(setFields.paymentId ? { [`schedule_driving_test.$[slot].paymentId`]: setFields.paymentId } : {}),
-            ...(setFields.confirmedAt ? { [`schedule_driving_test.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
-          }
-        },
-        {
-          arrayFilters: [{ "slot._id": { $in: stringIdList } }]
-        }
-      );
-      totalModified += updateResult.modifiedCount;
-      console.log(`🎯 [DRIVING TEST UPDATE] Strategy 2 (by string ID): ${updateResult.modifiedCount} slots updated`);
+      console.log(`🎯 [DRIVING TEST UPDATE] Strategy 1 (by slotId): ${updateResult.modifiedCount} slots updated`);
+      console.log(`🔍 [DRIVING TEST UPDATE] Searching for slotIds:`, slotsToUpdate);
     }
 
     // Strategy 3: If still no updates and slotId looks like date-time format, try parsing
