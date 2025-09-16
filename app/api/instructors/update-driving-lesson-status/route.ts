@@ -81,7 +81,21 @@ export async function POST(req: NextRequest) {
         );
 
         if (slotIndex !== -1 && slotIndex !== undefined) {
-          console.log(`🔍 [DRIVING LESSON UPDATE] Found slot at index ${slotIndex}, preserving all existing fields`);
+          const currentSlot = instructor.schedule_driving_lesson[slotIndex];
+          console.log(`🔍 [DRIVING LESSON UPDATE] Found slot at index ${slotIndex}`);
+          console.log(`🔍 [DRIVING LESSON UPDATE] Current slot BEFORE update:`, {
+            _id: currentSlot._id,
+            status: currentSlot.status,
+            paid: currentSlot.paid,
+            pickupLocation: currentSlot.pickupLocation,
+            dropoffLocation: currentSlot.dropoffLocation,
+            studentId: currentSlot.studentId,
+            studentName: currentSlot.studentName,
+            classType: currentSlot.classType,
+            date: currentSlot.date,
+            start: currentSlot.start,
+            end: currentSlot.end
+          });
           
           // Build update object with only the fields we want to update
           const updateFields: any = {};
@@ -114,6 +128,25 @@ export async function POST(req: NextRequest) {
           if (updateResult.modifiedCount > 0) {
             totalModified++;
             console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate} at index ${slotIndex}`);
+            
+            // Verify the update by fetching the instructor again
+            const updatedInstructor = await Instructor.findById(instructorId);
+            if (updatedInstructor && updatedInstructor.schedule_driving_lesson[slotIndex]) {
+              const updatedSlot = updatedInstructor.schedule_driving_lesson[slotIndex];
+              console.log(`🔍 [DRIVING LESSON UPDATE] Slot AFTER update:`, {
+                _id: updatedSlot._id,
+                status: updatedSlot.status,
+                paid: updatedSlot.paid,
+                pickupLocation: updatedSlot.pickupLocation,
+                dropoffLocation: updatedSlot.dropoffLocation,
+                studentId: updatedSlot.studentId,
+                studentName: updatedSlot.studentName,
+                classType: updatedSlot.classType,
+                date: updatedSlot.date,
+                start: updatedSlot.start,
+                end: updatedSlot.end
+              });
+            }
           } else {
             console.error(`❌ [DRIVING LESSON UPDATE] Failed to update slot ${slotIdToUpdate} at index ${slotIndex}`);
           }

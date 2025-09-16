@@ -89,9 +89,14 @@ export async function updateInstructorSlotsBatch(grouped: Record<string, Driving
 
       // Use specific route based on class type
       const isDrivingTest = data.classType === 'driving_test' || data.classType === 'driving test';
-      const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
+      const isDrivingLesson = data.classType === 'driving_lesson' || data.classType === 'driving lesson';
+      const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : 
+                      isDrivingLesson ? '/api/instructors/update-driving-lesson-status' : 
+                      '/api/instructors/update-driving-lesson-status'; // default fallback
       
-      console.log(`🎯 Using ${isDrivingTest ? 'driving test' : 'driving lesson'} specific route: ${endpoint}`);
+      const routeType = isDrivingTest ? 'driving test' : isDrivingLesson ? 'driving lesson' : 'unknown';
+      console.log(`🎯 Using ${routeType} specific route: ${endpoint}`);
+      console.log(`🔍 [DEBUG] classType: "${data.classType}", isDrivingTest: ${isDrivingTest}, isDrivingLesson: ${isDrivingLesson}`);
       
       const slotUpdateResponse = await fetch(endpoint, {
         method: 'POST',
@@ -119,9 +124,14 @@ export async function forceUpdateLegacySlots(order: OrderDataShape, orderId: str
     if (appointment.slotId) {
       try {
         const isDrivingTest = appointment.classType === 'driving_test' || appointment.classType === 'driving test' || order.orderType === 'driving_test';
-        const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
+        const isDrivingLesson = appointment.classType === 'driving_lesson' || appointment.classType === 'driving lesson' || order.orderType === 'driving_lesson';
+        const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : 
+                        isDrivingLesson ? '/api/instructors/update-driving-lesson-status' : 
+                        '/api/instructors/update-driving-lesson-status'; // default fallback
         
-        console.log(`🎯 [LEGACY] Using ${isDrivingTest ? 'driving test' : 'driving lesson'} specific route: ${endpoint}`);
+        const routeType = isDrivingTest ? 'driving test' : isDrivingLesson ? 'driving lesson' : 'unknown';
+        console.log(`🎯 [LEGACY] Using ${routeType} specific route: ${endpoint}`);
+        console.log(`🔍 [LEGACY DEBUG] classType: "${appointment.classType}", orderType: "${order.orderType}", isDrivingTest: ${isDrivingTest}, isDrivingLesson: ${isDrivingLesson}`);
         
         const directUpdateResponse = await fetch(endpoint, {
           method: 'POST',
@@ -171,7 +181,13 @@ export async function revertAppointmentsOnFailure(order: OrderDataShape, userId?
         
       } else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test' || appointment.classType === 'driving test') && appointment.slotId) {
         const isDrivingTest = appointment.classType === 'driving_test' || appointment.classType === 'driving test';
-        const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
+        const isDrivingLesson = appointment.classType === 'driving_lesson' || appointment.classType === 'driving lesson';
+        const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : 
+                        isDrivingLesson ? '/api/instructors/update-driving-lesson-status' : 
+                        '/api/instructors/update-driving-lesson-status'; // default fallback
+        
+        const routeType = isDrivingTest ? 'driving test' : isDrivingLesson ? 'driving lesson' : 'unknown';
+        console.log(`🔍 [REVERT DEBUG] classType: "${appointment.classType}", isDrivingTest: ${isDrivingTest}, isDrivingLesson: ${isDrivingLesson}, using ${routeType} route`);
         
         await fetch(endpoint, {
           method: 'POST',
