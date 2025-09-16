@@ -179,7 +179,7 @@ export async function revertAppointmentsOnFailure(order: OrderDataShape, userId?
         
         console.log(`🔄 Reverted ticket class ${appointment.ticketClassId} for student ${studentIdToRevert}`);
         
-      } else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test' || appointment.classType === 'driving test') && appointment.slotId) {
+      } else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test' || appointment.classType === 'driving test' || appointment.classType === 'driving lesson') && appointment.slotId) {
         const isDrivingTest = appointment.classType === 'driving_test' || appointment.classType === 'driving test';
         const isDrivingLesson = appointment.classType === 'driving_lesson' || appointment.classType === 'driving lesson';
         const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : 
