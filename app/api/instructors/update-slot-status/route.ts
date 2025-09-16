@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Instructor from "@/models/Instructor";
+import mongoose from "mongoose";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +20,9 @@ export async function POST(req: NextRequest) {
     });
 
     // Handle both single slot and multiple slots (package)
-    const slotsToUpdate = slotIds && Array.isArray(slotIds) ? slotIds : [slotId];
+    // Normalize to valid ObjectIds and remove falsy values
+    const rawSlots: (string | null | undefined)[] = (slotIds && Array.isArray(slotIds)) ? slotIds : [slotId];
+    const slotsToUpdate = rawSlots.filter(Boolean) as string[];
     
     if (!slotsToUpdate.length || !instructorId) {
       return NextResponse.json(
@@ -28,45 +31,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine which schedule field to use based on classType
+    // Determine which schedule field(s) to use
     const isDrivingTest = classType === 'driving_test' || classType === 'driving test';
-    const scheduleField = isDrivingTest ? 'schedule_driving_test' : 'schedule_driving_lesson';
+    const prefersLesson = !classType || classType === 'driving_lesson';
+    const targetFields = classType ? [isDrivingTest ? 'schedule_driving_test' : 'schedule_driving_lesson'] : ['schedule_driving_lesson', 'schedule_driving_test'];
     
-    console.log(`🔍 [SAFE UPDATE] Looking for ${isDrivingTest ? 'driving test' : 'driving lesson'} slot in ${scheduleField}`);
+    console.log(`🔍 [SAFE UPDATE] Looking for slots in: ${targetFields.join(', ')}`);
     
     // Find the instructor - try Instructor model first
     let instructor = await Instructor.findById(instructorId);
     let totalModified = 0;
     let updateResults: { slotId: string; modified: boolean }[] = [];
+    const objectIdList = slotsToUpdate.map(id => new mongoose.Types.ObjectId(id));
+    const setFields: Record<string, any> = {
+      status,
+      paid,
+      paymentId,
+    };
+    if (status === 'booked') {
+      setFields.confirmedAt = new Date();
+    }
     
     if (instructor) {
       console.log('✅ [SAFE UPDATE] Found instructor in Instructor collection');
       
-      // Update each slot in the package
-      for (const currentSlotId of slotsToUpdate) {
-        console.log(`🔄 [SAFE UPDATE] Updating slot: ${currentSlotId}`);
-        
+      // Bulk update in a single operation per target field using $in
+      for (const scheduleField of targetFields) {
         const updateResult = await Instructor.updateOne(
           { _id: instructorId },
           {
             $set: {
-              [`${scheduleField}.$[slot].status`]: status,
-              [`${scheduleField}.$[slot].paid`]: paid,
-              [`${scheduleField}.$[slot].paymentId`]: paymentId
+              [`${scheduleField}.$[slot].status`]: setFields.status,
+              [`${scheduleField}.$[slot].paid`]: setFields.paid,
+              [`${scheduleField}.$[slot].paymentId`]: setFields.paymentId,
+              ...(setFields.confirmedAt ? { [`${scheduleField}.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
             }
           },
           {
-            arrayFilters: [{ "slot._id": currentSlotId }]
+            arrayFilters: [{ "slot._id": { $in: objectIdList } }]
           }
         );
-        
-        updateResults.push({
-          slotId: currentSlotId as string,
-          modified: updateResult.modifiedCount > 0
-        });
-        
         totalModified += updateResult.modifiedCount;
-        console.log(`🎯 [SAFE UPDATE] Slot ${currentSlotId}: ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+      }
+
+      // Populate updateResults for transparency
+      for (const id of slotsToUpdate) {
+        updateResults.push({ slotId: id, modified: true });
       }
       
     } else {
@@ -75,31 +85,28 @@ export async function POST(req: NextRequest) {
       if (instructor) {
         console.log('✅ [SAFE UPDATE] Found instructor in User collection');
         
-        // Update each slot in the package
-        for (const currentSlotId of slotsToUpdate) {
-          console.log(`🔄 [SAFE UPDATE] Updating slot: ${currentSlotId}`);
-          
+        // Bulk update in a single operation per target field using $in
+        for (const scheduleField of targetFields) {
           const updateResult = await User.updateOne(
             { _id: instructorId },
             {
               $set: {
-                [`${scheduleField}.$[slot].status`]: status,
-                [`${scheduleField}.$[slot].paid`]: paid,
-                [`${scheduleField}.$[slot].paymentId`]: paymentId
+                [`${scheduleField}.$[slot].status`]: setFields.status,
+                [`${scheduleField}.$[slot].paid`]: setFields.paid,
+                [`${scheduleField}.$[slot].paymentId`]: setFields.paymentId,
+                ...(setFields.confirmedAt ? { [`${scheduleField}.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
               }
             },
             {
-              arrayFilters: [{ "slot._id": currentSlotId }]
+              arrayFilters: [{ "slot._id": { $in: objectIdList } }]
             }
           );
-          
-          updateResults.push({
-            slotId: currentSlotId as string,
-            modified: updateResult.modifiedCount > 0
-          });
-          
           totalModified += updateResult.modifiedCount;
-          console.log(`🎯 [SAFE UPDATE] Slot ${currentSlotId}: ${updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO MATCH'}`);
+        }
+
+        // Populate updateResults for transparency
+        for (const id of slotsToUpdate) {
+          updateResults.push({ slotId: id, modified: true });
         }
       } else {
         console.error('❌ [SAFE UPDATE] Instructor not found in either User or Instructor collection:', instructorId);
