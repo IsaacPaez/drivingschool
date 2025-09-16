@@ -3,6 +3,16 @@ import React, { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "../context/CartContext";
+import { 
+  fetchOrderDetails,
+  processTicketClasses,
+  groupDrivingLessonsByInstructor,
+  updateInstructorSlotsBatch,
+  forceUpdateLegacySlots,
+  revertAppointmentsOnFailure
+} from "./helpers";
+
+// moved helpers to ./helpers
 
 function PaymentSuccessContent() {
   const router = useRouter();
@@ -166,100 +176,35 @@ function PaymentSuccessContent() {
                     const drivingLessons = orderData.order.appointments.filter(apt => 
                       (apt.classType === 'driving_lesson' || apt.classType === 'driving_test' || apt.classType === 'driving test') && apt.slotId
                     );
-                    
-                    // Group driving lessons by instructor
-                    interface DrivingLessonGroup {
-                      instructorId: string;
-                      classType: string;
-                      slotIds: string[];
+                    console.log('[PAYMENT-SUCCESS][DL] Appointments summary:', {
+                      total: orderData.order.appointments.length,
+                      drivingLessons: drivingLessons.length,
+                      ticketClasses: ticketClasses.length,
+                      orderType: orderData.order.orderType
+                    });
+                    if (drivingLessons.length > 0) {
+                      console.log('[PAYMENT-SUCCESS][DL] Driving lessons appointments detail:', drivingLessons.map((a: any) => ({
+                        instructorId: a.instructorId,
+                        slotId: a.slotId,
+                        classType: a.classType,
+                        date: a.date,
+                        start: a.start,
+                        end: a.end
+                      })));
                     }
                     
-                    const drivingLessonsByInstructor = drivingLessons.reduce((acc: Record<string, DrivingLessonGroup>, apt) => {
-                      const key = apt.instructorId;
-                      if (!acc[key]) {
-                        acc[key] = {
-                          instructorId: apt.instructorId,
-                          classType: apt.classType,
-                          slotIds: []
-                        };
-                      }
-                      acc[key].slotIds.push(apt.slotId);
-                      return acc;
-                    }, {});
+                    // Group driving lessons by instructor
+                    const drivingLessonsByInstructor = groupDrivingLessonsByInstructor(drivingLessons);
                     
                     // Process TICKET CLASSES
-                    for (const appointment of ticketClasses) {
-                      try {
-                        console.log(`🎫 Processing ticket class for enrollment:`, {
-                          ticketClassId: appointment.ticketClassId,
-                          studentId: userId,
-                          orderId: orderId,
-                          orderNumber: orderDetails?.orderNumber
-                        });
-                        
-                        const enrollResponse = await fetch('/api/ticketclasses/enroll-student', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            ticketClassId: appointment.ticketClassId,
-                            studentId: userId,
-                            orderId: orderId,
-                            orderNumber: orderDetails?.orderNumber
-                          })
-                        });
-                        
-                        if (enrollResponse.ok) {
-                          const enrollResult = await enrollResponse.json();
-                          console.log(`✅ Student enrolled in ticket class successfully:`, enrollResult);
-                        } else {
-                          const errorText = await enrollResponse.text();
-                          console.error(`❌ Failed to enroll student in ticket class:`, errorText);
-                          allProcessed = false;
-                        }
-                      } catch (error) {
-                        console.error(`❌ Error processing ticket class:`, error);
-                        allProcessed = false;
-                      }
+                    if (ticketClasses.length > 0) {
+                      const ok = await processTicketClasses(ticketClasses, userId!, orderId, orderDetails?.orderNumber);
+                      if (!ok) allProcessed = false;
                     }
                     
                     // Process DRIVING LESSONS & DRIVING TESTS (batch by instructor)
-                    for (const [instructorId, data] of Object.entries(drivingLessonsByInstructor)) {
-                      try {
-                        const groupData = data as DrivingLessonGroup;
-                        const appointmentTypeDisplay = (groupData.classType === 'driving_test' || groupData.classType === 'driving test') ? 'driving test' : 'driving lesson';
-                        console.log(`🚗 Processing ${groupData.slotIds.length} ${appointmentTypeDisplay} slots for instructor ${instructorId}:`, groupData.slotIds);
-                        
-                        // Update all slots for this instructor at once
-                        const slotUpdateResponse = await fetch('/api/instructors/update-slot-status', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            instructorId: instructorId,
-                            status: 'booked',
-                            paid: true,
-                            paymentId: orderId,
-                            classType: groupData.classType,
-                            slotIds: groupData.slotIds
-                          })
-                        });
-                        
-                        if (slotUpdateResponse.ok) {
-                          const slotResult = await slotUpdateResponse.json();
-                          console.log(`✅ ${groupData.slotIds.length} ${appointmentTypeDisplay} slots updated:`, slotResult);
-                        } else {
-                          const errorText = await slotUpdateResponse.text();
-                          console.error(`❌ Failed to update ${groupData.slotIds.length} ${appointmentTypeDisplay} slots:`, errorText);
-                          allProcessed = false;
-                        }
-                      } catch (error) {
-                        console.error(`❌ Error processing driving lessons for instructor ${instructorId}:`, error);
-                        allProcessed = false;
-                      }
-                    }
+                    const batchOk = await updateInstructorSlotsBatch(drivingLessonsByInstructor, orderId);
+                    if (!batchOk) allProcessed = false;
                     
                     setIsProcessingSlots(false);
                     
@@ -285,56 +230,8 @@ function PaymentSuccessContent() {
                     
                     setIsProcessingSlots(true);
                     
-                    // FORCE UPDATE each slot directly using slotId
-                    let allSlotsUpdated = true;
-                    
-                    for (const appointment of orderData.order.appointments) {
-                      if (appointment.slotId) {
-                        try {
-                          console.log(`🔄 FORCING update of ${orderTypeDisplay} slot ${appointment.slotId}...`);
-                          console.log(`🔍 Appointment details:`, {
-                            slotId: appointment.slotId,
-                            classType: appointment.classType,
-                            instructorId: appointment.instructorId,
-                            orderType: orderData.order.orderType,
-                            date: appointment.date,
-                            start: appointment.start,
-                            end: appointment.end
-                          });
-                          
-                          const directUpdateResponse = await fetch('/api/instructors/update-slot-status', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              slotId: appointment.slotId,
-                              instructorId: appointment.instructorId,
-                              status: 'booked',
-                              paid: true,
-                              paymentId: orderId,
-                              confirmedAt: new Date().toISOString(),
-                              classType: appointment.classType || orderData.order.orderType // Add classType for proper slot identification
-                            })
-                          });
-                          
-                          if (directUpdateResponse.ok) {
-                            const updateResult = await directUpdateResponse.json();
-                            console.log(`✅ ${orderTypeDisplay} slot ${appointment.slotId} FORCED to booked status:`, updateResult);
-                          } else {
-                            const errorText = await directUpdateResponse.text();
-                            console.error(`❌ Failed to FORCE update ${orderTypeDisplay} slot ${appointment.slotId}:`, errorText);
-                            allSlotsUpdated = false;
-                          }
-                        } catch (error) {
-                          console.error(`❌ Error FORCING update of ${orderTypeDisplay} slot ${appointment.slotId}:`, error);
-                          allSlotsUpdated = false;
-                        }
-                      }
-                    }
-                    
+                    const allSlotsUpdated = await forceUpdateLegacySlots(orderData.order, orderId);
                     setIsProcessingSlots(false);
-                    
                     if (allSlotsUpdated) {
                       console.log(`✅ ALL ${orderTypeDisplay.toUpperCase()} SLOTS FORCED TO BOOKED - Ready for countdown`);
                       // Set a flag to indicate slots are updated
@@ -372,74 +269,7 @@ function PaymentSuccessContent() {
                   if (orderData.order && orderData.order.appointments) {
                     console.log(`🔄 Payment rejected - Reverting changes for order type: ${orderData.order.orderType}`);
                     
-                    // Process each appointment for reversion
-                    for (const appointment of orderData.order.appointments) {
-                      try {
-                        // Handle TICKET CLASSES reversion
-                        if (appointment.classType === 'ticket_class' || appointment.ticketClassId) {
-                          console.log(`🎫 Reverting ticket class: ${appointment.ticketClassId}`);
-                          
-                          // Call API to remove student from studentRequests (revert the add-to-cart action)
-                          const studentIdToRevert = userId || orderData.order.userId;
-                          console.log(`🔄 Reverting ticket class with:`, {
-                            ticketClassId: appointment.ticketClassId,
-                            userId: studentIdToRevert,
-                            orderUserId: orderData.order.userId
-                          });
-                          
-                          const ticketRevertResponse = await fetch('/api/register-online/cancel-request', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              ticketClassId: appointment.ticketClassId,
-                              userId: studentIdToRevert
-                            })
-                          });
-                          
-                          if (ticketRevertResponse.ok) {
-                            console.log(`✅ Ticket class request reverted successfully`);
-                          } else {
-                            const errorText = await ticketRevertResponse.text();
-                            console.error(`❌ Failed to revert ticket class request:`, errorText);
-                          }
-                        }
-                        
-                        // Handle DRIVING LESSONS & DRIVING TESTS reversion
-                        else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test') && appointment.slotId) {
-                          const appointmentTypeDisplay = appointment.classType === 'driving_test' ? 'driving test' : 'driving lesson';
-                          console.log(`🚗 Reverting ${appointmentTypeDisplay} slot: ${appointment.slotId}`);
-                          
-                          const revertResponse = await fetch('/api/instructors/update-slot-status', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              slotId: appointment.slotId,
-                              instructorId: appointment.instructorId,
-                              status: 'available',
-                              paid: false,
-                              paymentId: null,
-                              confirmedAt: null,
-                              classType: appointment.classType
-                            })
-                          });
-                          
-                          if (revertResponse.ok) {
-                            const revertResult = await revertResponse.json();
-                            console.log(`✅ ${appointmentTypeDisplay} slot ${appointment.slotId} reverted to available:`, revertResult);
-                          } else {
-                            const errorText = await revertResponse.text();
-                            console.error(`❌ Failed to revert ${appointmentTypeDisplay} slot ${appointment.slotId}:`, errorText);
-                          }
-                          }
-                        
-                        } catch (error) {
-                        console.error(`❌ Error reverting appointment:`, error);
-                      }
-                    }
+                    await revertAppointmentsOnFailure(orderData.order, userId);
                   }
                 }
               } catch (error) {
