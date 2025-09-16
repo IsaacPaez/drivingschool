@@ -53,93 +53,86 @@ export async function POST(req: NextRequest) {
     let totalModified = 0;
     const updateResults: { slotId: string; modified: boolean }[] = [];
 
-    // Separate ObjectId and string IDs
-    const objectIdList: mongoose.Types.ObjectId[] = [];
-    const stringIdList: string[] = [];
+    // NEW STRATEGY: Update each slot individually using findOneAndUpdate
+    console.log(`🔍 [DRIVING LESSON UPDATE] NEW STRATEGY: Updating ${slotsToUpdate.length} slots individually`);
     
-    for (const id of slotsToUpdate) {
-      if (mongoose.Types.ObjectId.isValid(id)) {
-        objectIdList.push(new mongoose.Types.ObjectId(id));
-      } else {
-        stringIdList.push(id);
-      }
-    }
-
-    // Strategy 1: Update by slotId directly (same as driving-test that works)
-    if (slotsToUpdate.length > 0) {
-      console.log(`🔍 [DRIVING LESSON UPDATE] Updating ${slotsToUpdate.length} slots using working strategy`);
-      
-      // Build update object with only the fields we want to update
-      const updateFields: any = {};
-      
-      // Always update status
-      updateFields[`schedule_driving_lesson.$[slot].status`] = setFields.status;
-      
-      // Only update paid if provided
-      if (setFields.paid !== undefined) {
-        updateFields[`schedule_driving_lesson.$[slot].paid`] = setFields.paid;
-      }
-      
-      // Only update paymentId if provided
-      if (setFields.paymentId) {
-        updateFields[`schedule_driving_lesson.$[slot].paymentId`] = setFields.paymentId;
-      }
-      
-      // Only update confirmedAt if provided
-      if (setFields.confirmedAt) {
-        updateFields[`schedule_driving_lesson.$[slot].confirmedAt`] = setFields.confirmedAt;
-      }
-      
-      console.log(`🔍 [DRIVING LESSON UPDATE] Update fields:`, updateFields);
-      
-      const updateResult = await Instructor.updateOne(
-        { _id: instructorId },
-        { $set: updateFields },
-        {
-          arrayFilters: [{ "slot._id": { $in: slotsToUpdate } }]
+    for (const slotIdToUpdate of slotsToUpdate) {
+      try {
+        console.log(`🔍 [DRIVING LESSON UPDATE] Processing slot: ${slotIdToUpdate}`);
+        
+        // First, let's see what slots exist
+        const currentInstructor = await Instructor.findById(instructorId);
+        if (currentInstructor && currentInstructor.schedule_driving_lesson) {
+          const existingSlot = currentInstructor.schedule_driving_lesson.find((slot: any) => 
+            slot._id.toString() === slotIdToUpdate
+          );
+          
+          if (existingSlot) {
+            console.log(`🔍 [DRIVING LESSON UPDATE] Found existing slot:`, {
+              _id: existingSlot._id,
+              date: existingSlot.date,
+              start: existingSlot.start,
+              end: existingSlot.end,
+              status: existingSlot.status,
+              studentId: existingSlot.studentId,
+              studentName: existingSlot.studentName,
+              pickupLocation: existingSlot.pickupLocation,
+              dropoffLocation: existingSlot.dropoffLocation,
+              selectedProduct: existingSlot.selectedProduct
+            });
+          } else {
+            console.log(`❌ [DRIVING LESSON UPDATE] Slot ${slotIdToUpdate} not found in instructor's schedule`);
+            continue;
+          }
         }
-      );
-      totalModified += updateResult.modifiedCount;
-      console.log(`🎯 [DRIVING LESSON UPDATE] Strategy 1 (by slotId): ${updateResult.modifiedCount} slots updated`);
-      console.log(`🔍 [DRIVING LESSON UPDATE] Searching for slotIds:`, slotsToUpdate);
-    }
-
-    // Strategy 3: If still no updates and slotId looks like date-time format, try parsing
-    if (totalModified === 0 && slotId && slotId.includes('-')) {
-      const parts = slotId.split('-');
-      if (parts.length >= 5) {
-        const date = `${parts[0]}-${parts[1]}-${parts[2]}`;
-        const start = parts[3];
-        const end = parts[4];
         
-        console.log(`🎯 [DRIVING LESSON UPDATE] Strategy 3 (by date-time): date=${date}, start=${start}, end=${end}`);
-        
-        const updateResult = await Instructor.updateOne(
-          {
+        // Update using findOneAndUpdate with $set to preserve all existing fields
+        const updateResult = await Instructor.findOneAndUpdate(
+          { 
             _id: instructorId,
-            'schedule_driving_lesson.date': date,
-            'schedule_driving_lesson.start': start,
-            'schedule_driving_lesson.end': end
+            'schedule_driving_lesson._id': slotIdToUpdate
           },
-          {
-            $set: {
-              [`schedule_driving_lesson.$[slot].status`]: setFields.status,
-              ...(setFields.paid !== undefined ? { [`schedule_driving_lesson.$[slot].paid`]: setFields.paid } : {}),
-              ...(setFields.paymentId ? { [`schedule_driving_lesson.$[slot].paymentId`]: setFields.paymentId } : {}),
-              ...(setFields.confirmedAt ? { [`schedule_driving_lesson.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
-            }
+          { 
+            $set: { 
+              'schedule_driving_lesson.$.status': setFields.status,
+              ...(setFields.paid !== undefined && { 'schedule_driving_lesson.$.paid': setFields.paid }),
+              ...(setFields.paymentId && { 'schedule_driving_lesson.$.paymentId': setFields.paymentId }),
+              ...(setFields.confirmedAt && { 'schedule_driving_lesson.$.confirmedAt': setFields.confirmedAt })
+            } 
           },
-          {
-            arrayFilters: [{ 
-              "slot.date": date,
-              "slot.start": start,
-              "slot.end": end
-            }]
+          { 
+            new: true,
+            runValidators: true
           }
         );
         
-        totalModified += updateResult.modifiedCount;
-        console.log(`🎯 [DRIVING LESSON UPDATE] Strategy 3 result: ${updateResult.modifiedCount} slots updated`);
+        if (updateResult) {
+          totalModified++;
+          console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate}`);
+          
+          // Verify the update
+          const verifyInstructor = await Instructor.findById(instructorId);
+          const verifySlot = verifyInstructor?.schedule_driving_lesson.find((slot: any) => 
+            slot._id.toString() === slotIdToUpdate
+          );
+          
+          if (verifySlot) {
+            console.log(`🔍 [DRIVING LESSON UPDATE] VERIFICATION - Updated slot:`, {
+              _id: verifySlot._id,
+              status: verifySlot.status,
+              paid: verifySlot.paid,
+              studentId: verifySlot.studentId,
+              studentName: verifySlot.studentName,
+              pickupLocation: verifySlot.pickupLocation,
+              dropoffLocation: verifySlot.dropoffLocation,
+              selectedProduct: verifySlot.selectedProduct
+            });
+          }
+        } else {
+          console.error(`❌ [DRIVING LESSON UPDATE] Failed to update slot ${slotIdToUpdate}`);
+        }
+      } catch (error) {
+        console.error(`❌ [DRIVING LESSON UPDATE] Error updating slot ${slotIdToUpdate}:`, error);
       }
     }
 
