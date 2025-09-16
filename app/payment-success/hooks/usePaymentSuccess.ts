@@ -44,6 +44,26 @@ export const usePaymentSuccess = () => {
     setState(prev => ({ ...prev, ...updates }));
   };
 
+  const debugSlot = async (slotId: string, instructorId: string) => {
+    try {
+      console.log(`🔍 [DEBUG] Debugging slot ${slotId} for instructor ${instructorId}`);
+      const debugResponse = await fetch('/api/instructors/debug-slot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slotId, instructorId })
+      });
+      
+      if (debugResponse.ok) {
+        const debugResult = await debugResponse.json();
+        console.log(`🔍 [DEBUG] Slot debug result:`, debugResult);
+        return debugResult;
+      }
+    } catch (error) {
+      console.error(`❌ [DEBUG] Error debugging slot:`, error);
+    }
+    return null;
+  };
+
   const verifyAllSlotsUpdated = async (orderId: string) => {
     try {
       console.log("🔍 INTERNAL VERIFICATION: Checking if all slots are properly updated...");
@@ -73,6 +93,9 @@ export const usePaymentSuccess = () => {
         
         if (appointment.slotId && appointment.instructorId) {
           try {
+            // First debug the slot to see what's in the database
+            await debugSlot(appointment.slotId, appointment.instructorId);
+            
             // Check the actual slot status in the database
             const verifyResponse = await fetch('/api/instructors/verify-slot-status', {
               method: 'POST',
