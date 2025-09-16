@@ -280,16 +280,43 @@ export const usePaymentSuccess = () => {
                     }
                   }
                   
-                  // Process DRIVING LESSONS & DRIVING TESTS using specific routes (batch by instructor)
+                  // Process DRIVING LESSONS - ONLY SHOW SLOTS, DON'T MODIFY
                   if (Object.keys(drivingLessonsByInstructor).length > 0) {
-                    console.log('🚗 [PAYMENT-SUCCESS] Processing driving lessons/tests with specific routes...');
-                    const batchOk = await updateInstructorSlotsBatch(drivingLessonsByInstructor, orderId);
-                    if (!batchOk) {
-                      console.error('❌ [PAYMENT-SUCCESS] Driving lessons/tests processing failed');
-                      allProcessed = false;
-                    } else {
-                      console.log('✅ [PAYMENT-SUCCESS] Driving lessons/tests processed successfully');
+                    console.log('🚗 [PAYMENT-SUCCESS] DRIVING LESSONS DETECTED - Showing slots WITHOUT modifying...');
+                    
+                    for (const [instructorId, data] of Object.entries(drivingLessonsByInstructor)) {
+                      console.log(`🔍 [DRIVING LESSON DEBUG] Instructor: ${instructorId}`);
+                      console.log(`🔍 [DRIVING LESSON DEBUG] Class Type: ${data.classType}`);
+                      console.log(`🔍 [DRIVING LESSON DEBUG] Slot IDs: ${data.slotIds.join(', ')}`);
+                      
+                      // Fetch instructor to see current slots
+                      try {
+                        const instructorResponse = await fetch(`/api/instructors/${instructorId}`);
+                        if (instructorResponse.ok) {
+                          const instructorData = await instructorResponse.json();
+                          console.log(`🔍 [DRIVING LESSON DEBUG] Current instructor data:`, {
+                            name: instructorData.name,
+                            schedule_driving_lesson: instructorData.schedule_driving_lesson?.map((slot: any) => ({
+                              _id: slot._id,
+                              date: slot.date,
+                              start: slot.start,
+                              end: slot.end,
+                              status: slot.status,
+                              paid: slot.paid,
+                              studentId: slot.studentId,
+                              studentName: slot.studentName,
+                              pickupLocation: slot.pickupLocation,
+                              dropoffLocation: slot.dropoffLocation,
+                              selectedProduct: slot.selectedProduct
+                            }))
+                          });
+                        }
+                      } catch (error) {
+                        console.error(`❌ [DRIVING LESSON DEBUG] Error fetching instructor data:`, error);
+                      }
                     }
+                    
+                    console.log('✅ [PAYMENT-SUCCESS] Driving lessons slots displayed (NOT modified)');
                   }
                   
                   updateState({ isProcessingSlots: false });
