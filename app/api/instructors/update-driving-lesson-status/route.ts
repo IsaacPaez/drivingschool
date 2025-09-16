@@ -65,78 +65,119 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Strategy 1: Update each slot individually using findOneAndUpdate to preserve all existing fields
+    // Strategy 1: ULTRA ROBUST - Update each slot individually using findOneAndUpdate with $set to preserve ALL existing fields
     if (slotsToUpdate.length > 0) {
-      console.log(`🔍 [DRIVING LESSON UPDATE] Updating ${slotsToUpdate.length} slots individually to preserve ALL existing fields`);
+      console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Updating ${slotsToUpdate.length} slots individually to preserve ALL existing fields`);
       
       for (const slotIdToUpdate of slotsToUpdate) {
         try {
-          console.log(`🔍 [DRIVING LESSON UPDATE] Processing slot ${slotIdToUpdate}`);
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Processing slot ${slotIdToUpdate}`);
           
-          // Find the instructor and the specific slot to verify it exists
+          // Step 1: Find the instructor and get the current slot data
           const instructor = await Instructor.findById(instructorId);
           if (!instructor) {
-            console.error(`❌ [DRIVING LESSON UPDATE] Instructor ${instructorId} not found`);
+            console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Instructor ${instructorId} not found`);
             continue;
           }
           
-          // Find the specific slot index
-          const slotIndex = instructor.schedule_driving_lesson.findIndex((slot: any) => 
+          // Step 2: Find the specific slot and get its current data
+          const currentSlot = instructor.schedule_driving_lesson.find((slot: any) => 
             slot._id.toString() === slotIdToUpdate
           );
           
-          if (slotIndex === -1) {
-            console.error(`❌ [DRIVING LESSON UPDATE] Slot ${slotIdToUpdate} not found in instructor's schedule`);
+          if (!currentSlot) {
+            console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Slot ${slotIdToUpdate} not found in instructor's schedule`);
             continue;
           }
           
-          console.log(`🔍 [DRIVING LESSON UPDATE] Found slot at index ${slotIndex}, preserving existing fields:`, {
-            pickupLocation: instructor.schedule_driving_lesson[slotIndex].pickupLocation,
-            dropoffLocation: instructor.schedule_driving_lesson[slotIndex].dropoffLocation,
-            studentId: instructor.schedule_driving_lesson[slotIndex].studentId,
-            studentName: instructor.schedule_driving_lesson[slotIndex].studentName
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Current slot data BEFORE update:`, {
+            _id: currentSlot._id,
+            status: currentSlot.status,
+            paid: currentSlot.paid,
+            pickupLocation: currentSlot.pickupLocation,
+            dropoffLocation: currentSlot.dropoffLocation,
+            studentId: currentSlot.studentId,
+            studentName: currentSlot.studentName,
+            date: currentSlot.date,
+            start: currentSlot.start,
+            end: currentSlot.end,
+            classType: currentSlot.classType
           });
           
-          // Build update object using dot notation with array index to preserve all other fields
-          const updateFields: any = {};
+          // Step 3: Create a NEW slot object with ALL existing fields + updated fields
+          const updatedSlot = {
+            ...currentSlot.toObject(), // Preserve ALL existing fields
+            status: setFields.status, // Update status
+            ...(setFields.paid !== undefined && { paid: setFields.paid }), // Update paid if provided
+            ...(setFields.paymentId && { paymentId: setFields.paymentId }), // Add paymentId if provided
+            ...(setFields.confirmedAt && { confirmedAt: setFields.confirmedAt }) // Add confirmedAt if provided
+          };
           
-          // Always update status
-          updateFields[`schedule_driving_lesson.${slotIndex}.status`] = setFields.status;
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Updated slot data AFTER merge:`, {
+            _id: updatedSlot._id,
+            status: updatedSlot.status,
+            paid: updatedSlot.paid,
+            pickupLocation: updatedSlot.pickupLocation,
+            dropoffLocation: updatedSlot.dropoffLocation,
+            studentId: updatedSlot.studentId,
+            studentName: updatedSlot.studentName,
+            date: updatedSlot.date,
+            start: updatedSlot.start,
+            end: updatedSlot.end,
+            classType: updatedSlot.classType
+          });
           
-          // Only update paid if provided
-          if (setFields.paid !== undefined) {
-            updateFields[`schedule_driving_lesson.${slotIndex}.paid`] = setFields.paid;
-          }
-          
-          // Only update paymentId if provided
-          if (setFields.paymentId) {
-            updateFields[`schedule_driving_lesson.${slotIndex}.paymentId`] = setFields.paymentId;
-          }
-          
-          // Only update confirmedAt if provided
-          if (setFields.confirmedAt) {
-            updateFields[`schedule_driving_lesson.${slotIndex}.confirmedAt`] = setFields.confirmedAt;
-          }
-          
-          console.log(`🔍 [DRIVING LESSON UPDATE] Updating slot ${slotIdToUpdate} with specific fields:`, updateFields);
-          
-          const updateResult = await Instructor.updateOne(
-            { _id: instructorId },
-            { $set: updateFields }
+          // Step 4: Use findOneAndUpdate with $set to replace the entire slot object (preserving all fields)
+          const updateResult = await Instructor.findOneAndUpdate(
+            { 
+              _id: instructorId,
+              'schedule_driving_lesson._id': slotIdToUpdate
+            },
+            { 
+              $set: { 
+                'schedule_driving_lesson.$': updatedSlot 
+              } 
+            },
+            { 
+              new: true,
+              runValidators: true
+            }
           );
           
-          if (updateResult.modifiedCount > 0) {
+          if (updateResult) {
             totalModified++;
-            console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate} while preserving all existing fields`);
+            console.log(`✅ [DRIVING LESSON UPDATE] ULTRA ROBUST: Successfully updated slot ${slotIdToUpdate} with ALL fields preserved`);
+            
+            // Step 5: Verify the update by fetching the updated slot
+            const verifyInstructor = await Instructor.findById(instructorId);
+            const verifySlot = verifyInstructor?.schedule_driving_lesson.find((slot: any) => 
+              slot._id.toString() === slotIdToUpdate
+            );
+            
+            if (verifySlot) {
+              console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: VERIFICATION - Updated slot data:`, {
+                _id: verifySlot._id,
+                status: verifySlot.status,
+                paid: verifySlot.paid,
+                pickupLocation: verifySlot.pickupLocation,
+                dropoffLocation: verifySlot.dropoffLocation,
+                studentId: verifySlot.studentId,
+                studentName: verifySlot.studentName,
+                date: verifySlot.date,
+                start: verifySlot.start,
+                end: verifySlot.end,
+                classType: verifySlot.classType
+              });
+            }
           } else {
-            console.error(`❌ [DRIVING LESSON UPDATE] Failed to update slot ${slotIdToUpdate} - no modifications made`);
+            console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Failed to update slot ${slotIdToUpdate} - no modifications made`);
           }
         } catch (error) {
-          console.error(`❌ [DRIVING LESSON UPDATE] Error updating slot ${slotIdToUpdate}:`, error);
+          console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Error updating slot ${slotIdToUpdate}:`, error);
         }
       }
       
-      console.log(`🎯 [DRIVING LESSON UPDATE] Individual slot processing complete: ${totalModified}/${slotsToUpdate.length} slots updated`);
+      console.log(`🎯 [DRIVING LESSON UPDATE] ULTRA ROBUST: Individual slot processing complete: ${totalModified}/${slotsToUpdate.length} slots updated`);
     }
 
     // Strategy 3: If still no updates and slotId looks like date-time format, try parsing
