@@ -39,54 +39,20 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ [DRIVING LESSON UPDATE] Found instructor:', instructor.name);
 
-    // Prepare update fields
-    const setFields: Record<string, any> = {
-      status,
-    };
-    
-    if (paid !== undefined) setFields.paid = paid;
-    if (paymentId) setFields.paymentId = paymentId;
-    if (status === 'booked') {
-      setFields.confirmedAt = new Date();
-    }
+    // SIMPLE: No need to prepare complex fields - just update status
+    console.log(`🔍 [DRIVING LESSON UPDATE] SIMPLE MODE: Only updating status to 'booked'`);
 
     let totalModified = 0;
     const updateResults: { slotId: string; modified: boolean }[] = [];
 
-    // NEW STRATEGY: Update each slot individually using findOneAndUpdate
-    console.log(`🔍 [DRIVING LESSON UPDATE] NEW STRATEGY: Updating ${slotsToUpdate.length} slots individually`);
+    // SIMPLE STRATEGY: Just update status to 'booked' - nothing else
+    console.log(`🔍 [DRIVING LESSON UPDATE] SIMPLE STRATEGY: Just updating status to 'booked' for ${slotsToUpdate.length} slots`);
     
     for (const slotIdToUpdate of slotsToUpdate) {
       try {
         console.log(`🔍 [DRIVING LESSON UPDATE] Processing slot: ${slotIdToUpdate}`);
         
-        // First, let's see what slots exist
-        const currentInstructor = await Instructor.findById(instructorId);
-        if (currentInstructor && currentInstructor.schedule_driving_lesson) {
-          const existingSlot = currentInstructor.schedule_driving_lesson.find((slot: any) => 
-            slot._id.toString() === slotIdToUpdate
-          );
-          
-          if (existingSlot) {
-            console.log(`🔍 [DRIVING LESSON UPDATE] Found existing slot:`, {
-              _id: existingSlot._id,
-              date: existingSlot.date,
-              start: existingSlot.start,
-              end: existingSlot.end,
-              status: existingSlot.status,
-              studentId: existingSlot.studentId,
-              studentName: existingSlot.studentName,
-              pickupLocation: existingSlot.pickupLocation,
-              dropoffLocation: existingSlot.dropoffLocation,
-              selectedProduct: existingSlot.selectedProduct
-            });
-          } else {
-            console.log(`❌ [DRIVING LESSON UPDATE] Slot ${slotIdToUpdate} not found in instructor's schedule`);
-            continue;
-          }
-        }
-        
-        // Update using findOneAndUpdate with $set to preserve all existing fields
+        // SIMPLE UPDATE: Only change status to 'booked'
         const updateResult = await Instructor.findOneAndUpdate(
           { 
             _id: instructorId,
@@ -94,10 +60,7 @@ export async function POST(req: NextRequest) {
           },
           { 
             $set: { 
-              'schedule_driving_lesson.$.status': setFields.status,
-              ...(setFields.paid !== undefined && { 'schedule_driving_lesson.$.paid': setFields.paid }),
-              ...(setFields.paymentId && { 'schedule_driving_lesson.$.paymentId': setFields.paymentId }),
-              ...(setFields.confirmedAt && { 'schedule_driving_lesson.$.confirmedAt': setFields.confirmedAt })
+              'schedule_driving_lesson.$.status': 'booked'
             } 
           },
           { 
@@ -108,26 +71,7 @@ export async function POST(req: NextRequest) {
         
         if (updateResult) {
           totalModified++;
-          console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate}`);
-          
-          // Verify the update
-          const verifyInstructor = await Instructor.findById(instructorId);
-          const verifySlot = verifyInstructor?.schedule_driving_lesson.find((slot: any) => 
-            slot._id.toString() === slotIdToUpdate
-          );
-          
-          if (verifySlot) {
-            console.log(`🔍 [DRIVING LESSON UPDATE] VERIFICATION - Updated slot:`, {
-              _id: verifySlot._id,
-              status: verifySlot.status,
-              paid: verifySlot.paid,
-              studentId: verifySlot.studentId,
-              studentName: verifySlot.studentName,
-              pickupLocation: verifySlot.pickupLocation,
-              dropoffLocation: verifySlot.dropoffLocation,
-              selectedProduct: verifySlot.selectedProduct
-            });
-          }
+          console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate} to 'booked'`);
         } else {
           console.error(`❌ [DRIVING LESSON UPDATE] Failed to update slot ${slotIdToUpdate}`);
         }
