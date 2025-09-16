@@ -101,12 +101,26 @@ export async function POST(req: NextRequest) {
             date: currentSlot.date,
             start: currentSlot.start,
             end: currentSlot.end,
-            classType: currentSlot.classType
+            classType: currentSlot.classType,
+            orderId: currentSlot.orderId,
+            orderNumber: currentSlot.orderNumber,
+            amount: currentSlot.amount,
+            reservedAt: currentSlot.reservedAt,
+            booked: currentSlot.booked
           });
           
+          // Check if currentSlot is a Mongoose document or plain object
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: currentSlot type:`, typeof currentSlot);
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: currentSlot has toObject:`, typeof currentSlot.toObject);
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Raw currentSlot:`, currentSlot);
+          
           // Step 3: Create a NEW slot object with ALL existing fields + updated fields
+          // Handle both Mongoose documents and plain objects
+          const currentSlotData = currentSlot.toObject ? currentSlot.toObject() : currentSlot;
+          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: currentSlotData after conversion:`, currentSlotData);
+          
           const updatedSlot = {
-            ...currentSlot.toObject(), // Preserve ALL existing fields
+            ...currentSlotData, // Preserve ALL existing fields
             status: setFields.status, // Update status
             ...(setFields.paid !== undefined && { paid: setFields.paid }), // Update paid if provided
             ...(setFields.paymentId && { paymentId: setFields.paymentId }), // Add paymentId if provided
@@ -124,8 +138,41 @@ export async function POST(req: NextRequest) {
             date: updatedSlot.date,
             start: updatedSlot.start,
             end: updatedSlot.end,
-            classType: updatedSlot.classType
+            classType: updatedSlot.classType,
+            orderId: updatedSlot.orderId,
+            orderNumber: updatedSlot.orderNumber,
+            amount: updatedSlot.amount,
+            reservedAt: updatedSlot.reservedAt,
+            booked: updatedSlot.booked
           });
+          
+          // CRITICAL: Check if important fields are being preserved
+          const criticalFieldsCheck = {
+            studentId_preserved: updatedSlot.studentId !== null && updatedSlot.studentId !== undefined && updatedSlot.studentId !== "",
+            studentName_preserved: updatedSlot.studentName !== "" && updatedSlot.studentName !== null && updatedSlot.studentName !== undefined,
+            pickupLocation_preserved: updatedSlot.pickupLocation !== null && updatedSlot.pickupLocation !== undefined && updatedSlot.pickupLocation !== "",
+            dropoffLocation_preserved: updatedSlot.dropoffLocation !== null && updatedSlot.dropoffLocation !== undefined && updatedSlot.dropoffLocation !== "",
+            selectedProduct_preserved: updatedSlot.selectedProduct !== null && updatedSlot.selectedProduct !== undefined && updatedSlot.selectedProduct !== ""
+          };
+          
+          console.log(`🚨 [DRIVING LESSON UPDATE] ULTRA ROBUST: CRITICAL FIELD CHECK:`, criticalFieldsCheck);
+          
+          // Check if ALL critical fields are preserved
+          const allCriticalFieldsPreserved = Object.values(criticalFieldsCheck).every(field => field === true);
+          
+          if (!allCriticalFieldsPreserved) {
+            console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: CRITICAL FIELDS MISSING - NOT updating slot to prevent countdown start`);
+            console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Missing fields:`, {
+              studentId: updatedSlot.studentId,
+              studentName: updatedSlot.studentName,
+              pickupLocation: updatedSlot.pickupLocation,
+              dropoffLocation: updatedSlot.dropoffLocation,
+              selectedProduct: updatedSlot.selectedProduct
+            });
+            continue; // Skip this slot update
+          }
+          
+          console.log(`✅ [DRIVING LESSON UPDATE] ULTRA ROBUST: ALL CRITICAL FIELDS PRESERVED - Proceeding with update`);
           
           // Step 4: Use findOneAndUpdate with $set to replace the entire slot object (preserving all fields)
           const updateResult = await Instructor.findOneAndUpdate(
