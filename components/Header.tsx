@@ -109,12 +109,12 @@ const Header = () => {
           />
         </div>
         {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
-        <div className="fixed top-2 right-10 flex items-end z-50 mt-0">
+        <div className="fixed right-10 top-0 2xl:top-2 flex items-end z-50 mt-0">
           {user ? (
             <div className="relative flex flex-col items-center">
               <button
                 onClick={() => setShowMenu((v) => !v)}
-                className="focus:outline-none mt-0 lg:mt-6"
+                className="focus:outline-none mt-0 2xl:mt-6"
               >
                 {user.photo ? (
                   <Image
@@ -130,8 +130,8 @@ const Header = () => {
                   </div>
                 )}
               </button>
-              {/* Solo mostrar el nombre en desktop */}
-              <span className="mt-1 text-[#0056b3] font-bold text-sm text-center w-32 whitespace-normal break-words uppercase hidden lg:block">
+              {/* Ocultar nombre del usuario para todas las resoluciones */}
+              <span className="hidden">
                 {user.name}
               </span>
               {showMenu && (
@@ -160,7 +160,7 @@ const Header = () => {
       </div>
 
       {/* Bottom Row with Logo and Navigation */}
-      <div className="relative max-w-7xl mx-auto px-6 py-2 flex items-center justify-between rounded-full bg-white/30 backdrop-blur-lg shadow-lg mt-3">
+      <div className="relative max-w-7xl mx-auto px-6 py-2 flex items-center justify-between rounded-full bg-white/30 backdrop-blur-lg shadow-lg mt-0 2xl:mt-3">
         {/* Logo */}
         <div className="flex-shrink-0">
           <Link href="/">
