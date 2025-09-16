@@ -65,46 +65,69 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Strategy 1: Update each slot individually to ensure ALL slots are updated
+    // Strategy 1: Update each slot individually using findOneAndUpdate to preserve all existing fields
     if (slotsToUpdate.length > 0) {
-      console.log(`🔍 [DRIVING LESSON UPDATE] Updating ${slotsToUpdate.length} slots individually to ensure ALL are processed`);
+      console.log(`🔍 [DRIVING LESSON UPDATE] Updating ${slotsToUpdate.length} slots individually to preserve ALL existing fields`);
       
       for (const slotIdToUpdate of slotsToUpdate) {
         try {
-          // Build update object with only the fields we want to update for this specific slot
+          console.log(`🔍 [DRIVING LESSON UPDATE] Processing slot ${slotIdToUpdate}`);
+          
+          // Find the instructor and the specific slot to verify it exists
+          const instructor = await Instructor.findById(instructorId);
+          if (!instructor) {
+            console.error(`❌ [DRIVING LESSON UPDATE] Instructor ${instructorId} not found`);
+            continue;
+          }
+          
+          // Find the specific slot index
+          const slotIndex = instructor.schedule_driving_lesson.findIndex((slot: any) => 
+            slot._id.toString() === slotIdToUpdate
+          );
+          
+          if (slotIndex === -1) {
+            console.error(`❌ [DRIVING LESSON UPDATE] Slot ${slotIdToUpdate} not found in instructor's schedule`);
+            continue;
+          }
+          
+          console.log(`🔍 [DRIVING LESSON UPDATE] Found slot at index ${slotIndex}, preserving existing fields:`, {
+            pickupLocation: instructor.schedule_driving_lesson[slotIndex].pickupLocation,
+            dropoffLocation: instructor.schedule_driving_lesson[slotIndex].dropoffLocation,
+            studentId: instructor.schedule_driving_lesson[slotIndex].studentId,
+            studentName: instructor.schedule_driving_lesson[slotIndex].studentName
+          });
+          
+          // Build update object using dot notation with array index to preserve all other fields
           const updateFields: any = {};
           
           // Always update status
-          updateFields[`schedule_driving_lesson.$[slot].status`] = setFields.status;
+          updateFields[`schedule_driving_lesson.${slotIndex}.status`] = setFields.status;
           
           // Only update paid if provided
           if (setFields.paid !== undefined) {
-            updateFields[`schedule_driving_lesson.$[slot].paid`] = setFields.paid;
+            updateFields[`schedule_driving_lesson.${slotIndex}.paid`] = setFields.paid;
           }
           
           // Only update paymentId if provided
           if (setFields.paymentId) {
-            updateFields[`schedule_driving_lesson.$[slot].paymentId`] = setFields.paymentId;
+            updateFields[`schedule_driving_lesson.${slotIndex}.paymentId`] = setFields.paymentId;
           }
           
           // Only update confirmedAt if provided
           if (setFields.confirmedAt) {
-            updateFields[`schedule_driving_lesson.$[slot].confirmedAt`] = setFields.confirmedAt;
+            updateFields[`schedule_driving_lesson.${slotIndex}.confirmedAt`] = setFields.confirmedAt;
           }
           
-          console.log(`🔍 [DRIVING LESSON UPDATE] Updating slot ${slotIdToUpdate} with fields:`, updateFields);
+          console.log(`🔍 [DRIVING LESSON UPDATE] Updating slot ${slotIdToUpdate} with specific fields:`, updateFields);
           
           const updateResult = await Instructor.updateOne(
             { _id: instructorId },
-            { $set: updateFields },
-            {
-              arrayFilters: [{ "slot._id": slotIdToUpdate }]
-            }
+            { $set: updateFields }
           );
           
           if (updateResult.modifiedCount > 0) {
             totalModified++;
-            console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate}`);
+            console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate} while preserving all existing fields`);
           } else {
             console.error(`❌ [DRIVING LESSON UPDATE] Failed to update slot ${slotIdToUpdate} - no modifications made`);
           }
