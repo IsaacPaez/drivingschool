@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     // Normalize to valid ObjectIds and remove falsy values
     const rawSlots: (string | null | undefined)[] = (slotIds && Array.isArray(slotIds)) ? slotIds : [slotId];
     const slotsToUpdate = rawSlots.filter(Boolean) as string[];
+    const invalidIds: string[] = [];
     
     if (!slotsToUpdate.length || !instructorId) {
       return NextResponse.json(
@@ -42,7 +43,21 @@ export async function POST(req: NextRequest) {
     let instructor = await Instructor.findById(instructorId);
     let totalModified = 0;
     let updateResults: { slotId: string; modified: boolean }[] = [];
-    const objectIdList = slotsToUpdate.map(id => new mongoose.Types.ObjectId(id));
+    const objectIdList = slotsToUpdate.map(id => {
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        return new mongoose.Types.ObjectId(id);
+      }
+      invalidIds.push(id);
+      return null;
+    }).filter(Boolean) as mongoose.Types.ObjectId[];
+    
+    if (objectIdList.length === 0) {
+      console.error('❌ [SAFE UPDATE] No valid slot ObjectIds received', { instructorId, classType, slotsToUpdate, invalidIds });
+      return NextResponse.json(
+        { error: "No valid slot ids", invalidIds },
+        { status: 400 }
+      );
+    }
     const setFields: Record<string, any> = {
       status,
       paid,
@@ -134,9 +149,9 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error) {
-    console.error('❌ [SAFE UPDATE] Error updating slot status:', error);
+    console.error('❌ [SAFE UPDATE] Error updating slot status:', (error as any)?.message || error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (error as any)?.message || "Internal server error" },
       { status: 500 }
     );
   }
