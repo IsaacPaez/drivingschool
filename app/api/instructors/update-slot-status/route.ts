@@ -43,20 +43,14 @@ export async function POST(req: NextRequest) {
     let instructor = await Instructor.findById(instructorId);
     let totalModified = 0;
     let updateResults: { slotId: string; modified: boolean }[] = [];
-    const objectIdList = slotsToUpdate.map(id => {
+    const objectIdList: mongoose.Types.ObjectId[] = [];
+    const stringIdList: string[] = [];
+    for (const id of slotsToUpdate) {
       if (mongoose.Types.ObjectId.isValid(id)) {
-        return new mongoose.Types.ObjectId(id);
+        objectIdList.push(new mongoose.Types.ObjectId(id));
+      } else {
+        stringIdList.push(id);
       }
-      invalidIds.push(id);
-      return null;
-    }).filter(Boolean) as mongoose.Types.ObjectId[];
-    
-    if (objectIdList.length === 0) {
-      console.error('❌ [SAFE UPDATE] No valid slot ObjectIds received', { instructorId, classType, slotsToUpdate, invalidIds });
-      return NextResponse.json(
-        { error: "No valid slot ids", invalidIds },
-        { status: 400 }
-      );
     }
     const setFields: Record<string, any> = {
       status,
@@ -70,39 +64,10 @@ export async function POST(req: NextRequest) {
     if (instructor) {
       console.log('✅ [SAFE UPDATE] Found instructor in Instructor collection');
       
-      // Bulk update in a single operation per target field using $in
+      // Bulk update per target field using $in for ObjectId and string ids
       for (const scheduleField of targetFields) {
-        const updateResult = await Instructor.updateOne(
-          { _id: instructorId },
-          {
-            $set: {
-              [`${scheduleField}.$[slot].status`]: setFields.status,
-              [`${scheduleField}.$[slot].paid`]: setFields.paid,
-              [`${scheduleField}.$[slot].paymentId`]: setFields.paymentId,
-              ...(setFields.confirmedAt ? { [`${scheduleField}.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
-            }
-          },
-          {
-            arrayFilters: [{ "slot._id": { $in: objectIdList } }]
-          }
-        );
-        totalModified += updateResult.modifiedCount;
-      }
-
-      // Populate updateResults for transparency
-      for (const id of slotsToUpdate) {
-        updateResults.push({ slotId: id, modified: true });
-      }
-      
-    } else {
-      // Try User model
-      instructor = await User.findById(instructorId);
-      if (instructor) {
-        console.log('✅ [SAFE UPDATE] Found instructor in User collection');
-        
-        // Bulk update in a single operation per target field using $in
-        for (const scheduleField of targetFields) {
-          const updateResult = await User.updateOne(
+        if (objectIdList.length > 0) {
+          const byObjectId = await Instructor.updateOne(
             { _id: instructorId },
             {
               $set: {
@@ -116,7 +81,74 @@ export async function POST(req: NextRequest) {
               arrayFilters: [{ "slot._id": { $in: objectIdList } }]
             }
           );
-          totalModified += updateResult.modifiedCount;
+          totalModified += byObjectId.modifiedCount;
+        }
+        if (stringIdList.length > 0) {
+          const byStringId = await Instructor.updateOne(
+            { _id: instructorId },
+            {
+              $set: {
+                [`${scheduleField}.$[slot].status`]: setFields.status,
+                [`${scheduleField}.$[slot].paid`]: setFields.paid,
+                [`${scheduleField}.$[slot].paymentId`]: setFields.paymentId,
+                ...(setFields.confirmedAt ? { [`${scheduleField}.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
+              }
+            },
+            {
+              arrayFilters: [{ "slot._id": { $in: stringIdList } }]
+            }
+          );
+          totalModified += byStringId.modifiedCount;
+        }
+      }
+
+      // Populate updateResults for transparency
+      for (const id of slotsToUpdate) {
+        updateResults.push({ slotId: id, modified: true });
+      }
+      
+    } else {
+      // Try User model
+      instructor = await User.findById(instructorId);
+      if (instructor) {
+        console.log('✅ [SAFE UPDATE] Found instructor in User collection');
+        
+        // Bulk update per target field using $in for ObjectId and string ids
+        for (const scheduleField of targetFields) {
+          if (objectIdList.length > 0) {
+            const byObjectId = await User.updateOne(
+              { _id: instructorId },
+              {
+                $set: {
+                  [`${scheduleField}.$[slot].status`]: setFields.status,
+                  [`${scheduleField}.$[slot].paid`]: setFields.paid,
+                  [`${scheduleField}.$[slot].paymentId`]: setFields.paymentId,
+                  ...(setFields.confirmedAt ? { [`${scheduleField}.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
+                }
+              },
+              {
+                arrayFilters: [{ "slot._id": { $in: objectIdList } }]
+              }
+            );
+            totalModified += byObjectId.modifiedCount;
+          }
+          if (stringIdList.length > 0) {
+            const byStringId = await User.updateOne(
+              { _id: instructorId },
+              {
+                $set: {
+                  [`${scheduleField}.$[slot].status`]: setFields.status,
+                  [`${scheduleField}.$[slot].paid`]: setFields.paid,
+                  [`${scheduleField}.$[slot].paymentId`]: setFields.paymentId,
+                  ...(setFields.confirmedAt ? { [`${scheduleField}.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
+                }
+              },
+              {
+                arrayFilters: [{ "slot._id": { $in: stringIdList } }]
+              }
+            );
+            totalModified += byStringId.modifiedCount;
+          }
         }
 
         // Populate updateResults for transparency
