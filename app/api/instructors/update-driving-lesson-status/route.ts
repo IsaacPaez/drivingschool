@@ -65,199 +65,43 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Strategy 1: ULTRA ROBUST - Update each slot individually using findOneAndUpdate with $set to preserve ALL existing fields
+    // Strategy 1: Update by slotId directly (same as driving-test that works)
     if (slotsToUpdate.length > 0) {
-      console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Updating ${slotsToUpdate.length} slots individually to preserve ALL existing fields`);
+      console.log(`🔍 [DRIVING LESSON UPDATE] Updating ${slotsToUpdate.length} slots using working strategy`);
       
-      for (const slotIdToUpdate of slotsToUpdate) {
-        try {
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Processing slot ${slotIdToUpdate}`);
-          
-          // Step 1: Find the instructor and get the current slot data
-          const instructor = await Instructor.findById(instructorId);
-          if (!instructor) {
-            console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Instructor ${instructorId} not found`);
-            continue;
-          }
-          
-          // Step 2: Find the specific slot and get its current data
-          const currentSlot = instructor.schedule_driving_lesson.find((slot: any) => 
-            slot._id.toString() === slotIdToUpdate
-          );
-          
-          if (!currentSlot) {
-            console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Slot ${slotIdToUpdate} not found in instructor's schedule`);
-            continue;
-          }
-          
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Current slot data BEFORE update:`, {
-            _id: currentSlot._id,
-            status: currentSlot.status,
-            paid: currentSlot.paid,
-            pickupLocation: currentSlot.pickupLocation,
-            dropoffLocation: currentSlot.dropoffLocation,
-            studentId: currentSlot.studentId,
-            studentName: currentSlot.studentName,
-            date: currentSlot.date,
-            start: currentSlot.start,
-            end: currentSlot.end,
-            classType: currentSlot.classType,
-            orderId: currentSlot.orderId,
-            orderNumber: currentSlot.orderNumber,
-            amount: currentSlot.amount,
-            reservedAt: currentSlot.reservedAt,
-            booked: currentSlot.booked
-          });
-          
-          // Check if currentSlot is a Mongoose document or plain object
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: currentSlot type:`, typeof currentSlot);
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: currentSlot has toObject:`, typeof currentSlot.toObject);
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: Raw currentSlot:`, currentSlot);
-          
-          // Step 3: Create a NEW slot object with ALL existing fields + updated fields
-          // Handle both Mongoose documents and plain objects
-          const currentSlotData = currentSlot.toObject ? currentSlot.toObject() : currentSlot;
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: currentSlotData after conversion:`, currentSlotData);
-          
-          // Create updated slot by explicitly preserving ALL existing fields
-          const updatedSlot = {
-            // Explicitly preserve ALL existing fields
-            _id: currentSlotData._id,
-            date: currentSlotData.date,
-            start: currentSlotData.start,
-            end: currentSlotData.end,
-            classType: currentSlotData.classType,
-            pickupLocation: currentSlotData.pickupLocation,
-            dropoffLocation: currentSlotData.dropoffLocation,
-            selectedProduct: currentSlotData.selectedProduct,
-            studentId: currentSlotData.studentId,
-            studentName: currentSlotData.studentName,
-            amount: currentSlotData.amount,
-            orderId: currentSlotData.orderId,
-            orderNumber: currentSlotData.orderNumber,
-            reservedAt: currentSlotData.reservedAt,
-            booked: currentSlotData.booked,
-            paymentMethod: currentSlotData.paymentMethod,
-            // Only update these specific fields
-            status: setFields.status,
-            ...(setFields.paid !== undefined && { paid: setFields.paid }),
-            ...(setFields.paymentId && { paymentId: setFields.paymentId }),
-            ...(setFields.confirmedAt && { confirmedAt: setFields.confirmedAt })
-          };
-          
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: BEFORE update - Original slot data:`, {
-            _id: currentSlotData._id,
-            status: currentSlotData.status,
-            paid: currentSlotData.paid,
-            pickupLocation: currentSlotData.pickupLocation,
-            dropoffLocation: currentSlotData.dropoffLocation,
-            studentId: currentSlotData.studentId,
-            studentName: currentSlotData.studentName,
-            date: currentSlotData.date,
-            start: currentSlotData.start,
-            end: currentSlotData.end,
-            classType: currentSlotData.classType,
-            orderId: currentSlotData.orderId,
-            orderNumber: currentSlotData.orderNumber,
-            amount: currentSlotData.amount,
-            reservedAt: currentSlotData.reservedAt,
-            booked: currentSlotData.booked
-          });
-          
-          console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: AFTER update - Updated slot data:`, {
-            _id: updatedSlot._id,
-            status: updatedSlot.status,
-            paid: updatedSlot.paid,
-            pickupLocation: updatedSlot.pickupLocation,
-            dropoffLocation: updatedSlot.dropoffLocation,
-            studentId: updatedSlot.studentId,
-            studentName: updatedSlot.studentName,
-            date: updatedSlot.date,
-            start: updatedSlot.start,
-            end: updatedSlot.end,
-            classType: updatedSlot.classType,
-            orderId: updatedSlot.orderId,
-            orderNumber: updatedSlot.orderNumber,
-            amount: updatedSlot.amount,
-            reservedAt: updatedSlot.reservedAt,
-            booked: updatedSlot.booked
-          });
-          
-          // CRITICAL: Verify that important fields are not empty before proceeding
-          const criticalFields = {
-            studentId: updatedSlot.studentId,
-            studentName: updatedSlot.studentName,
-            pickupLocation: updatedSlot.pickupLocation,
-            dropoffLocation: updatedSlot.dropoffLocation,
-            selectedProduct: updatedSlot.selectedProduct
-          };
-          
-          console.log(`🚨 [DRIVING LESSON UPDATE] CRITICAL FIELDS CHECK:`, criticalFields);
-          
-          // Check if any critical fields are empty
-          const emptyFields = Object.entries(criticalFields).filter(([key, value]) => 
-            !value || value === "" || value === null || value === undefined
-          );
-          
-          if (emptyFields.length > 0) {
-            console.error(`❌ [DRIVING LESSON UPDATE] CRITICAL FIELDS ARE EMPTY:`, emptyFields);
-            console.error(`❌ [DRIVING LESSON UPDATE] NOT UPDATING SLOT TO PREVENT DATA LOSS`);
-            continue; // Skip this slot update
-          }
-          
-          console.log(`✅ [DRIVING LESSON UPDATE] ULTRA ROBUST: All critical fields preserved - Proceeding with slot update`);
-          
-          // Step 4: Use findOneAndUpdate with $set to replace the entire slot object (preserving all fields)
-          const updateResult = await Instructor.findOneAndUpdate(
-            { 
-              _id: instructorId,
-              'schedule_driving_lesson._id': slotIdToUpdate
-            },
-            { 
-              $set: { 
-                'schedule_driving_lesson.$': updatedSlot 
-              } 
-            },
-            { 
-              new: true,
-              runValidators: true
-            }
-          );
-          
-          if (updateResult) {
-            totalModified++;
-            console.log(`✅ [DRIVING LESSON UPDATE] ULTRA ROBUST: Successfully updated slot ${slotIdToUpdate} with ALL fields preserved`);
-            
-            // Step 5: Verify the update by fetching the updated slot
-            const verifyInstructor = await Instructor.findById(instructorId);
-            const verifySlot = verifyInstructor?.schedule_driving_lesson.find((slot: any) => 
-              slot._id.toString() === slotIdToUpdate
-            );
-            
-            if (verifySlot) {
-              console.log(`🔍 [DRIVING LESSON UPDATE] ULTRA ROBUST: VERIFICATION - Updated slot data:`, {
-                _id: verifySlot._id,
-                status: verifySlot.status,
-                paid: verifySlot.paid,
-                pickupLocation: verifySlot.pickupLocation,
-                dropoffLocation: verifySlot.dropoffLocation,
-                studentId: verifySlot.studentId,
-                studentName: verifySlot.studentName,
-                date: verifySlot.date,
-                start: verifySlot.start,
-                end: verifySlot.end,
-                classType: verifySlot.classType
-              });
-            }
-          } else {
-            console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Failed to update slot ${slotIdToUpdate} - no modifications made`);
-          }
-        } catch (error) {
-          console.error(`❌ [DRIVING LESSON UPDATE] ULTRA ROBUST: Error updating slot ${slotIdToUpdate}:`, error);
-        }
+      // Build update object with only the fields we want to update
+      const updateFields: any = {};
+      
+      // Always update status
+      updateFields[`schedule_driving_lesson.$[slot].status`] = setFields.status;
+      
+      // Only update paid if provided
+      if (setFields.paid !== undefined) {
+        updateFields[`schedule_driving_lesson.$[slot].paid`] = setFields.paid;
       }
       
-      console.log(`🎯 [DRIVING LESSON UPDATE] ULTRA ROBUST: Individual slot processing complete: ${totalModified}/${slotsToUpdate.length} slots updated`);
+      // Only update paymentId if provided
+      if (setFields.paymentId) {
+        updateFields[`schedule_driving_lesson.$[slot].paymentId`] = setFields.paymentId;
+      }
+      
+      // Only update confirmedAt if provided
+      if (setFields.confirmedAt) {
+        updateFields[`schedule_driving_lesson.$[slot].confirmedAt`] = setFields.confirmedAt;
+      }
+      
+      console.log(`🔍 [DRIVING LESSON UPDATE] Update fields:`, updateFields);
+      
+      const updateResult = await Instructor.updateOne(
+        { _id: instructorId },
+        { $set: updateFields },
+        {
+          arrayFilters: [{ "slot._id": { $in: slotsToUpdate } }]
+        }
+      );
+      totalModified += updateResult.modifiedCount;
+      console.log(`🎯 [DRIVING LESSON UPDATE] Strategy 1 (by slotId): ${updateResult.modifiedCount} slots updated`);
+      console.log(`🔍 [DRIVING LESSON UPDATE] Searching for slotIds:`, slotsToUpdate);
     }
 
     // Strategy 3: If still no updates and slotId looks like date-time format, try parsing
