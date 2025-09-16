@@ -67,38 +67,62 @@ export async function POST(req: NextRequest) {
 
     // Strategy 1: Update by slotId directly (most common case)
     if (slotsToUpdate.length > 0) {
-      // Build update object with only the fields we want to update
-      const updateFields: any = {};
-      
-      // Always update status
-      updateFields[`schedule_driving_lesson.$[slot].status`] = setFields.status;
-      
-      // Only update paid if provided
-      if (setFields.paid !== undefined) {
-        updateFields[`schedule_driving_lesson.$[slot].paid`] = setFields.paid;
+      // Find the instructor first to get the current slot data
+      const instructor = await Instructor.findById(instructorId);
+      if (!instructor) {
+        console.error('❌ [DRIVING LESSON UPDATE] Instructor not found:', instructorId);
+        return NextResponse.json({ error: "Instructor not found" }, { status: 404 });
       }
-      
-      // Only update paymentId if provided
-      if (setFields.paymentId) {
-        updateFields[`schedule_driving_lesson.$[slot].paymentId`] = setFields.paymentId;
-      }
-      
-      // Only update confirmedAt if provided
-      if (setFields.confirmedAt) {
-        updateFields[`schedule_driving_lesson.$[slot].confirmedAt`] = setFields.confirmedAt;
-      }
-      
-      console.log(`🔍 [DRIVING LESSON UPDATE] Update fields:`, updateFields);
-      
-      const updateResult = await Instructor.updateOne(
-        { _id: instructorId },
-        { $set: updateFields },
-        {
-          arrayFilters: [{ "slot._id": { $in: slotsToUpdate } }]
+
+      // Update each slot individually to preserve all existing fields
+      for (const slotIdToUpdate of slotsToUpdate) {
+        const slotIndex = instructor.schedule_driving_lesson?.findIndex(
+          (slot: any) => slot._id === slotIdToUpdate
+        );
+
+        if (slotIndex !== -1 && slotIndex !== undefined) {
+          console.log(`🔍 [DRIVING LESSON UPDATE] Found slot at index ${slotIndex}, preserving all existing fields`);
+          
+          // Build update object with only the fields we want to update
+          const updateFields: any = {};
+          
+          // Always update status
+          updateFields[`schedule_driving_lesson.${slotIndex}.status`] = setFields.status;
+          
+          // Only update paid if provided
+          if (setFields.paid !== undefined) {
+            updateFields[`schedule_driving_lesson.${slotIndex}.paid`] = setFields.paid;
+          }
+          
+          // Only update paymentId if provided
+          if (setFields.paymentId) {
+            updateFields[`schedule_driving_lesson.${slotIndex}.paymentId`] = setFields.paymentId;
+          }
+          
+          // Only update confirmedAt if provided
+          if (setFields.confirmedAt) {
+            updateFields[`schedule_driving_lesson.${slotIndex}.confirmedAt`] = setFields.confirmedAt;
+          }
+          
+          console.log(`🔍 [DRIVING LESSON UPDATE] Update fields for slot ${slotIdToUpdate}:`, updateFields);
+          
+          const updateResult = await Instructor.updateOne(
+            { _id: instructorId },
+            { $set: updateFields }
+          );
+          
+          if (updateResult.modifiedCount > 0) {
+            totalModified++;
+            console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate} at index ${slotIndex}`);
+          } else {
+            console.error(`❌ [DRIVING LESSON UPDATE] Failed to update slot ${slotIdToUpdate} at index ${slotIndex}`);
+          }
+        } else {
+          console.error(`❌ [DRIVING LESSON UPDATE] Slot not found: ${slotIdToUpdate}`);
         }
-      );
-      totalModified += updateResult.modifiedCount;
-      console.log(`🎯 [DRIVING LESSON UPDATE] Strategy 1 (by slotId): ${updateResult.modifiedCount} slots updated`);
+      }
+      
+      console.log(`🎯 [DRIVING LESSON UPDATE] Strategy 1 (by slotId): ${totalModified} slots updated`);
       console.log(`🔍 [DRIVING LESSON UPDATE] Searching for slotIds:`, slotsToUpdate);
     }
 
