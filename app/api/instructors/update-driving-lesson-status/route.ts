@@ -45,14 +45,30 @@ export async function POST(req: NextRequest) {
     let totalModified = 0;
     const updateResults: { slotId: string; modified: boolean }[] = [];
 
-    // SIMPLE STRATEGY: Just update status to 'booked' - nothing else
-    console.log(`🔍 [DRIVING LESSON UPDATE] SIMPLE STRATEGY: Just updating status to 'booked' for ${slotsToUpdate.length} slots`);
+    // SIMPLE STRATEGY: Just update status to 'booked' and paid to true - nothing else
+    console.log(`🔍 [DRIVING LESSON UPDATE] SIMPLE STRATEGY: Updating status to 'booked' and paid to true for ${slotsToUpdate.length} slots`);
+    
+    // First, let's see what slots exist BEFORE update
+    const beforeInstructor = await Instructor.findById(instructorId);
+    if (beforeInstructor && beforeInstructor.schedule_driving_lesson) {
+      console.log(`🔍 [DRIVING LESSON UPDATE] SLOTS BEFORE UPDATE:`, 
+        beforeInstructor.schedule_driving_lesson.map((slot: any) => ({
+          _id: slot._id,
+          status: slot.status,
+          paid: slot.paid,
+          studentId: slot.studentId,
+          studentName: slot.studentName,
+          pickupLocation: slot.pickupLocation,
+          dropoffLocation: slot.dropoffLocation
+        }))
+      );
+    }
     
     for (const slotIdToUpdate of slotsToUpdate) {
       try {
         console.log(`🔍 [DRIVING LESSON UPDATE] Processing slot: ${slotIdToUpdate}`);
         
-        // SIMPLE UPDATE: Only change status to 'booked'
+        // SIMPLE UPDATE: Change status to 'booked' and paid to true
         const updateResult = await Instructor.findOneAndUpdate(
           { 
             _id: instructorId,
@@ -60,7 +76,8 @@ export async function POST(req: NextRequest) {
           },
           { 
             $set: { 
-              'schedule_driving_lesson.$.status': 'booked'
+              'schedule_driving_lesson.$.status': 'booked',
+              'schedule_driving_lesson.$.paid': true
             } 
           },
           { 
@@ -72,6 +89,24 @@ export async function POST(req: NextRequest) {
         if (updateResult) {
           totalModified++;
           console.log(`✅ [DRIVING LESSON UPDATE] Successfully updated slot ${slotIdToUpdate} to 'booked'`);
+          
+          // Verify the update
+          const afterInstructor = await Instructor.findById(instructorId);
+          const updatedSlot = afterInstructor?.schedule_driving_lesson.find((slot: any) => 
+            slot._id.toString() === slotIdToUpdate
+          );
+          
+          if (updatedSlot) {
+            console.log(`🔍 [DRIVING LESSON UPDATE] SLOT AFTER UPDATE:`, {
+              _id: updatedSlot._id,
+              status: updatedSlot.status,
+              paid: updatedSlot.paid,
+              studentId: updatedSlot.studentId,
+              studentName: updatedSlot.studentName,
+              pickupLocation: updatedSlot.pickupLocation,
+              dropoffLocation: updatedSlot.dropoffLocation
+            });
+          }
         } else {
           console.error(`❌ [DRIVING LESSON UPDATE] Failed to update slot ${slotIdToUpdate}`);
         }
