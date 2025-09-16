@@ -234,7 +234,7 @@ export const usePaymentSuccess = () => {
                   // Group appointments by type for batch processing
                   const ticketClasses = orderData.order.appointments.filter(apt => apt.classType === 'ticket_class' || apt.ticketClassId);
                     const drivingLessons = orderData.order.appointments.filter(apt => 
-                      (apt.classType === 'driving_lesson' || apt.classType === 'driving_test') && apt.slotId
+                      (apt.classType === 'driving_lesson' || apt.classType === 'driving_test' || apt.classType === 'driving test') && apt.slotId
                     );
                   
                   console.log('🎯 [PAYMENT-SUCCESS] Modular processing - Appointments summary:', {

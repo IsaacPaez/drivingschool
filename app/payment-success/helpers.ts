@@ -88,7 +88,7 @@ export async function updateInstructorSlotsBatch(grouped: Record<string, Driving
       };
 
       // Use specific route based on class type
-      const isDrivingTest = data.classType === 'driving_test';
+      const isDrivingTest = data.classType === 'driving_test' || data.classType === 'driving test';
       const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
       
       console.log(`🎯 Using ${isDrivingTest ? 'driving test' : 'driving lesson'} specific route: ${endpoint}`);
@@ -118,7 +118,7 @@ export async function forceUpdateLegacySlots(order: OrderDataShape, orderId: str
   for (const appointment of order.appointments || []) {
     if (appointment.slotId) {
       try {
-        const isDrivingTest = appointment.classType === 'driving_test' || order.orderType === 'driving_test';
+        const isDrivingTest = appointment.classType === 'driving_test' || appointment.classType === 'driving test' || order.orderType === 'driving_test';
         const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
         
         console.log(`🎯 [LEGACY] Using ${isDrivingTest ? 'driving test' : 'driving lesson'} specific route: ${endpoint}`);
@@ -169,8 +169,8 @@ export async function revertAppointmentsOnFailure(order: OrderDataShape, userId?
         
         console.log(`🔄 Reverted ticket class ${appointment.ticketClassId} for student ${studentIdToRevert}`);
         
-      } else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test') && appointment.slotId) {
-        const isDrivingTest = appointment.classType === 'driving_test';
+      } else if ((appointment.classType === 'driving_lesson' || appointment.classType === 'driving_test' || appointment.classType === 'driving test') && appointment.slotId) {
+        const isDrivingTest = appointment.classType === 'driving_test' || appointment.classType === 'driving test';
         const endpoint = isDrivingTest ? '/api/instructors/update-driving-test-status' : '/api/instructors/update-driving-lesson-status';
         
         await fetch(endpoint, {

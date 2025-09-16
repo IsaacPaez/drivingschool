@@ -67,16 +67,32 @@ export async function POST(req: NextRequest) {
 
     // Strategy 1: Update by slotId directly (most common case)
     if (slotsToUpdate.length > 0) {
+      // Build update object with only the fields we want to update
+      const updateFields: any = {};
+      
+      // Always update status
+      updateFields[`schedule_driving_lesson.$[slot].status`] = setFields.status;
+      
+      // Only update paid if provided
+      if (setFields.paid !== undefined) {
+        updateFields[`schedule_driving_lesson.$[slot].paid`] = setFields.paid;
+      }
+      
+      // Only update paymentId if provided
+      if (setFields.paymentId) {
+        updateFields[`schedule_driving_lesson.$[slot].paymentId`] = setFields.paymentId;
+      }
+      
+      // Only update confirmedAt if provided
+      if (setFields.confirmedAt) {
+        updateFields[`schedule_driving_lesson.$[slot].confirmedAt`] = setFields.confirmedAt;
+      }
+      
+      console.log(`🔍 [DRIVING LESSON UPDATE] Update fields:`, updateFields);
+      
       const updateResult = await Instructor.updateOne(
         { _id: instructorId },
-        {
-          $set: {
-            [`schedule_driving_lesson.$[slot].status`]: setFields.status,
-            ...(setFields.paid !== undefined ? { [`schedule_driving_lesson.$[slot].paid`]: setFields.paid } : {}),
-            ...(setFields.paymentId ? { [`schedule_driving_lesson.$[slot].paymentId`]: setFields.paymentId } : {}),
-            ...(setFields.confirmedAt ? { [`schedule_driving_lesson.$[slot].confirmedAt`]: setFields.confirmedAt } : {})
-          }
-        },
+        { $set: updateFields },
         {
           arrayFilters: [{ "slot._id": { $in: slotsToUpdate } }]
         }
