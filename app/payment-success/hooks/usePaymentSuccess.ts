@@ -243,19 +243,34 @@ export const usePaymentSuccess = () => {
                   
                   // Group appointments by type for batch processing
                   const ticketClasses = orderData.order.appointments.filter(apt => apt.classType === 'ticket_class' || apt.ticketClassId);
-                    const drivingLessons = orderData.order.appointments.filter(apt => 
-                      (apt.classType === 'driving_lesson' || apt.classType === 'driving_test' || apt.classType === 'driving test') && apt.slotId
-                    );
+                  const drivingLessons = orderData.order.appointments.filter(apt => 
+                    (apt.classType === 'driving_lesson' || apt.classType === 'driving lesson') && apt.slotId
+                  );
+                  const drivingTests = orderData.order.appointments.filter(apt => 
+                    (apt.classType === 'driving_test' || apt.classType === 'driving test') && apt.slotId
+                  );
                   
                   console.log('🎯 [PAYMENT-SUCCESS] Modular processing - Appointments summary:', {
                     total: orderData.order.appointments.length,
                     drivingLessons: drivingLessons.length,
+                    drivingTests: drivingTests.length,
                     ticketClasses: ticketClasses.length,
                     orderType: orderData.order.orderType
                   });
                   
                   if (drivingLessons.length > 0) {
                     console.log('🚗 [PAYMENT-SUCCESS] Driving lessons appointments detail:', drivingLessons.map((a: AppointmentDetail) => ({
+                      instructorId: a.instructorId,
+                      slotId: a.slotId,
+                      classType: a.classType,
+                      date: a.date,
+                      start: a.start,
+                      end: a.end
+                    })));
+                  }
+                  
+                  if (drivingTests.length > 0) {
+                    console.log('🚙 [PAYMENT-SUCCESS] Driving tests appointments detail:', drivingTests.map((a: AppointmentDetail) => ({
                       instructorId: a.instructorId,
                       slotId: a.slotId,
                       classType: a.classType,
@@ -277,6 +292,7 @@ export const usePaymentSuccess = () => {
                   
                   // Group driving lessons by instructor
                   const drivingLessonsByInstructor = groupDrivingLessonsByInstructor(drivingLessons);
+                  const drivingTestsByInstructor = groupDrivingLessonsByInstructor(drivingTests); // Same grouping logic
                   
                   // Process TICKET CLASSES using specific route
                   if (ticketClasses.length > 0) {
@@ -304,6 +320,24 @@ export const usePaymentSuccess = () => {
                       }
                     } catch (error) {
                       console.error('❌ [PAYMENT-SUCCESS] Error in driving lessons batch update:', error);
+                      allProcessed = false;
+                    }
+                  }
+                  
+                  // Process DRIVING TESTS - UPDATE THEM TO BOOKED STATUS (same logic as driving lessons)
+                  if (Object.keys(drivingTestsByInstructor).length > 0) {
+                    console.log('🚙 [PAYMENT-SUCCESS] Processing driving tests with batch update...');
+                    
+                    try {
+                      const batchUpdateSuccess = await updateInstructorSlotsBatch(drivingTestsByInstructor, orderId);
+                      if (batchUpdateSuccess) {
+                        console.log('✅ [PAYMENT-SUCCESS] Driving tests batch update completed successfully');
+                      } else {
+                        console.error('❌ [PAYMENT-SUCCESS] Driving tests batch update failed');
+                        allProcessed = false;
+                      }
+                    } catch (error) {
+                      console.error('❌ [PAYMENT-SUCCESS] Error in driving tests batch update:', error);
                       allProcessed = false;
                     }
                   }
