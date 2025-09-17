@@ -77,10 +77,56 @@ function DrivingLessonsContent() {
   const [selectedHours, setSelectedHours] = useState(0);
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
   const [initialLoading, setInitialLoading] = useState(true);
+  
+  // Estados para manejo de autenticación y slots pendientes
+  const [pendingSlot, setPendingSlot] = useState<{
+    start: string;
+    end: string;
+    date: string;
+    amount?: number;
+    instructorName?: string;
+    instructorId?: string;
+    classType?: string;
+  } | null>(null);
 
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { addToCart } = useCart();
   const userId = user?._id || "";
+
+  // Función para manejar el login exitoso
+  const handleLoginSuccess = (loggedInUser: { _id: string; name: string; email: string }) => {
+    setShowLogin(false);
+    setShowAuthWarning(false);
+    setUser(loggedInUser);
+    
+    // Si hay un slot pendiente, proceder con la reserva
+    if (pendingSlot) {
+      // Para driving lessons, verificamos si es una reserva directa o solicitud de horario
+      if (pendingSlot.classType === 'direct_booking' && selectedProduct) {
+        // Crear objeto compatible con handleTimeSlotSelect
+        const timeSlot: SelectedTimeSlot = {
+          date: pendingSlot.date,
+          start: pendingSlot.start,
+          end: pendingSlot.end,
+          instructors: instructors.filter(inst => inst._id === pendingSlot.instructorId)
+        };
+        
+        const lesson: ScheduleEntry = {
+          date: pendingSlot.date,
+          start: pendingSlot.start,
+          end: pendingSlot.end,
+          status: 'available'
+        };
+        
+        handleTimeSlotSelect(timeSlot, lesson);
+      } else {
+        // Para solicitudes de horario múltiple, abrir el modal de solicitud
+        setIsRequestModalOpen(true);
+      }
+      
+      setPendingSlot(null);
+    }
+  };
 
   // Use SSE hook for real-time schedule updates for all instructors
   const instructorIds = React.useMemo(() => 
@@ -288,14 +334,27 @@ function DrivingLessonsContent() {
   };
 
   const handleRequestSchedule = () => {
-    if (!selectedProduct || !userId) {
-      if (!userId) {
-        setShowAuthWarning(true);
-        return;
-      }
+    if (!selectedProduct) {
       alert('Please select a package first.');
       return;
     }
+    
+    if (!userId) {
+      // Guardar la intención de solicitar horario
+      const slotData = {
+        start: '',
+        end: '',
+        date: '',
+        amount: selectedProduct.price,
+        instructorName: '',
+        instructorId: '',
+        classType: 'schedule_request'
+      };
+      setPendingSlot(slotData);
+      setShowLogin(true);
+      return;
+    }
+    
     setIsRequestModalOpen(true);
   };
 
@@ -470,6 +529,22 @@ function DrivingLessonsContent() {
       return;
     }
     
+    // Verificar autenticación antes de proceder
+    if (!userId) {
+      const slotData = {
+        start: lesson.start,
+        end: lesson.end,
+        date: lesson.date,
+        amount: selectedProduct.price,
+        instructorName: timeSlot.instructors[0]?.name,
+        instructorId: timeSlot.instructors[0]?._id,
+        classType: 'direct_booking'
+      };
+      setPendingSlot(slotData);
+      setShowLogin(true);
+      return;
+    }
+    
     setSelectedTimeSlot(timeSlot);
     setSelectedSlot(lesson);
     
@@ -538,7 +613,17 @@ function DrivingLessonsContent() {
           selectedHours={selectedHours}
           onRequestSchedule={handleRequestSchedule}
           onAuthRequired={() => {
-            setShowAuthWarning(true);
+            const slotData = {
+              start: '',
+              end: '',
+              date: '',
+              amount: selectedProduct?.price || 0,
+              instructorName: '',
+              instructorId: '',
+              classType: 'schedule_request'
+            };
+            setPendingSlot(slotData);
+            setShowLogin(true);
           }}
           key={`schedule-${Date.now()}`}
         />
@@ -591,11 +676,11 @@ function DrivingLessonsContent() {
       {/* Login Modal */}
       <LoginModal 
         open={showLogin} 
-        onClose={() => setShowLogin(false)}
-        onLoginSuccess={() => {
+        onClose={() => {
           setShowLogin(false);
-          setShowAuthWarning(false);
+          setPendingSlot(null);
         }}
+        onLoginSuccess={handleLoginSuccess}
       />
     </section>
   );
