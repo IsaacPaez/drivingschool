@@ -1,14 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "../../context/CartContext";
 import { 
-  fetchOrderDetails,
   processTicketClasses,
   groupDrivingLessonsByInstructor,
   updateInstructorSlotsBatch,
   forceUpdateLegacySlots,
   revertAppointmentsOnFailure
 } from "../helpers";
+
+interface AppointmentDetail {
+  ticketClassId?: string;
+  classType?: string;
+  slotId?: string;
+  instructorId?: string;
+  date?: string;
+  start?: string;
+  end?: string;
+}
 
 export interface PaymentSuccessState {
   countdown: number;
@@ -141,7 +150,7 @@ export const usePaymentSuccess = () => {
     }
   };
 
-  const startCountdown = async (orderId?: string) => {
+  const startCountdown = useCallback(async (orderId?: string) => {
     // Internal verification before starting countdown
     if (orderId) {
       const verified = await verifyAllSlotsUpdated(orderId);
@@ -165,9 +174,10 @@ export const usePaymentSuccess = () => {
     }, 1000);
     
     return () => clearInterval(countdownTimer);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]); // Removemos verifyAllSlotsUpdated para evitar ciclos
 
-  const clearCartCompletely = async () => {
+  const clearCartCompletely = useCallback(async () => {
     try {
       const userId = searchParams ? searchParams.get("userId") : null;
       
@@ -190,9 +200,9 @@ export const usePaymentSuccess = () => {
     } catch (error) {
       console.error("Error limpiando carrito:", error);
     }
-  };
+  }, [searchParams]);
 
-  const checkTransactionAndUpdateOrder = async () => {
+  const checkTransactionAndUpdateOrder = useCallback(async () => {
     const userId = searchParams ? searchParams.get("userId") : null;
     const orderId = searchParams ? searchParams.get("orderId") : null;
     
@@ -245,7 +255,7 @@ export const usePaymentSuccess = () => {
                   });
                   
                   if (drivingLessons.length > 0) {
-                    console.log('🚗 [PAYMENT-SUCCESS] Driving lessons appointments detail:', drivingLessons.map((a: any) => ({
+                    console.log('🚗 [PAYMENT-SUCCESS] Driving lessons appointments detail:', drivingLessons.map((a: AppointmentDetail) => ({
                       instructorId: a.instructorId,
                       slotId: a.slotId,
                       classType: a.classType,
@@ -256,7 +266,7 @@ export const usePaymentSuccess = () => {
                   }
                   
                   if (ticketClasses.length > 0) {
-                    console.log('🎫 [PAYMENT-SUCCESS] Ticket classes appointments detail:', ticketClasses.map((a: any) => ({
+                    console.log('🎫 [PAYMENT-SUCCESS] Ticket classes appointments detail:', ticketClasses.map((a: AppointmentDetail) => ({
                       ticketClassId: a.ticketClassId,
                       classType: a.classType,
                       date: a.date,
@@ -280,43 +290,22 @@ export const usePaymentSuccess = () => {
                     }
                   }
                   
-                  // Process DRIVING LESSONS - ONLY SHOW SLOTS, DON'T MODIFY
+                  // Process DRIVING LESSONS - UPDATE THEM TO BOOKED STATUS
                   if (Object.keys(drivingLessonsByInstructor).length > 0) {
-                    console.log('🚗 [PAYMENT-SUCCESS] DRIVING LESSONS DETECTED - Showing slots WITHOUT modifying...');
+                    console.log('🚗 [PAYMENT-SUCCESS] Processing driving lessons with batch update...');
                     
-                    for (const [instructorId, data] of Object.entries(drivingLessonsByInstructor)) {
-                      console.log(`🔍 [DRIVING LESSON DEBUG] Instructor: ${instructorId}`);
-                      console.log(`🔍 [DRIVING LESSON DEBUG] Class Type: ${data.classType}`);
-                      console.log(`🔍 [DRIVING LESSON DEBUG] Slot IDs: ${data.slotIds.join(', ')}`);
-                      
-                      // Fetch instructor to see current slots
-                      try {
-                        const instructorResponse = await fetch(`/api/instructors/${instructorId}`);
-                        if (instructorResponse.ok) {
-                          const instructorData = await instructorResponse.json();
-                          console.log(`🔍 [DRIVING LESSON DEBUG] Current instructor data:`, {
-                            name: instructorData.name,
-                            schedule_driving_lesson: instructorData.schedule_driving_lesson?.map((slot: any) => ({
-                              _id: slot._id,
-                              date: slot.date,
-                              start: slot.start,
-                              end: slot.end,
-                              status: slot.status,
-                              paid: slot.paid,
-                              studentId: slot.studentId,
-                              studentName: slot.studentName,
-                              pickupLocation: slot.pickupLocation,
-                              dropoffLocation: slot.dropoffLocation,
-                              selectedProduct: slot.selectedProduct
-                            }))
-                          });
-                        }
-                      } catch (error) {
-                        console.error(`❌ [DRIVING LESSON DEBUG] Error fetching instructor data:`, error);
+                    try {
+                      const batchUpdateSuccess = await updateInstructorSlotsBatch(drivingLessonsByInstructor, orderId);
+                      if (batchUpdateSuccess) {
+                        console.log('✅ [PAYMENT-SUCCESS] Driving lessons batch update completed successfully');
+                      } else {
+                        console.error('❌ [PAYMENT-SUCCESS] Driving lessons batch update failed');
+                        allProcessed = false;
                       }
+                    } catch (error) {
+                      console.error('❌ [PAYMENT-SUCCESS] Error in driving lessons batch update:', error);
+                      allProcessed = false;
                     }
-                    
-                    console.log('✅ [PAYMENT-SUCCESS] Driving lessons slots displayed (NOT modified)');
                   }
                   
                   updateState({ isProcessingSlots: false });
@@ -403,7 +392,8 @@ export const usePaymentSuccess = () => {
       updateState({ isCardFlipped: true });
       console.log('🎴 Card flipped, waiting for payment confirmation before starting countdown...');
     }, 1000);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, clearCart]); // Simplificar dependencias
 
   // Initialize effect
   useEffect(() => {
@@ -412,7 +402,7 @@ export const usePaymentSuccess = () => {
 
     clearCartCompletely();
     checkTransactionAndUpdateOrder();
-  }, [router, searchParams]);
+  }, [clearCartCompletely, checkTransactionAndUpdateOrder]);
 
   // Countdown effect
   useEffect(() => {
@@ -440,7 +430,7 @@ export const usePaymentSuccess = () => {
         }, 1000);
       }
     }
-  }, [state.isCardFlipped, state.transactionStatus, state.slotsUpdated, state.showCountdown]);
+  }, [state.isCardFlipped, state.transactionStatus, state.slotsUpdated, state.showCountdown, state.currentOrderId, startCountdown]);
 
   return {
     state,

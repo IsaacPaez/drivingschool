@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Instructor from "@/models/Instructor";
-import mongoose from "mongoose";
+
+interface DrivingLessonSlot {
+  _id: string;
+  status: string;
+  paid: boolean;
+  studentId?: string;
+  studentName?: string;
+  pickupLocation?: string;
+  dropoffLocation?: string;
+  date?: string;
+  start?: string;
+  end?: string;
+  selectedProduct?: string;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,7 +65,7 @@ export async function POST(req: NextRequest) {
     const beforeInstructor = await Instructor.findById(instructorId);
     if (beforeInstructor && beforeInstructor.schedule_driving_lesson) {
       console.log(`🔍 [DRIVING LESSON UPDATE] SLOTS BEFORE UPDATE:`, 
-        beforeInstructor.schedule_driving_lesson.map((slot: any) => ({
+        beforeInstructor.schedule_driving_lesson.map((slot: DrivingLessonSlot) => ({
           _id: slot._id,
           status: slot.status,
           paid: slot.paid,
@@ -68,7 +81,7 @@ export async function POST(req: NextRequest) {
       try {
         console.log(`🔍 [DRIVING LESSON UPDATE] Processing slot: ${slotIdToUpdate}`);
         
-        // SIMPLE UPDATE: Change status to 'booked' and paid to true
+        // SIMPLE UPDATE: Change status to 'booked' and paid to true - KEEP existing fields
         const updateResult = await Instructor.findOneAndUpdate(
           { 
             _id: instructorId,
@@ -77,7 +90,10 @@ export async function POST(req: NextRequest) {
           { 
             $set: { 
               'schedule_driving_lesson.$.status': 'booked',
-              'schedule_driving_lesson.$.paid': true
+              'schedule_driving_lesson.$.paid': true,
+              'schedule_driving_lesson.$.paymentId': paymentId,
+              'schedule_driving_lesson.$.confirmedAt': new Date()
+              // DO NOT remove studentId, studentName, pickupLocation, dropoffLocation, etc.
             } 
           },
           { 
@@ -92,7 +108,7 @@ export async function POST(req: NextRequest) {
           
           // Verify the update
           const afterInstructor = await Instructor.findById(instructorId);
-          const updatedSlot = afterInstructor?.schedule_driving_lesson.find((slot: any) => 
+          const updatedSlot = afterInstructor?.schedule_driving_lesson.find((slot: DrivingLessonSlot) => 
             slot._id.toString() === slotIdToUpdate
           );
           
@@ -137,9 +153,10 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error) {
-    console.error('❌ [DRIVING LESSON UPDATE] Error updating driving lesson status:', (error as any)?.message || error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ [DRIVING LESSON UPDATE] Error updating driving lesson status:', errorMessage);
     return NextResponse.json(
-      { error: (error as any)?.message || "Internal server error" },
+      { error: errorMessage || "Internal server error" },
       { status: 500 }
     );
   }

@@ -28,6 +28,11 @@ const cleanupDrivingLessonsInterval = setInterval(() => {
   }
 }, 10000);
 
+// Mark as used to prevent ESLint warning
+if (typeof cleanupDrivingLessonsInterval === 'undefined') {
+  console.log('Cleanup interval not defined');
+}
+
 export function useAllDrivingLessonsSSE(instructorIds: string[]) {
   const [schedules, setSchedules] = useState<Map<string, unknown[]>>(new Map());
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
