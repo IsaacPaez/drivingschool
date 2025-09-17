@@ -51,14 +51,15 @@ export async function POST(req: NextRequest) {
         console.log(`🔍 Split parts:`, parts);
         console.log(`🔄 Freeing slot ${slotKey} -> date: ${date}, start: ${start}, end: ${end}`);
 
-        // Update the specific slot back to available
+        // Update the specific slot back to available ONLY if it's still pending (not booked/paid)
         const updateResult = await Instructor.updateOne(
           {
             'schedule_driving_lesson.date': date,
             'schedule_driving_lesson.start': start,
             'schedule_driving_lesson.end': end,
-            'schedule_driving_lesson.status': 'pending',
-            'schedule_driving_lesson.studentId': userId
+            'schedule_driving_lesson.status': 'pending', // ONLY free pending slots
+            'schedule_driving_lesson.studentId': userId,
+            'schedule_driving_lesson.paid': { $ne: true } // ONLY free unpaid slots
           },
           {
             $set: {
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        console.log(`✅ Slot ${slotKey} freed:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
+        console.log(`✅ Slot ${slotKey} freed:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES (already booked/paid)');
         console.log(`📊 Update details: matchedCount: ${updateResult.matchedCount}, modifiedCount: ${updateResult.modifiedCount}`);
         return updateResult;
       });
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Remove from user's cart
     if (user.cart) {
-      user.cart = user.cart.filter((item: any) => item.id !== itemId);
+      user.cart = user.cart.filter((item: { id: string }) => item.id !== itemId);
       await user.save();
       console.log('✅ Package removed from cart successfully');
     }

@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
     // Normalize to valid ObjectIds and remove falsy values
     const rawSlots: (string | null | undefined)[] = (slotIds && Array.isArray(slotIds)) ? slotIds : [slotId];
     const slotsToUpdate = rawSlots.filter(Boolean) as string[];
-    const invalidIds: string[] = [];
     
     if (!slotsToUpdate.length || !instructorId) {
       return NextResponse.json(
@@ -34,7 +33,6 @@ export async function POST(req: NextRequest) {
 
     // Determine which schedule field(s) to use
     const isDrivingTest = classType === 'driving_test' || classType === 'driving test';
-    const prefersLesson = !classType || classType === 'driving_lesson';
     const targetFields = classType ? [isDrivingTest ? 'schedule_driving_test' : 'schedule_driving_lesson'] : ['schedule_driving_lesson', 'schedule_driving_test'];
     
     console.log(`🔍 [SAFE UPDATE] Looking for slots in: ${targetFields.join(', ')}`);
@@ -42,7 +40,7 @@ export async function POST(req: NextRequest) {
     // Find the instructor - try Instructor model first
     let instructor = await Instructor.findById(instructorId);
     let totalModified = 0;
-    let updateResults: { slotId: string; modified: boolean }[] = [];
+    const updateResults: { slotId: string; modified: boolean }[] = [];
     const objectIdList: mongoose.Types.ObjectId[] = [];
     const stringIdList: string[] = [];
     for (const id of slotsToUpdate) {
@@ -52,7 +50,7 @@ export async function POST(req: NextRequest) {
         stringIdList.push(id);
       }
     }
-    const setFields: Record<string, any> = {
+    const setFields: Record<string, string | boolean | null | Date> = {
       status,
       paid,
       paymentId,
@@ -181,9 +179,10 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error) {
-    console.error('❌ [SAFE UPDATE] Error updating slot status:', (error as any)?.message || error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ [SAFE UPDATE] Error updating slot status:', errorMessage);
     return NextResponse.json(
-      { error: (error as any)?.message || "Internal server error" },
+      { error: errorMessage || "Internal server error" },
       { status: 500 }
     );
   }
