@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const logoUrl = "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1739549973/sxsfccyjjnvmxtzlkjpi.png";
+    const logoUrl = "https://res.cloudinary.com/dgnqk0ucm/image/upload/v1758091374/logo_1_iol4hm.png";
     const template = Handlebars.compile(`
       <div style="background: #f6f8fa; padding: 0; min-height: 100vh;">
         <div style="max-width: 600px; margin: 40px auto; background: #fff; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.07); overflow: hidden;">

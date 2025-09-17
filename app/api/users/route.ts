@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import User from '@/models/User';
 import { connectDB } from '@/lib/mongodb';
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import AuthCode from '@/models/AuthCode';
+import bcrypt from 'bcryptjs';
 
 // Handler para crear usuario (POST)
 export async function POST(req: Request) {
@@ -12,15 +12,80 @@ export async function POST(req: Request) {
   const data = await req.json();
   //console.log("Nuevo usuario recibido:", data);
 
-  // Validar campos requeridos
-  const requiredFields = [
-    "firstName", "middleName", "lastName", "email", "dni", "ssnLast4", "hasLicense",
-    "birthDate", "streetAddress", "city", "state", "zipCode", "phoneNumber", "sex", "password"
-  ];
-  for (const field of requiredFields) {
-    if (!data[field] && data[field] !== false) {
-      return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
+  // Si viene un código, es para verificar y crear el usuario
+  if (data.code) {
+    // Limpiar códigos expirados primero
+    await AuthCode.deleteMany({ expires: { $lt: new Date() } });
+    
+    // Verificar el código
+    const authCode = await AuthCode.findOne({ 
+      email: data.email.trim().toLowerCase(), 
+      code: data.code, 
+      used: false 
+    });
+
+    if (!authCode || authCode.expires < new Date()) {
+      return NextResponse.json({ error: 'Invalid or expired verification code.' }, { status: 400 });
     }
+
+    // Verificar que el email no esté ya registrado
+    const exists = await User.findOne({ email: data.email });
+    if (exists) {
+      return NextResponse.json({ error: 'Email already registered.' }, { status: 400 });
+    }
+
+    // Eliminar el código de verificación usado
+    await AuthCode.findByIdAndDelete(authCode._id);
+
+    // Encriptar la contraseña
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(data.password, saltRounds);
+
+    // Crear el usuario en la base de datos
+    try {
+      const newUser = new User({
+        firstName: data.firstName,
+        middleName: data.middleName || "",
+        lastName: data.lastName,
+        email: data.email.trim().toLowerCase(),
+        dni: data.dni,
+        ssnLast4: data.ssnLast4 || "0000",
+        hasLicense: data.hasLicense,
+        licenseNumber: data.licenseNumber || "",
+        birthDate: data.birthDate,
+        phoneNumber: data.phoneNumber,
+        sex: data.sex,
+        password: hashedPassword,
+        role: "user"
+      });
+
+      await newUser.save();
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'User registered successfully!',
+        user: {
+          _id: newUser._id,
+          name: `${newUser.firstName} ${newUser.lastName}`,
+          email: newUser.email,
+          photo: newUser.photo || null,
+          type: 'student'
+        }
+      });
+    } catch (saveError: unknown) {
+      console.error('Error saving user:', saveError);
+      const errorMessage = saveError instanceof Error ? saveError.message : 'Unknown error occurred';
+      return NextResponse.json({ 
+        error: 'Failed to create user account. Please try again.',
+        details: errorMessage 
+      }, { status: 500 });
+    }
+  }
+
+  // Si NO viene código, solo enviar código de verificación (flujo original)
+  // Validar campos mínimos para envío de código
+  if (!data.email) {
+    return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
   }
 
   // Verifica si el email ya está registrado
@@ -47,7 +112,7 @@ export async function POST(req: Request) {
       pass: process.env.SMTP_PASS,
     },
   });
-  const logoUrl = "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1739549973/sxsfccyjjnvmxtzlkjpi.png";
+  const logoUrl = "https://res.cloudinary.com/dgnqk0ucm/image/upload/v1758091374/logo_1_iol4hm.png";
   const html = `
     <div style="background: #f6f8fa; padding: 0; min-height: 100vh;">
       <div style="max-width: 600px; margin: 40px auto; background: #fff; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.07); overflow: hidden;">

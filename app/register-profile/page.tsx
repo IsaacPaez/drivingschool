@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaArrowLeft } from "react-icons/fa";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useAuth } from '@/components/AuthContext';
@@ -20,17 +19,11 @@ export default function RegisterProfilePage() {
     licenseNumber: "",
     birthDate: "",
     sex: "M",
-    streetAddress: "",
-    apartmentNumber: "",
-    city: "",
-    state: "",
-    zipCode: "",
     phoneNumber: "",
     role: "user"
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [birthDateObj, setBirthDateObj] = useState<Date | null>(null);
   const [step, setStep] = useState<'form' | 'verify'>('form');
   const [code, setCode] = useState("");
@@ -62,7 +55,7 @@ export default function RegisterProfilePage() {
     setLoading(true);
     setError("");
     const requiredFields = [
-      "email", "dni", "password", "confirmPassword", "firstName", "middleName", "lastName", "ssnLast4", "birthDate", "streetAddress", "city", "state", "zipCode", "phoneNumber", "sex"
+      "email", "dni", "password", "confirmPassword", "firstName", "middleName", "lastName", "ssnLast4", "birthDate", "phoneNumber", "sex"
     ];
     for (const field of requiredFields) {
       if (!form[field as keyof typeof form]) {
@@ -136,7 +129,7 @@ export default function RegisterProfilePage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8 relative">
-      <div className="max-w-2xl w-full bg-white p-10 rounded-2xl shadow-2xl border border-blue-100 mt-8 mt-16">
+      <div className="max-w-2xl w-full bg-white p-10 rounded-2xl shadow-2xl border border-blue-100 mt-16">
         <h2 className="text-center text-2xl font-extrabold text-blue-700 mb-8 drop-shadow-lg tracking-wide mt-8">Sign Up & Complete Your Profile</h2>
         {step === 'form' && (
           <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
@@ -153,15 +146,8 @@ export default function RegisterProfilePage() {
             {/* Last Name and SSN */}
             <input name="lastName" placeholder="Last Name" value={form.lastName} onChange={handleChange} required className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
             <input name="ssnLast4" placeholder="SSN Last 4" value={form.ssnLast4} onChange={handleChange} required className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
-            {/* Street Address and Apartment */}
-            <input name="streetAddress" placeholder="Street Address" value={form.streetAddress} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
-            <input name="apartmentNumber" placeholder="Apartment Number" value={form.apartmentNumber} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
-            {/* City and State */}
-            <input name="city" placeholder="City" value={form.city} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
-            <input name="state" placeholder="State" value={form.state} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
-            {/* Zip and Phone */}
-            <input name="zipCode" placeholder="Zip Code" value={form.zipCode} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
-            <input name="phoneNumber" placeholder="Phone Number" value={form.phoneNumber} onChange={handleChange} className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
+            {/* Phone Number */}
+            <input name="phoneNumber" placeholder="Phone Number" value={form.phoneNumber} onChange={handleChange} className="col-span-1 md:col-span-2 rounded-lg border border-gray-300 px-4 py-2 text-gray-900" />
             {/* License Checkbox and License Number */}
             <div className="flex items-center gap-2 col-span-1">
               <input
