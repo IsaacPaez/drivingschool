@@ -122,7 +122,22 @@ export async function POST(req: NextRequest) {
           
           // Use the specific slot ID if available, otherwise fall back to date/time matching
           if (appointment.slotId) {
-            console.log(`🎯 Updating slot by ID: ${appointment.slotId} for instructor ${appointment.instructorId}`);
+            console.log(`🎯 [ORDERS UPDATE] Checking slot by ID: ${appointment.slotId} for instructor ${appointment.instructorId}`);
+            
+            // First check if slot is already booked - if so, skip update to preserve fields
+            const instructor = await User.findById(appointment.instructorId);
+            if (instructor && instructor.schedule_driving_lesson) {
+              const existingSlot = instructor.schedule_driving_lesson.find((slot: any) => 
+                slot._id.toString() === appointment.slotId
+              );
+              
+              if (existingSlot && existingSlot.status === 'booked') {
+                console.log(`✅ [ORDERS UPDATE] Slot ${appointment.slotId} already booked - SKIPPING update to preserve fields`);
+                return { modifiedCount: 0 };
+              }
+            }
+            
+            console.log(`🎯 [ORDERS UPDATE] Updating slot by ID: ${appointment.slotId} for instructor ${appointment.instructorId}`);
             
             const updateResult = await User.updateOne(
               {
@@ -140,11 +155,29 @@ export async function POST(req: NextRequest) {
               }
             );
             
-            console.log(`✅ Slot ID ${appointment.slotId} update result:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
+            console.log(`✅ [ORDERS UPDATE] Slot ID ${appointment.slotId} update result:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES');
             return updateResult;
           } else {
             // Fallback to date/time matching (old method)
-            console.log(`🔄 Updating slot by date/time for instructor ${appointment.instructorId}: ${appointment.date} ${appointment.start}-${appointment.end}`);
+            console.log(`🔄 [ORDERS UPDATE] Checking slot by date/time for instructor ${appointment.instructorId}: ${appointment.date} ${appointment.start}-${appointment.end}`);
+            
+            // First check if slot is already booked - if so, skip update to preserve fields
+            const instructor = await User.findById(appointment.instructorId);
+            if (instructor && instructor.schedule_driving_lesson) {
+              const existingSlot = instructor.schedule_driving_lesson.find((slot: any) => 
+                slot.date === appointment.date &&
+                slot.start === appointment.start &&
+                slot.end === appointment.end &&
+                slot.studentId === updatedOrder.userId.toString()
+              );
+              
+              if (existingSlot && existingSlot.status === 'booked') {
+                console.log(`✅ [ORDERS UPDATE] Slot by date/time already booked - SKIPPING update to preserve fields`);
+                return { modifiedCount: 0 };
+              }
+            }
+            
+            console.log(`🔄 [ORDERS UPDATE] Updating slot by date/time for instructor ${appointment.instructorId}: ${appointment.date} ${appointment.start}-${appointment.end}`);
             
             const updateResult = await User.updateOne(
               {
