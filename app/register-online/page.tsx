@@ -87,13 +87,34 @@ function RegisterOnlineContent() {
   const [isProcessingBooking, setIsProcessingBooking] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedClassPrice, setSelectedClassPrice] = useState<number | null>(null);
+  
+  // Estados para manejo de autenticación y slots pendientes
+  const [pendingSlot, setPendingSlot] = useState<{
+    ticketClass: TicketClass;
+    classPrice: number;
+  } | null>(null);
 
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { addToCart } = useCart();
   const userId = user?._id || "";
 
+  // Función para manejar el login exitoso
+  const handleLoginSuccess = (loggedInUser: { _id: string; name: string; email: string }) => {
+    setShowLogin(false);
+    setShowAuthWarning(false);
+    setUser(loggedInUser);
+    
+    // Si hay un slot pendiente, proceder con la reserva
+    if (pendingSlot) {
+      setSelectedTicketClass(pendingSlot.ticketClass);
+      setSelectedClassPrice(pendingSlot.classPrice);
+      setIsBookingModalOpen(true);
+      setPendingSlot(null);
+    }
+  };
+
   // Use SSE hook for real-time updates with selectedClassId and userId
-  const { ticketClasses, isLoading, error, isConnected } = useRegisterOnlineSSE(selectedInstructorId, selectedClassId, userId);
+  const { ticketClasses, isLoading } = useRegisterOnlineSSE(selectedInstructorId, selectedClassId, userId);
 
   // Effect to handle classId from URL - automatically show calendar if classId is present
   useEffect(() => {
@@ -111,8 +132,11 @@ function RegisterOnlineContent() {
   // Función para manejar la confirmación de reserva
   const handleConfirm = async () => {
     if (!userId || !selectedTicketClass) {
-      setShowAuthWarning(true);
-      setIsBookingModalOpen(false);
+      if (!userId) {
+        setShowLogin(true);
+        setIsBookingModalOpen(false);
+        return;
+      }
       return;
     }
     
@@ -260,42 +284,6 @@ function RegisterOnlineContent() {
       setConfirmationMessage('An error occurred while enrolling');
       setShowConfirmation(true);
       setIsBookingModalOpen(false);
-    }
-  };
-
-  const handleRequestClass = async (ticketClass: TicketClass) => {
-    if (!userId) {
-      setShowAuthWarning(true);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/register-online/request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ticketClassId: ticketClass._id,
-          userId: userId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Show custom modal with phone number and cancel option
-        setRequestedTicketClass(ticketClass);
-        setShowRequestModal(true);
-        // The SSE will automatically update the UI with new request data
-      } else {
-        setConfirmationMessage(data.error || 'Failed to send request');
-        setShowConfirmation(true);
-      }
-    } catch (error) {
-      console.error('Error sending class request:', error);
-      setConfirmationMessage('An error occurred while sending request');
-      setShowConfirmation(true);
     }
   };
 
@@ -578,7 +566,7 @@ function RegisterOnlineContent() {
                             title="Click to cancel your pending request"
                             onClick={() => {
                               if (!userId) {
-                                setShowAuthWarning(true);
+                                setShowLogin(true);
                                 return;
                               }
                               // Show the request modal to allow cancellation
@@ -605,10 +593,31 @@ function RegisterOnlineContent() {
                             rowSpan={rowSpan}
                             onClick={async () => {
                                 if (!userId) {
-                                  setShowAuthWarning(true);
+                                  // Obtener precio de la clase antes de mostrar login
+                                  let classPrice = 50; // Precio por defecto
+                                  try {
+                                    const classInfo = overlappingClass.classInfo;
+                                    if (classInfo) {
+                                      const classResponse = await fetch(`/api/drivingclasses/${classInfo._id}`);
+                                      if (classResponse.ok) {
+                                        const classData = await classResponse.json();
+                                        classPrice = classData.price || 50;
+                                      }
+                                    }
+                                  } catch (error) {
+                                    console.error('Error fetching class price:', error);
+                                  }
+                                  
+                                  // Guardar slot pendiente y mostrar login
+                                  setPendingSlot({
+                                    ticketClass: overlappingClass as TicketClass,
+                                    classPrice: classPrice
+                                  });
+                                  setShowLogin(true);
                                   return;
                                 }
                                 
+                                // Usuario autenticado, proceder normalmente
                                 // Get class price before opening modal
                                 try {
                                   const classInfo = overlappingClass.classInfo;
@@ -1205,8 +1214,11 @@ function RegisterOnlineContent() {
       
       <LoginModal
         open={showLogin}
-        onClose={() => setShowLogin(false)}
-        onLoginSuccess={() => setShowLogin(false)}
+        onClose={() => {
+          setShowLogin(false);
+          setPendingSlot(null);
+        }}
+        onLoginSuccess={handleLoginSuccess}
       />
     </section>
   );
