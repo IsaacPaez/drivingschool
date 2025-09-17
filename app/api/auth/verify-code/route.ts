@@ -4,8 +4,6 @@ import Instructor from '@/models/Instructor';
 import { connectDB } from '@/lib/mongodb';  
 import AuthCode from '@/models/AuthCode';
 
-const codeStore: Record<string, { code: string; expires: number }> = globalThis._codeStore || (globalThis._codeStore = {});
-
 export async function POST(req: NextRequest) {
   await connectDB();
   const { email, code } = await req.json();

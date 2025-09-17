@@ -1,0 +1,91 @@
+import { NextRequest, NextResponse } from 'next/server';
+import User from '@/models/User';
+import Instructor from '@/models/Instructor';
+import { connectDB } from '@/lib/mongodb';
+import nodemailer from 'nodemailer';
+import AuthCode from '@/models/AuthCode';
+
+export async function POST(req: NextRequest) {
+  try {
+    await connectDB();
+    
+    const { email } = await req.json();
+    
+    if (!email) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    }
+
+    // Verificar si el email ya existe en usuarios o instructores
+    const userExists = await User.findOne({ email: email.trim().toLowerCase() });
+    const instructorExists = await Instructor.findOne({ email: email.trim().toLowerCase() });
+    
+    if (userExists || instructorExists) {
+      return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
+    }
+
+    // Eliminar códigos anteriores para este email
+    await AuthCode.deleteMany({ email: email.trim().toLowerCase() });
+
+    // Generar código de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Guardar el código en la base de datos
+    await AuthCode.create({
+      email: email.trim().toLowerCase(),
+      code,
+      expires: new Date(Date.now() + 10 * 60 * 1000), // 10 minutos
+    });
+
+    // Enviar correo de verificación
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    const logoUrl = "https://res.cloudinary.com/dgnqk0ucm/image/upload/v1758091374/logo_1_iol4hm.png";
+    
+    const html = `
+      <div style="background: #f6f8fa; padding: 0; min-height: 100vh;">
+        <div style="max-width: 600px; margin: 40px auto; background: #fff; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.07); overflow: hidden;">
+          <div style="background: #2346a0; padding: 32px 0 24px 0; text-align: center;">
+            <img src="${logoUrl}" alt="Logo" width="80" style="margin-bottom: 12px;" />
+            <h1 style="color: #fff; font-size: 2rem; margin: 0; font-family: Arial, sans-serif; letter-spacing: 1px;">
+              Driving School Verification
+            </h1>
+          </div>
+          <div style="padding: 36px 32px 24px 32px; font-family: Arial, sans-serif; color: #222;">
+            <h2 style="color: #0056b3; margin-top: 0;">Email Verification</h2>
+            <div style="font-size: 1.1rem; margin-bottom: 32px; line-height: 1.7; text-align: center;">
+              <div style="font-size: 1.2rem; margin-bottom: 12px;">Your verification code is:</div>
+              <div style="font-size: 2.5rem; font-weight: bold; color: #2346a0; background: #f0f6ff; border-radius: 12px; padding: 18px 0; letter-spacing: 8px; margin: 0 auto; max-width: 220px;">${code}</div>
+              <div style="margin-top: 18px; color: #888; font-size: 1rem;">This code will expire in 10 minutes.</div>
+            </div>
+          </div>
+          <div style="background: linear-gradient(135deg, #0056b3, #000); color: white; padding: 32px 24px; border-radius: 0 0 36px 36px; text-align: center;">
+            <img src='${logoUrl}' alt='Logo' width='60' style='margin-bottom: 12px;' />
+            <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">Affordable Driving<br/>Traffic School</div>
+            <div style="margin-bottom: 8px; font-size: 1rem;">
+              West Palm Beach, FL | <a href="mailto:info@drivingschoolpalmbeach.com" style="color: #fff; text-decoration: underline;">info@drivingschoolpalmbeach.com</a> | 561 330 7007
+            </div>
+            <div style="font-size: 12px; color: #ccc;">&copy; ${new Date().getFullYear()} Powered By Botopia Technology S.A.S</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: 'info@drivingschoolpalmbeach.com',
+      to: email,
+      subject: 'Your Email Verification Code',
+      html,
+    });
+
+    return NextResponse.json({ success: true, message: 'Verification code sent to email.' });
+  } catch (error) {
+    console.error('Error sending verification code:', error);
+    return NextResponse.json({ error: 'Failed to send verification code' }, { status: 500 });
+  }
+}

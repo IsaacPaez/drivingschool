@@ -11,21 +11,14 @@ import { useCart } from "@/app/context/CartContext";
 import LoadingSpinner from "./common/LoadingSpinner";
 import UserDropdown from "./UserDropdown";
 
-interface User {
-  name: string;
-  email: string;
-  image?: string;
-  type?: string;
-}
-
 const Header = () => {
   const pathname = usePathname();
   const router = useRouter();
   const [isHome, setIsHome] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [userFullName, setUserFullName] = useState<string>('');
   const [showLogin, setShowLogin] = useState(false);
-  const { user, setUser, logout } = useAuth();
+  const [showRegister, setShowRegister] = useState(false);
+  const { user, setUser } = useAuth();
   const { clearCart } = useCart();
   const [showTeacherLoading, setShowTeacherLoading] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -50,9 +43,9 @@ const Header = () => {
 
   useEffect(() => {
     if (user) {
-      setUserFullName(user.name || '');
+      // User logged in
     }
-  }, [user, setUserFullName]);
+  }, [user]);
 
   // Estado para controlar si el menú móvil está abierto
   const [isOpen, setIsOpen] = useState(false);
@@ -149,7 +142,7 @@ const Header = () => {
                 </button>
                 <button
                   className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
-                  onClick={() => window.location.href = '/register-profile'}
+                  onClick={() => setShowRegister(true)}
                 >
                   Sign Up
                 </button>
@@ -306,15 +299,30 @@ const Header = () => {
         )}
       </div>
 
-      {/* Al final del header, renderiza el modal */}
+      {/* Al final del header, renderiza los modales */}
       <LoginModal 
         open={showLogin} 
         onClose={() => setShowLogin(false)} 
+        initialMode="login"
         onLoginSuccess={(user) => {
           clearCart();
           localStorage.removeItem("cart");
           setUser(user);
-          if (user && (user as any).type === 'instructor') {
+          if (user && user.type === 'instructor') {
+            setShowTeacherLoading(true);
+            router.replace("/myschedule");
+          }
+        }} 
+      />
+      <LoginModal 
+        open={showRegister} 
+        onClose={() => setShowRegister(false)} 
+        initialMode="register"
+        onLoginSuccess={(user) => {
+          clearCart();
+          localStorage.removeItem("cart");
+          setUser(user);
+          if (user && user.type === 'instructor') {
             setShowTeacherLoading(true);
             router.replace("/myschedule");
           }
