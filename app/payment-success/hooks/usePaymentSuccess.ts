@@ -224,9 +224,7 @@ export const usePaymentSuccess = () => {
           if (transactionData.success) {
             updateState({ transactionStatus: "approved" });
             
-            // ✅ Clear cart after successful payment
-            console.log("🛒 Payment approved - clearing cart");
-            clearCart();
+            console.log("🛒 Payment approved - processing slots first, then clearing cart");
             
             try {
               const orderResponse = await fetch(`/api/orders/details?orderId=${orderId}`);
@@ -234,7 +232,7 @@ export const usePaymentSuccess = () => {
                 const orderData = await orderResponse.json();
                 updateState({ orderDetails: orderData.order });
                 
-                // FORCE UPDATE based on order type - each type needs different handling
+                // FIRST: Update slots to booked status, THEN clear cart
                 if (orderData.order.appointments && orderData.order.appointments.length > 0) {
                   console.log(`🎯 Processing order type: ${orderData.order.orderType} with ${orderData.order.appointments.length} appointments`);
                   updateState({ isProcessingSlots: true });
@@ -345,7 +343,12 @@ export const usePaymentSuccess = () => {
                   updateState({ isProcessingSlots: false });
                   
                   if (allProcessed) {
-                    console.log(`✅ ALL APPOINTMENTS PROCESSED SUCCESSFULLY - Ready for countdown`);
+                    console.log(`✅ ALL APPOINTMENTS PROCESSED SUCCESSFULLY - Now clearing cart`);
+                    
+                    // ✅ AFTER slots are updated to 'booked', now clear cart
+                    // The cart clearing logic will skip slots that are already 'booked'
+                    clearCart();
+                    
                     updateState({ slotsUpdated: true });
                   } else {
                     console.error(`❌ SOME APPOINTMENTS FAILED TO PROCESS - NOT starting countdown`);
@@ -372,6 +375,10 @@ export const usePaymentSuccess = () => {
                   if (allSlotsUpdated) {
                     console.log(`✅ ALL ${orderTypeDisplay.toUpperCase()} SLOTS FORCED TO BOOKED - Ready for countdown`);
                     updateState({ slotsUpdated: true });
+                    
+                    // Limpiar carrito después de actualizar slots exitosamente
+                    console.log('🧹 Clearing cart after successful slot updates (legacy flow)...');
+                    clearCartCompletely();
                   } else {
                     console.error(`❌ SOME ${orderTypeDisplay.toUpperCase()} SLOTS FAILED TO UPDATE - NOT starting countdown`);
                     updateState({ slotsUpdated: false });
@@ -382,6 +389,10 @@ export const usePaymentSuccess = () => {
                     hasAppointments: !!orderData.order.appointments
                   });
                   updateState({ slotsUpdated: true });
+                  
+                  // Limpiar carrito para otros tipos de orden
+                  console.log('🧹 Clearing cart for non-driving order type (legacy flow)...');
+                  clearCartCompletely();
                 }
               } else {
                 console.error("Failed to fetch order details");
@@ -434,9 +445,9 @@ export const usePaymentSuccess = () => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    clearCartCompletely();
+    // No limpiar carrito inmediatamente - esperar hasta actualizar slots
     checkTransactionAndUpdateOrder();
-  }, [clearCartCompletely, checkTransactionAndUpdateOrder]);
+  }, [checkTransactionAndUpdateOrder]);
 
   // Countdown effect
   useEffect(() => {
