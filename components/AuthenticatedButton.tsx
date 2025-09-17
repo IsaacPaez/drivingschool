@@ -32,12 +32,12 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
   className = "",
 }) => {
   const router = useRouter();
-  const { addToCart, reloadCartFromDB, cartLoading } = useCart();
+  const { addToCart, reloadCartFromDB } = useCart();
   const [added, setAdded] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
-    if (loading || added || cartLoading) return;
+    if (loading || added) return; // Fixed: removed cartLoading reference
     
     switch (type) {
       case "buy":
@@ -106,7 +106,7 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
     <button
       onClick={handleClick}
       className={`px-6 py-3 rounded-lg font-semibold transition-all relative overflow-hidden ${className}`}
-      disabled={loading || added || cartLoading}
+      disabled={loading || added}
       style={{ minWidth: 140 }}
     >
       {added ? (
