@@ -91,9 +91,8 @@ function DrivingLessonsContent() {
   // Only use SSE when we have instructors and they're not empty
   const { 
     schedules, 
-    getScheduleForInstructor, 
-    isConnectedForInstructor,
-    getAllSchedules 
+    getScheduleForInstructor 
+    // Removed unused variables: isConnectedForInstructor, getAllSchedules
   } = useAllDrivingLessonsSSE(instructorIds.length > 0 ? instructorIds : []);
 
   // Debug: Log SSE data
@@ -371,10 +370,11 @@ function DrivingLessonsContent() {
           const cartResult = await cartResponse.json();
           console.log('✅ Added to cart and slots marked as pending successfully');
           console.log('🎯 Cart result slotDetails:', cartResult.slotDetails);
+          console.log('🆔 Unique package ID from server:', cartResult.cartItem?.id);
 
-          // Add to local cart context with slotDetails
+          // Add to local cart context with slotDetails and unique ID
           console.log('🛒 [driving-lessons] Adding to cart context:', {
-            id: selectedProduct._id,
+            id: cartResult.cartItem?.id || selectedProduct._id, // Use unique ID from server
             title: selectedProduct.title,
             price: selectedProduct.price,
             packageDetails: cartData.packageDetails,
@@ -383,7 +383,7 @@ function DrivingLessonsContent() {
           });
 
         await addToCart({
-          id: selectedProduct._id,
+          id: cartResult.cartItem?.id || selectedProduct._id, // Use unique ID from server
           title: selectedProduct.title,
           price: selectedProduct.price,
             quantity: 1,

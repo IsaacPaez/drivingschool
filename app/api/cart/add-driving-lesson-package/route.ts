@@ -135,7 +135,13 @@ export async function POST(req: NextRequest) {
       if (updateResult.modifiedCount > 0) {
         // Find the updated slot to get its ID
         const updatedInstructor = await Instructor.findById(instructorId);
-        const updatedSlot = updatedInstructor?.schedule_driving_lesson?.find((slot: any) => 
+        const updatedSlot = updatedInstructor?.schedule_driving_lesson?.find((slot: {
+          date: string;
+          start: string;
+          end: string;
+          status: string;
+          _id?: string;
+        }) => 
           slot.date === date && slot.start === start && slot.end === end && slot.status === 'pending'
         );
         
@@ -163,31 +169,47 @@ export async function POST(req: NextRequest) {
     // SSE updates are handled automatically by MongoDB Change Streams
     console.log('📡 SSE updates will be sent automatically via MongoDB Change Streams');
 
+    // Generate unique ID for this package instance to allow multiple instances
+    // Use productId + timestamp + random for uniqueness
+    const uniquePackageId = `${packageDetails.productId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`🆔 Generated unique package ID: ${uniquePackageId}`);
+
+    // Check if these specific slots are already in any cart item (prevent double-booking same slots)
+    const conflictingSlots: string[] = [];
+    if (user.cart && user.cart.length > 0) {
+      for (const cartItem of user.cart) {
+        if (cartItem.selectedSlots && Array.isArray(cartItem.selectedSlots)) {
+          for (const slot of selectedSlots) {
+            if (cartItem.selectedSlots.includes(slot)) {
+              conflictingSlots.push(slot);
+            }
+          }
+        }
+      }
+    }
+
+    if (conflictingSlots.length > 0) {
+      return NextResponse.json(
+        { error: `Some slots are already in your cart: ${conflictingSlots.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
     // Step 2: Add to user's cart with slot details
     const cartItem = {
-      id: packageDetails.productId,
+      id: uniquePackageId, // Use unique ID instead of productId
       title: packageDetails.packageTitle,
       price: packageDetails.packagePrice,
       quantity: 1,
-      packageDetails,
+      packageDetails: {
+        ...packageDetails,
+        uniquePackageId // Store the unique ID in packageDetails too
+      },
       selectedSlots,
       instructorData, // Include instructor data for checkout
       slotDetails, // Include the specific slot IDs for payment processing
       addedAt: new Date()
     };
-
-    // Check if this package is already in cart
-    const existingCartItem = user.cart?.find((item: any) => 
-      item.id === packageDetails.productId && 
-      item.packageDetails?.productId === packageDetails.productId
-    );
-
-    if (existingCartItem) {
-      return NextResponse.json(
-        { error: "This package is already in your cart" },
-        { status: 400 }
-      );
-    }
 
     // Add to cart
     if (!user.cart) {

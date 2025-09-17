@@ -25,9 +25,14 @@ interface CartItem {
     selectedHours: number;
     pickupLocation: string;
     dropoffLocation: string;
+    uniquePackageId?: string; // Add this for multiple instances
   };
   selectedSlots?: string[];
-  instructorData?: any[];
+  instructorData?: Array<{
+    _id: string;
+    name: string;
+    photo?: string;
+  }>;
   slotDetails?: Array<{
     slotKey: string;
     instructorId: string;
@@ -54,7 +59,6 @@ interface CartItem {
 
 interface CartContextType {
   cart: CartItem[];
-  cartLoading: boolean;
   addToCart: (item: CartItem) => Promise<void>;
   removeFromCart: (id: string) => Promise<void>;
   clearCart: () => void;
@@ -67,7 +71,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [cartLoading, setCartLoading] = useState(false);
+  // Removed unused cartLoading state
   const { user } = useAuth();
 
   // Load cart from localStorage on initial load
@@ -108,7 +112,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           console.warn('[CartContext] Failed to sync with database:', err);
         });
     }
-  }, []); // NO DEPENDENCIES - only run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // NO DEPENDENCIES - only run once on mount, user._id will be null initially
 
   // 🔄 SSE Connection for real-time cart updates - TEMPORARILY DISABLED
   useEffect(() => {
@@ -161,7 +166,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
           if (eventSource) {
             try {
               eventSource.close();
-            } catch (closeError) {
+            } catch {
               // Ignore close errors
             }
             eventSource = null;
@@ -209,7 +214,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       if (eventSource) {
         try {
           eventSource.close();
-        } catch (error) {
+        } catch {
           // Ignore close errors
         }
       }
@@ -485,7 +490,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
 
   return (
     <CartContext.Provider
-      value={{ cart, cartLoading, addToCart, removeFromCart, clearCart, reloadCartFromDB }}
+      value={{ cart, addToCart, removeFromCart, clearCart, reloadCartFromDB }}
     >
       {children}
     </CartContext.Provider>

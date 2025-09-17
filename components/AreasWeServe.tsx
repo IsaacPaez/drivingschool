@@ -6,11 +6,6 @@ import LoadingSpinner from './common/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import LocationMap from "../app/Location/LocationMapHome";
 import LocationModal from "../app/Location/LocationModal";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, Autoplay, Navigation } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/pagination";
-import "swiper/css/navigation";
 
 // Definir interfaces
 interface Instructor {
@@ -103,19 +98,19 @@ const AreasWeServe = () => {
           {/* Solo una zona: Boca Raton premium card */}
           {areas.length === 1 && (
             <div className="w-full flex flex-col items-center lg:items-start">
-              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-10 w-full max-w-2xl mb-8 flex flex-col items-start gap-4 transition-all duration-300 lg:ml-0 lg:mr-auto">
+              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-10 w-full max-w-2xl mb-8 flex flex-col items-start gap-4 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 lg:ml-0 lg:mr-auto group cursor-pointer">
                 {/* SVG pin premium */}
                 <div className="mb-2">
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="group-hover:scale-110 transition-transform duration-300">
                     <circle cx="16" cy="16" r="15" fill="#F5F6FA" stroke="#1A7F5A" strokeWidth="2"/>
                     <path d="M16 8C12.6863 8 10 10.6863 10 14C10 18.25 16 24 16 24C16 24 22 18.25 22 14C22 10.6863 19.3137 8 16 8Z" fill="#1A7F5A"/>
                     <circle cx="16" cy="14" r="3" fill="white"/>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-extrabold text-[#1A7F5A] mb-2 tracking-tight">Boca Raton, FL</h3>
+                <h3 className="text-2xl font-extrabold text-[#1A7F5A] mb-2 tracking-tight group-hover:text-[#27ae60] transition-colors duration-300">Boca Raton, FL</h3>
                 <p className="text-gray-700 text-base leading-relaxed mb-4">{areas[0].description}</p>
                 <button
-                  className="flex items-center gap-2 border-2 border-[#27ae60] text-[#27ae60] font-bold py-3 px-8 rounded-full bg-white shadow hover:bg-green-50 transition text-lg mt-2 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
+                  className="flex items-center gap-2 border-2 border-[#27ae60] text-[#27ae60] font-bold py-3 px-8 rounded-full bg-white shadow hover:bg-green-50 hover:shadow-lg hover:border-[#1A7F5A] hover:scale-105 transition-all duration-300 text-lg mt-2 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
                   onClick={async () => {
                     if (!areas[0].instructors || areas[0].instructors.length === 0) {
                       setSelectedZone({ ...areas[0], instructorsDetails: [] });
@@ -136,80 +131,46 @@ const AreasWeServe = () => {
             </div>
           )}
 
-          {/* Si hay varias zonas, mostrar como carrusel premium */}
+          {/* Si hay varias zonas, mostrar como grid con máximo 2 por fila */}
           {areas.length > 1 && (
-            <div className="w-full relative">
-              <div className="relative w-full flex items-center" style={{minHeight: '320px'}}>
-                <Swiper
-                  modules={[Pagination, Autoplay, Navigation]}
-                  spaceBetween={20}
-                  slidesPerView={1}
-                  breakpoints={{
-                    640: { slidesPerView: 1 },
-                    768: { slidesPerView: 2 },
-                    1024: { slidesPerView: 3 },
-                  }}
-                  pagination={{ clickable: true, el: '.swiper-pagination-areas' }}
-                  autoplay={{ delay: 4000, disableOnInteraction: false }}
-                  navigation={{
-                    nextEl: ".swiper-button-next-areas",
-                    prevEl: ".swiper-button-prev-areas",
-                  }}
-                  loop={areas.length >= 3}
-                  className="w-full"
-                >
-                  {areas.map((area) => (
-                    <SwiperSlide key={area._id}>
-                      <div
-                        className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center hover:shadow-xl transition cursor-pointer group h-80"
-                        onClick={async () => {
-                          if (!area.instructors || area.instructors.length === 0) {
-                            setSelectedZone({ ...area, instructorsDetails: [] });
-                            return;
-                          }
-                        
-                          const instructorIds = area.instructors.map(instructor => instructor._id);
-                          const instructorsData = await fetchInstructorsDetails(instructorIds);
-                          setSelectedZone({ ...area, instructorsDetails: instructorsData });
-                        }}
-                      >
-                        <div className="w-12 h-12 mb-3 flex items-center justify-center bg-[#F5F6FA] rounded-full group-hover:bg-green-100 transition">
-                          <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="16" cy="16" r="15" fill="#F5F6FA" stroke="#1A7F5A" strokeWidth="2"/>
-                            <path d="M16 8C12.6863 8 10 10.6863 10 14C10 18.25 16 24 16 24C16 24 22 18.25 22 14C22 10.6863 19.3137 8 16 8Z" fill="#1A7F5A"/>
-                            <circle cx="16" cy="14" r="3" fill="white"/>
-                          </svg>
-                        </div>
-                        <h3 className="text-lg font-bold text-[#1A7F5A] mb-3 text-center">{area.zone}</h3>
-                        <p className="text-gray-600 text-sm text-center mb-4 flex-grow">{area.description?.slice(0, 120) || 'Driving lessons available here.'}</p>
-                        <button
-                          className="mt-auto flex items-center gap-2 border-2 border-[#27ae60] text-[#27ae60] font-bold py-3 px-6 rounded-full bg-white shadow hover:bg-green-50 transition focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
-                        >
-                          <svg xmlns='http://www.w3.org/2000/svg' className='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2} style={{minWidth: '1.25rem'}}>
-                            <path strokeLinecap='round' strokeLinejoin='round' d='M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z' />
-                          </svg>
-                          View Details
-                        </button>
-                      </div>
-                    </SwiperSlide>
-                  ))}
-                </Swiper>
-
-                {/* Flechas de navegación para el carrusel de áreas */}
-                <div className="swiper-button-prev-areas z-20 absolute -left-4 top-1/2 -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition border border-[#1A7F5A]">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
-                    <path d="M15.5 19L9.5 12L15.5 5" stroke="#1A7F5A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="swiper-button-next-areas z-20 absolute -right-4 top-1/2 -translate-y-1/2 bg-white shadow-md w-10 h-10 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#27ae60] transition border border-[#1A7F5A]">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
-                    <path d="M8.5 5L14.5 12L8.5 19" stroke="#1A7F5A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
+            <div className="w-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full">
+                {areas.map((area) => (
+                  <div
+                    key={area._id}
+                    className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col items-center hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 cursor-pointer group min-h-[300px] max-h-[350px]"
+                    onClick={async () => {
+                      if (!area.instructors || area.instructors.length === 0) {
+                        setSelectedZone({ ...area, instructorsDetails: [] });
+                        return;
+                      }
+                    
+                      const instructorIds = area.instructors.map(instructor => instructor._id);
+                      const instructorsData = await fetchInstructorsDetails(instructorIds);
+                      setSelectedZone({ ...area, instructorsDetails: instructorsData });
+                    }}
+                  >
+                    <div className="w-12 h-12 mb-3 flex items-center justify-center bg-[#F5F6FA] rounded-full group-hover:bg-green-100 transition">
+                      <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="16" cy="16" r="15" fill="#F5F6FA" stroke="#1A7F5A" strokeWidth="2"/>
+                        <path d="M16 8C12.6863 8 10 10.6863 10 14C10 18.25 16 24 16 24C16 24 22 18.25 22 14C22 10.6863 19.3137 8 16 8Z" fill="#1A7F5A"/>
+                        <circle cx="16" cy="14" r="3" fill="white"/>
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-[#1A7F5A] mb-3 text-center leading-tight">{area.zone}</h3>
+                    <p className="text-gray-600 text-sm text-center mb-4 flex-grow leading-relaxed line-clamp-3 overflow-hidden">
+                      {area.description?.slice(0, 100) || 'Driving lessons available here.'}
+                      {area.description && area.description.length > 100 ? '...' : ''}
+                    </p>
+                    <button className="mt-auto flex items-center gap-2 border-2 border-[#27ae60] text-[#27ae60] font-bold py-2.5 px-5 rounded-full bg-white shadow hover:bg-green-50 hover:shadow-lg hover:border-[#1A7F5A] hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 text-sm">
+                      <svg xmlns='http://www.w3.org/2000/svg' className='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2} style={{minWidth: '1rem'}}>
+                        <path strokeLinecap='round' strokeLinejoin='round' d='M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z' />
+                      </svg>
+                      View Details
+                    </button>
+                  </div>
+                ))}
               </div>
-              
-              {/* Paginación personalizada para el carrusel de áreas */}
-              <div className="swiper-pagination-areas flex justify-center mt-6 mb-2 w-full"></div>
             </div>
           )}
 
@@ -236,14 +197,14 @@ const AreasWeServe = () => {
       {/* MODAL */}
       {selectedZone && (
         <LocationModal isOpen={selectedZone !== null} onClose={() => setSelectedZone(null)}>
-          <div className="p-8 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-3xl font-extrabold text-gray-900 text-center mt-4 mb-6 tracking-tight">
+          <div className="p-6 max-h-[75vh] overflow-y-auto">
+            <h2 className="text-2xl font-extrabold text-gray-900 text-center mt-2 mb-4 tracking-tight">
               {selectedZone?.title}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <p className="text-lg text-gray-700 whitespace-pre-line leading-relaxed">{selectedZone?.description}</p>
-              <div className="p-6 bg-gray-50 rounded-2xl shadow-md border border-gray-100">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">Location Info</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <p className="text-base text-gray-700 whitespace-pre-line leading-relaxed">{selectedZone?.description}</p>
+              <div className="p-4 bg-gray-50 rounded-2xl shadow-md border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">Location Info</h3>
                 <div className="space-y-3">
                   <p className="flex items-center gap-2 text-gray-800 text-base">
                     <span className="inline-block w-5 h-5"><svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" stroke="#1A7F5A" strokeWidth="2"/><path d="M10 4C7.23858 4 5 6.23858 5 9C5 12.75 10 17 10 17C10 17 15 12.75 15 9C15 6.23858 12.7614 4 10 4Z" fill="#1A7F5A"/><circle cx="10" cy="9" r="2" fill="white"/></svg></span>
@@ -270,8 +231,8 @@ const AreasWeServe = () => {
               </div>
             </div>
             {/* Mapa integrado dentro del modal */}
-            <div className="w-full flex justify-center mt-8 mb-8">
-              <div className="w-full max-w-2xl h-64 md:h-80 bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md">
+            <div className="w-full flex justify-center mt-6 mb-6">
+              <div className="w-full max-w-2xl h-48 md:h-56 bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md">
                 <iframe
                   src={`https://www.google.com/maps?q=${encodeURIComponent(selectedZone?.zone || "")}&output=embed`}
                   width="100%"
@@ -283,12 +244,12 @@ const AreasWeServe = () => {
                 ></iframe>
               </div>
             </div>
-            <div className="mt-8">
-              <h3 className="text-2xl font-semibold text-gray-900 text-center mb-4">Instructors</h3>
-                             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="mt-6">
+              <h3 className="text-xl font-semibold text-gray-900 text-center mb-3">Instructors</h3>
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                  {Array.isArray(selectedZone?.instructorsDetails) &&
                    selectedZone.instructorsDetails.map((instructor: Instructor, index) => (
-                                                                 <div key={instructor._id || `instructor-${index}`} className="text-center p-4 border rounded-xl shadow-sm bg-white flex flex-col items-center h-[240px]">
+                                                                 <div key={instructor._id || `instructor-${index}`} className="text-center p-3 border rounded-xl shadow-sm bg-white flex flex-col items-center h-[200px]">
                         <div className="w-24 h-24 relative flex-shrink-0 mb-2">
                          <Image
                            src={instructor.photo || '/default-avatar.png'}
