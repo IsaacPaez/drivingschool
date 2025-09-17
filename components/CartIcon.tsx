@@ -10,9 +10,39 @@ interface CartIconProps {
   color?: string;
 }
 
+// Types for order details
+interface OrderAppointment {
+  slotId: string;
+  instructorId: string;
+  instructorName: string;
+  date: string;
+  start: string;
+  end: string;
+  classType: string;
+  amount: number;
+  status: string;
+  pickupLocation?: string;
+  dropoffLocation?: string;
+}
+
+interface OrderDetails {
+  _id: string;
+  orderNumber: string;
+  total: number;
+  appointments: OrderAppointment[];
+  paymentStatus?: string;
+  packageDetails?: {
+    packageTitle: string;
+    pickupLocation: string;
+    dropoffLocation: string;
+    selectedHours: number;
+    totalHours: number;
+  };
+}
+
 // Component to show order details
 const OrderDetailsComponent: React.FC<{ orderId: string }> = ({ orderId }) => {
-  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -75,7 +105,7 @@ const OrderDetailsComponent: React.FC<{ orderId: string }> = ({ orderId }) => {
           <div className="text-xs text-green-700 font-medium mb-1">
             📋 Scheduled Classes ({orderDetails.appointments.length}):
           </div>
-          {orderDetails.appointments.map((apt: any, index: number) => (
+          {orderDetails.appointments.map((apt: OrderAppointment, index: number) => (
             <div key={index} className="text-xs text-green-600 mb-1 pl-2 border-l-2 border-green-200">
               🧑‍🏫 {apt.instructorName} • 📅 {apt.date} • ⏰ {apt.start}-{apt.end}
               <br />
@@ -100,7 +130,7 @@ const OrderDetailsComponent: React.FC<{ orderId: string }> = ({ orderId }) => {
 };
 
 const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
-  const { cart, removeFromCart, clearCart, cartLoading } = useCart();
+  const { cart, removeFromCart, clearCart } = useCart();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -131,7 +161,8 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
           console.warn('[CartIcon] Failed to sync with database:', err);
         });
     }
-  }, []); // NO DEPENDENCIES - only run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // NO DEPENDENCIES - only run once on mount, user._id will be null initially
   const handleCheckout = async () => {
     // Prevent multiple simultaneous executions
     if (loading) {
@@ -305,15 +336,20 @@ const CartIcon: React.FC<CartIconProps> = ({ color = "black" }) => {
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900 text-base mb-1">
                             {item.title}
+                            {/* Show instance identifier for multiple packages */}
+                            {item.packageDetails && item.packageDetails.uniquePackageId && (
+                              <span className="text-xs text-gray-500 ml-2 font-normal">
+                                (Instance #{item.packageDetails.uniquePackageId.split('_')[1]?.substring(0, 4) || 'N/A'})
+                              </span>
+                            )}
                           </h3>
                           <p className="text-lg font-bold text-green-600">
                             ${item.price}
                           </p>
                         </div>
                         <button
-                          onClick={() => !cartLoading && removeFromCart(item.id)}
-                          className={`flex-shrink-0 w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-200 ${cartLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          disabled={cartLoading}
+                          onClick={() => removeFromCart(item.id)}
+                          className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-200"
                           aria-label="Remove from cart"
                           title="Remove item from cart"
                         >
