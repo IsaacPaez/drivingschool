@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
       classType,
       amount,
       orderId,
-      orderNumber
+      orderNumber,
+      paymentMethod
       // Removed pickupLocation and dropoffLocation - not needed for driving tests
     } = await req.json();
 
@@ -118,8 +119,6 @@ export async function POST(req: NextRequest) {
       end: end,
       classType: classType || "driving test",
       amount: amount || 50,
-      orderId: orderId || null,
-      orderNumber: orderNumber || null,
       addedAt: new Date()
     };
 
@@ -155,12 +154,15 @@ export async function POST(req: NextRequest) {
     slot.studentId = userId;
     slot.studentName = user.name || 'Pending Student';
     slot.reservedAt = new Date();
-    slot.paymentMethod = 'online'; // Default payment method for online booking
+    slot.paymentMethod = paymentMethod || 'online'; // Use paymentMethod from frontend or default to online
     
-    // ELIMINAR EXPLÍCITAMENTE campos de driving lessons para driving tests
+    // ELIMINAR EXPLÍCITAMENTE campos innecesarios
     delete slot.pickupLocation;
     delete slot.dropoffLocation;
     delete slot.selectedProduct;
+    delete slot.booked;
+    delete slot.orderId;
+    delete slot.orderNumber;
 
     // También limpiar a nivel de BD con $unset por si ya existen en subdocumento
     await Instructor.updateOne(
@@ -174,7 +176,10 @@ export async function POST(req: NextRequest) {
         $unset: {
           'schedule_driving_test.$.pickupLocation': "",
           'schedule_driving_test.$.dropoffLocation': "",
-          'schedule_driving_test.$.selectedProduct': ""
+          'schedule_driving_test.$.selectedProduct': "",
+          'schedule_driving_test.$.booked': "",
+          'schedule_driving_test.$.orderId': "",
+          'schedule_driving_test.$.orderNumber': ""
         }
       }
     );

@@ -76,11 +76,15 @@ export async function POST(req: NextRequest) {
     // Actualizar el slot a status "pending" - SOLO campos necesarios para driving test
     slot.status = 'pending';
     slot.studentId = studentId;
-    slot.booked = false;
     slot.classType = classType || 'driving test';
     slot.amount = amount || 50;
     slot.paymentMethod = paymentMethod || 'instructor';
     slot.reservedAt = new Date();
+    
+    // Eliminar campos innecesarios
+    delete slot.booked;
+    delete slot.orderId;
+    delete slot.orderNumber;
     
     // Buscar el nombre del estudiante y guardarlo correctamente
     const student = await User.findById(studentId);
@@ -111,7 +115,10 @@ export async function POST(req: NextRequest) {
         $unset: {
           'schedule_driving_test.$.pickupLocation': "",
           'schedule_driving_test.$.dropoffLocation': "",
-          'schedule_driving_test.$.selectedProduct': ""
+          'schedule_driving_test.$.selectedProduct': "",
+          'schedule_driving_test.$.booked': "",
+          'schedule_driving_test.$.orderId': "",
+          'schedule_driving_test.$.orderNumber': ""
         }
       }
     );

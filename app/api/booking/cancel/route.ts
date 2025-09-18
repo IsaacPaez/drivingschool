@@ -56,13 +56,15 @@ export async function POST(request: Request) {
 
     // Liberar el slot y volverlo disponible
     foundSlot.status = 'available';
-    foundSlot.booked = false;
     foundSlot.studentId = null;
     foundSlot.studentName = undefined as unknown as string;
     foundSlot.reservedAt = undefined as unknown as Date;
     foundSlot.paymentMethod = undefined as unknown as string;
-    foundSlot.orderId = undefined as unknown as string;
-    foundSlot.orderNumber = undefined as unknown as string;
+    
+    // Eliminar campos innecesarios
+    delete (foundSlot as any).booked;
+    delete (foundSlot as any).orderId;
+    delete (foundSlot as any).orderNumber;
     
     // Limpiar campos que solo aplican a driving lessons
     delete (foundSlot as any).pickupLocation;

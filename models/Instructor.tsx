@@ -18,8 +18,8 @@ export interface ScheduleSlot {
   amount?: number;
   paymentMethod?: string;
   reservedAt?: Date;
-  orderId?: string; // Reference to Order
-  orderNumber?: string; // Order number for easy reference
+  orderId?: string; // Reference to Order - only for online payments
+  orderNumber?: string; // Order number for easy reference - only for online payments
 }
 
 export interface IInstructor extends Document {
@@ -57,8 +57,8 @@ const ScheduleSlotSchema = new Schema<ScheduleSlot>({
   amount: { type: Number, default: 0 },
   paymentMethod: { type: String, default: 'instructor' },
   reservedAt: { type: Date, default: null },
-  orderId: { type: String, default: null }, // Reference to Order
-  orderNumber: { type: String, default: null }, // Order number for easy reference
+  orderId: { type: String }, // Reference to Order - no default value
+  orderNumber: { type: String }, // Order number for easy reference - no default value
 });
 
 const InstructorSchema = new Schema<IInstructor>(
