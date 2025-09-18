@@ -111,7 +111,8 @@ export async function POST(req: NextRequest) {
             'schedule_driving_lesson.$.pickupLocation': packageDetails.pickupLocation || 'Location TBD',
             'schedule_driving_lesson.$.dropoffLocation': packageDetails.dropoffLocation || 'Location TBD',
             'schedule_driving_lesson.$.classType': 'driving lesson',
-            'schedule_driving_lesson.$.selectedProduct': packageDetails.productId
+            'schedule_driving_lesson.$.selectedProduct': packageDetails.productId,
+            'schedule_driving_lesson.$.paymentMethod': 'online'
           }
         }
       );

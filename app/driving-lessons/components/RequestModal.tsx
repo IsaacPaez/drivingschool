@@ -25,7 +25,7 @@ interface RequestModalProps {
   onClose: () => void;
   selectedProduct: Product | null;
   selectedHours: number;
-  onRequestSchedule: (pickupLocation: string, dropoffLocation: string, paymentMethod: 'online' | 'physical') => void;
+  onRequestSchedule: (pickupLocation: string, dropoffLocation: string, paymentMethod: 'online' | 'local') => void;
 }
 
 export default function RequestModal({
@@ -38,7 +38,7 @@ export default function RequestModal({
   // Google Maps states
   const [pickupLocation, setPickupLocation] = useState<string>("");
   const [dropoffLocation, setDropoffLocation] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'physical'>('online');
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'local'>('online');
   const pickupAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const dropoffAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   
@@ -128,7 +128,7 @@ export default function RequestModal({
                 type="radio"
                 value="online"
                 checked={paymentMethod === 'online'}
-                onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'physical')}
+                onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'local')}
                 className="mr-2 text-green-600 focus:ring-green-500"
               />
               <div>
@@ -140,9 +140,9 @@ export default function RequestModal({
             <label className="flex items-center p-2 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
               <input
                 type="radio"
-                value="physical"
-                checked={paymentMethod === 'physical'}
-                onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'physical')}
+                value="local"
+                checked={paymentMethod === 'local'}
+                onChange={(e) => setPaymentMethod(e.target.value as 'online' | 'local')}
                 className="mr-2 text-blue-600 focus:ring-blue-500"
               />
               <div>
