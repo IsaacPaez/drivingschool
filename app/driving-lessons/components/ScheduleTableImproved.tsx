@@ -111,8 +111,8 @@ export default function ScheduleTableImproved({
     if ((lesson.status === 'available' || lesson.status === 'free') && !lesson.paid) return true;
     const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
     const isUsersPending = lesson.status === 'pending' && lesson.studentId && userId && lesson.studentId.toString() === userId;
-    // If it's pending of this user but payment method is physical (pay at location), DO NOT treat as available
-    if (isUsersPending && lesson.paymentMethod === 'physical') return false;
+    // If it's pending of this user but payment method is physical/local (pay at location), DO NOT treat as available
+    if (isUsersPending && (lesson.paymentMethod === 'physical' || lesson.paymentMethod === 'local')) return false;
     // Otherwise, if it's user's pending but no longer in cart, treat as available
     if (isUsersPending && !pendingSlotKeysInCart.has(slotKey)) return true;
     return false;
@@ -650,7 +650,10 @@ export default function ScheduleTableImproved({
                         }
                         // Slot pending del usuario actual - mostrar si sigue en el carrito o si es 'physical' (pago en sitio)
                         const isUsersPending = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
-                        if (isUsersPending && (pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`) || slot.paymentMethod === 'physical')) {
+                        if (isUsersPending && (pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`) || slot.paymentMethod === 'physical' || slot.paymentMethod === 'local')) {
+                          const isLocalPayment = slot.paymentMethod === 'physical' || slot.paymentMethod === 'local';
+                          const isInCart = pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`);
+                          
                           return (
                             <td 
                               key={date.toDateString()} 
@@ -659,7 +662,9 @@ export default function ScheduleTableImproved({
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
                               <div className="text-xs">{slot.start} - {slot.end}</div>
-                              <div className="text-xs">Pending</div>
+                              <div className="text-xs">
+                                {isLocalPayment ? 'Pay at Location' : isInCart ? 'In Cart' : 'Pending'}
+                              </div>
                             </td>
                           );
                         }

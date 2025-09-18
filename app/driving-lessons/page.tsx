@@ -358,7 +358,7 @@ function DrivingLessonsContent() {
     setIsRequestModalOpen(true);
   };
 
-  const handleRequestScheduleWithLocations = async (pickupLocation: string, dropoffLocation: string, paymentMethod: 'online' | 'physical') => {
+  const handleRequestScheduleWithLocations = async (pickupLocation: string, dropoffLocation: string, paymentMethod: 'online' | 'local') => {
     if (!selectedProduct || selectedSlots.size === 0 || !userId) {
       alert('Please make sure you have selected a package and time slots, and are logged in.');
       return;
