@@ -6,7 +6,7 @@ export interface ScheduleSlot {
   date: string; // '2025-05-15'
   start: string; // '10:00' 
   end: string; // '10:30'
-  booked: boolean;
+  booked?: boolean; // Only for driving lessons, not driving tests
   studentId: string | null; // Changed to string to support custom IDs
   status: 'free' | 'scheduled' | 'cancelled' | 'available' | 'pending' | 'booked';
   classType?: string; // 'driving_test', 'lesson', etc.
@@ -18,8 +18,8 @@ export interface ScheduleSlot {
   amount?: number;
   paymentMethod?: string;
   reservedAt?: Date;
-  orderId?: string; // Reference to Order
-  orderNumber?: string; // Order number for easy reference
+  orderId?: string; // Reference to Order - only for online payments
+  orderNumber?: string; // Order number for easy reference - only for online payments
 }
 
 export interface IInstructor extends Document {
@@ -43,7 +43,7 @@ const ScheduleSlotSchema = new Schema<ScheduleSlot>({
   date: { type: String, required: true },
   start: { type: String, required: true },
   end: { type: String, required: true },
-  booked: { type: Boolean, default: false },
+  booked: { type: Boolean }, // No default value - only for driving lessons
   studentId: { type: String, default: null }, // Changed to String to support custom IDs
   status: { type: String, enum: ['free', 'scheduled', 'cancelled', 'available', 'pending', 'booked'], default: 'free' },
   classType: { type: String, default: 'lesson' }, // Nuevo campo para el tipo de clase
@@ -57,8 +57,8 @@ const ScheduleSlotSchema = new Schema<ScheduleSlot>({
   amount: { type: Number, default: 0 },
   paymentMethod: { type: String, default: 'instructor' },
   reservedAt: { type: Date, default: null },
-  orderId: { type: String, default: null }, // Reference to Order
-  orderNumber: { type: String, default: null }, // Order number for easy reference
+  orderId: { type: String }, // Reference to Order - no default value
+  orderNumber: { type: String }, // Order number for easy reference - no default value
 });
 
 const InstructorSchema = new Schema<IInstructor>(

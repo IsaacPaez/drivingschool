@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       studentId: studentId,
       requestDate: new Date(),
       status: 'pending',
-      paymentMethod: paymentMethod || 'instructor',
+      paymentMethod: paymentMethod === 'instructor' ? 'local' : 'online',
       classDetails: {
         classId: classId,
         date: date,

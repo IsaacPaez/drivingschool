@@ -137,7 +137,8 @@ export async function POST(req: NextRequest) {
       const newStudentRequest = {
         studentId: new mongoose.Types.ObjectId(userId),
         requestDate: new Date(),
-        status: 'pending'
+        status: 'pending',
+        paymentMethod: 'online' // Cuando se agrega al carrito, siempre es pago online
       };
 
       console.log('💾 Adding student request to ticket class using updateOne...');

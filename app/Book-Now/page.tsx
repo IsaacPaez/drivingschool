@@ -12,6 +12,7 @@ import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
 import { useScheduleSSE } from "@/hooks/useScheduleSSE";
 import { useRouter } from "next/navigation";
+import { formatDateForDisplay } from "@/utils/dateFormat";
 
 // Google Maps configuration - removed as not needed for driving test
 
@@ -650,7 +651,8 @@ export default function BookNowPage() {
               start: selectedSlot.start,
               end: selectedSlot.end,
                       classType: 'driving test',
-              amount: selectedSlot.amount || 50
+              amount: selectedSlot.amount || 50,
+              paymentMethod: 'online' // Para pago online
                     }),
                   });
                   
@@ -703,7 +705,7 @@ export default function BookNowPage() {
                     end: selectedSlot.end,
                     classType: 'driving test',
                     amount: selectedSlot.amount || 50,
-                    paymentMethod: 'instructor'
+                    paymentMethod: 'local' // Para pago local
                   }),
                 });
                 

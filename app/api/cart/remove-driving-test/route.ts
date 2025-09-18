@@ -116,11 +116,13 @@ export async function POST(req: NextRequest) {
     slot.status = 'available';
     slot.studentId = undefined;
     slot.studentName = undefined;
-    slot.booked = false;
     slot.reservedAt = undefined;
     slot.paymentMethod = undefined;
-    slot.orderId = undefined;
-    slot.orderNumber = undefined;
+    
+    // Eliminar campos innecesarios
+    delete slot.booked;
+    delete slot.orderId;
+    delete slot.orderNumber;
     
     // Remove any driving lesson specific fields that shouldn't be here
     delete slot.pickupLocation;

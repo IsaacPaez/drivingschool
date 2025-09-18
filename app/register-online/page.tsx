@@ -11,6 +11,7 @@ import LoginModal from "@/components/LoginModal";
 import TicketClassBookingModal from "./components/TicketClassBookingModal";
 import { useSearchParams } from "next/navigation";
 import useRegisterOnlineSSE from "@/hooks/useRegisterOnlineSSE";
+import { formatDateForDisplay } from "@/utils/dateFormat";
 
 interface Instructor {
   _id: string;
@@ -221,7 +222,7 @@ function RegisterOnlineContent() {
           date: selectedTicketClass.date,
           start: selectedTicketClass.hour,
           end: selectedTicketClass.endHour,
-          paymentMethod: 'instructor'
+          paymentMethod: 'instructor' // Para pago local
         }),
       });
       
@@ -392,6 +393,7 @@ function RegisterOnlineContent() {
     if (!time) return '';
     return time;
   };
+
 
   // Fetch initial data
   useEffect(() => {
@@ -857,12 +859,7 @@ function RegisterOnlineContent() {
             <div className="bg-blue-50 p-4 rounded-lg mb-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <p className="mb-2"><strong>Class Type:</strong> {getClassTypeDisplay(selectedTicketClass.type)}</p>
-                <p className="mb-2"><strong>Date:</strong> {new Date(selectedTicketClass.date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}</p>
+                <p className="mb-2"><strong>Date:</strong> {formatDateForDisplay(selectedTicketClass.date)}</p>
                 <p className="mb-2"><strong>Time:</strong> {formatTime(selectedTicketClass.hour)} - {formatTime(selectedTicketClass.endHour)}</p>
                 <p className="mb-2"><strong>Duration:</strong> {selectedTicketClass.duration}</p>
                 <p className="mb-2"><strong>Enrolled Students:</strong> {selectedTicketClass.enrolledStudents}/{selectedTicketClass.totalSpots}</p>
@@ -1043,12 +1040,7 @@ function RegisterOnlineContent() {
           {classToUnbook && (
             <div className="bg-red-50 p-4 rounded-lg mb-4">
               <p className="mb-2"><strong>Class:</strong> {classToUnbook.classInfo?.title || getClassTypeDisplay(classToUnbook.type)}</p>
-              <p className="mb-2"><strong>Date:</strong> {new Date(classToUnbook.date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}</p>
+              <p className="mb-2"><strong>Date:</strong> {formatDateForDisplay(classToUnbook.date)}</p>
               <p className="mb-2"><strong>Time:</strong> {formatTime(classToUnbook.hour)} - {formatTime(classToUnbook.endHour)}</p>
             </div>
           )}
@@ -1124,12 +1116,7 @@ function RegisterOnlineContent() {
           {requestedTicketClass && (
                 <div className="bg-green-50 p-3 rounded mb-3 text-left text-sm">
                   <p className="mb-1"><strong>Class:</strong> {requestedTicketClass.classInfo?.title || getClassTypeDisplay(requestedTicketClass.type)}</p>
-                  <p className="mb-1"><strong>Date:</strong> {new Date(requestedTicketClass.date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}</p>
+                  <p className="mb-1"><strong>Date:</strong> {formatDateForDisplay(requestedTicketClass.date)}</p>
                   <p className="mb-1"><strong>Time:</strong> {formatTime(requestedTicketClass.hour)} - {formatTime(requestedTicketClass.endHour)}</p>
             </div>
           )}
