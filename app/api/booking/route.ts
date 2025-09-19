@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Instructor from '@/models/Instructor';
 import mongoose from 'mongoose';
+import { broadcastScheduleUpdate } from '@/app/api/sse/driving-test-schedule/route';
 
 // Define proper types for socket.io
 declare global {
@@ -11,16 +12,13 @@ declare global {
 }
 
 interface Slot {
+  date?: string;
   start: string;
   end: string;
-  status: 'free' | 'scheduled';
-  booked: boolean;
+  status: 'free' | 'scheduled' | 'available';
+  booked?: boolean;
   studentId?: mongoose.Types.ObjectId;
-}
-
-interface ScheduleDay {
-  date: string;
-  slots: Slot[];
+  classType?: string;
 }
 
 export async function POST(request: Request) {
@@ -44,7 +42,7 @@ export async function POST(request: Request) {
     // console.log(`📊 Instructor ${instructorId} has ${instructor.schedule?.length || 0} schedule slots`);
     
     // Buscar el slot específico que coincida con fecha, hora y tipo de clase
-    const slot = instructor.schedule.find((slot: any) => 
+    const slot = instructor.schedule.find((slot: Slot) => 
       slot.date === date && 
       slot.start === start && 
       slot.end === end &&
@@ -75,10 +73,18 @@ export async function POST(request: Request) {
     instructor.markModified('schedule');
     await instructor.save();
 
+    // Broadcast real-time update to SSE connections
+    try {
+      broadcastScheduleUpdate(instructorId);
+      console.log('✅ Schedule update broadcasted via SSE');
+    } catch (broadcastError) {
+      console.error('❌ Failed to broadcast schedule update:', broadcastError);
+    }
+
     // Emit socket event for real-time updates (if socket.io is available)
     try {
-      if (typeof globalThis !== 'undefined' && (globalThis as any).io) {
-        (globalThis as any).io.emit('scheduleUpdate', {
+      if (typeof globalThis !== 'undefined' && (globalThis as unknown as { io?: unknown }).io) {
+        ((globalThis as unknown as { io: { emit: (event: string, data: unknown) => void } }).io).emit('scheduleUpdate', {
           instructorId,
           date,
           start,
@@ -87,7 +93,7 @@ export async function POST(request: Request) {
           studentId
         });
       }
-    } catch (socketError) {
+    } catch {
       // console.log('Socket emission failed:', socketError);
     }
 

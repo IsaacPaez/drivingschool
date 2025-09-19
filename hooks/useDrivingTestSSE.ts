@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface DrivingTestSlot {
   _id: string;
@@ -25,32 +25,23 @@ interface ScheduleData {
   message?: string;
 }
 
-// Global connection manager to prevent multiple connections
-const globalConnections = new Map<string, {
-  eventSource: EventSource;
-  refCount: number;
-  lastUsed: number;
-}>();
-
-const cleanupInterval = setInterval(() => {
-  const now = Date.now();
-  for (const [key, conn] of globalConnections.entries()) {
-    if (now - conn.lastUsed > 30000) { // 30 seconds idle
-      conn.eventSource.close();
-      globalConnections.delete(key);
-    }
-  }
-}, 10000);
-
 export function useDrivingTestSSE(instructorId: string | null) {
   const [schedule, setSchedule] = useState<DrivingTestSlot[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [hasInitial, setHasInitial] = useState(false);
   const mountedRef = useRef(true);
+  const hasInitialRef = useRef(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Update ref when hasInitial changes
+  useEffect(() => {
+    hasInitialRef.current = hasInitial;
+  }, [hasInitial]);
 
   useEffect(() => {
     if (!instructorId) {
+      console.log('🔌 No instructor ID provided, clearing SSE connection');
       setSchedule([]);
       setError(null);
       setIsConnected(false);
@@ -58,105 +49,99 @@ export function useDrivingTestSSE(instructorId: string | null) {
       return;
     }
 
-    const connectionKey = `driving-test-${instructorId}`;
+    console.log('🔌 Setting up SSE connection for instructor:', instructorId);
+
+    // Simple connection approach - no global connection management
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const eventSource = new EventSource(`${baseUrl}/api/sse/driving-test-schedule?instructorId=${instructorId}`);
     
-    // Check if connection already exists
-    let connection = globalConnections.get(connectionKey);
+    eventSourceRef.current = eventSource;
     
-    if (!connection) {
-      // Create new connection
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const eventSource = new EventSource(`${baseUrl}/api/sse/driving-test-schedule?instructorId=${instructorId}`);
+    eventSource.onopen = () => {
+      if (mountedRef.current) {
+        console.log('🔌 SSE Connected successfully for instructor:', instructorId);
+        setIsConnected(true);
+        setError(null);
+      }
+    };
+    
+    eventSource.onmessage = (event) => {
+      if (!mountedRef.current) return;
       
-      connection = {
-        eventSource,
-        refCount: 0,
-        lastUsed: Date.now()
-      };
-      
-      globalConnections.set(connectionKey, connection);
-      
-      eventSource.onopen = () => {
-        if (mountedRef.current) {
-          console.log('🔌 SSE Connected for driving test schedule');
-          setIsConnected(true);
-          setError(null);
-        }
-      };
-      
-      eventSource.onmessage = (event) => {
-        if (!mountedRef.current) return;
+      try {
+        const data: ScheduleData = JSON.parse(event.data);
+        console.log('📡 SSE Data received for instructor', instructorId, ':', data);
         
-        try {
-          const data: ScheduleData = JSON.parse(event.data);
-          console.log('📡 SSE Data received for driving test:', data);
-          
-          if (data.type === 'initial' || data.type === 'update') {
-            if (data.schedule) {
-              setSchedule(data.schedule);
-            }
-            if (!hasInitial) setHasInitial(true);
-          } else if (data.type === 'error') {
-            setError(data.message || 'Unknown error occurred');
+        if (data.type === 'initial' || data.type === 'update') {
+          if (data.schedule) {
+            setSchedule(data.schedule);
           }
-        } catch (err) {
-          console.error('❌ Error parsing SSE data:', err);
-          setError('Failed to parse schedule data');
+          if (!hasInitialRef.current) {
+            setHasInitial(true);
+          }
+        } else if (data.type === 'error') {
+          setError(data.message || 'Unknown error occurred');
         }
-      };
-      
-      eventSource.onerror = () => {
-        if (mountedRef.current) {
-          console.error('❌ SSE Error for driving test');
-          setIsConnected(false);
-          setError('Connection issue. Reconnecting...');
-        }
-      };
-    }
+      } catch (err) {
+        console.error('❌ Error parsing SSE data:', err);
+        setError('Failed to parse schedule data');
+      }
+    };
     
-    // Increment reference count
-    connection.refCount++;
-    connection.lastUsed = Date.now();
+    eventSource.onerror = (event) => {
+      if (mountedRef.current) {
+        console.error('❌ SSE Error for instructor', instructorId, ':', event);
+        setIsConnected(false);
+        setError('Connection issue. Reconnecting...');
+      }
+    };
     
     // Cleanup function
     return () => {
+      console.log('🧹 Cleaning up SSE connection for instructor:', instructorId);
       mountedRef.current = false;
-      
-      if (connection) {
-        connection.refCount--;
-        connection.lastUsed = Date.now();
-        
-        // Close connection if no more references
-        if (connection.refCount <= 0) {
-          connection.eventSource.close();
-          globalConnections.delete(connectionKey);
-        }
-      }
-      
+      eventSource.close();
+      eventSourceRef.current = null;
       setIsConnected(false);
       setHasInitial(false);
     };
-  }, [instructorId, hasInitial]);
+  }, [instructorId]); // Removed hasInitial dependency to prevent loops
 
   // Manual cleanup function
   const disconnect = () => {
-    if (instructorId) {
-      const connectionKey = `driving-test-${instructorId}`;
-      const connection = globalConnections.get(connectionKey);
-      
-      if (connection) {
-        connection.eventSource.close();
-        globalConnections.delete(connectionKey);
-      }
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
     setIsConnected(false);
+    setHasInitial(false);
   };
+
+  // Force refresh function
+  const forceRefresh = useCallback(async () => {
+    if (!instructorId) return;
+    
+    try {
+      console.log('🔄 Forcing schedule refresh for instructor:', instructorId);
+      // Trigger a manual update by calling the API directly
+      const response = await fetch(`/api/sse/driving-test-schedule/force-update?instructorId=${instructorId}`, {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        console.log('✅ Force refresh triggered successfully');
+      }
+    } catch (error) {
+      console.error('❌ Failed to force refresh:', error);
+    }
+  }, [instructorId]);
 
   return {
     schedule,
     error,
     isConnected,
     isReady: hasInitial,
-    disconnect
+    disconnect,
+    forceRefresh
   };
 }

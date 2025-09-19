@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Instructor from "@/models/Instructor";
 import mongoose from "mongoose";
+import { broadcastScheduleUpdate } from '@/app/api/sse/driving-test-schedule/route';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,9 +17,8 @@ export async function POST(req: NextRequest) {
       end,
       classType,
       amount,
-      orderId,
-      orderNumber,
       paymentMethod
+      // Removed orderId, orderNumber - not needed
       // Removed pickupLocation and dropoffLocation - not needed for driving tests
     } = await req.json();
 
@@ -185,6 +185,14 @@ export async function POST(req: NextRequest) {
     );
 
     await instructor.save();
+
+    // Broadcast real-time update to SSE connections
+    try {
+      broadcastScheduleUpdate(instructorId);
+      console.log('✅ Schedule update broadcasted via SSE for cart addition');
+    } catch (broadcastError) {
+      console.error('❌ Failed to broadcast schedule update:', broadcastError);
+    }
 
     console.log('✅ Driving test added to cart successfully');
 

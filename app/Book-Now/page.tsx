@@ -12,7 +12,6 @@ import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
 import { useDrivingTestSSE } from "@/hooks/useDrivingTestSSE";
 import { useRouter } from "next/navigation";
-import { formatDateForDisplay } from "@/utils/dateFormat";
 
 // Google Maps configuration - removed as not needed for driving test
 
@@ -113,7 +112,7 @@ export default function BookNowPage() {
     instructorId?: string
   } | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [confirmationMessage, setConfirmationMessage] = useState("");
+  const [confirmationMessage] = useState("");
   const [showCancellation, setShowCancellation] = useState(false);
   const [cancellationMessage, setCancellationMessage] = useState("");
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -124,7 +123,7 @@ export default function BookNowPage() {
   const [initialLoading, setInitialLoading] = useState(true);
 
   // Función para manejar el login exitoso
-  const handleLoginSuccess = (user: any) => {
+  const handleLoginSuccess = (user: { _id: string; name: string; email: string; photo?: string | null; type?: 'student' | 'instructor' }) => {
     setShowLogin(false);
     // Actualizar el contexto de autenticación
     setUser(user);
@@ -137,7 +136,7 @@ export default function BookNowPage() {
   };
 
   // Use SSE hook instead of polling
-  const { schedule: sseSchedule, error: sseError, isConnected, isReady } = useDrivingTestSSE(selectedInstructorId);
+  const { schedule: sseSchedule, error: sseError, isConnected, isReady, forceRefresh } = useDrivingTestSSE(selectedInstructorId);
 
   // Debug SSE connection
   useEffect(() => {
@@ -262,7 +261,7 @@ export default function BookNowPage() {
           // console.error('❌ Error updating available classes:', data.error);
           setAvailableClasses([]);
         }
-      } catch (error) {
+      } catch {
         // console.error('❌ Failed to update available classes:', error);
         setAvailableClasses([]);
       }
@@ -300,17 +299,21 @@ export default function BookNowPage() {
           // Seleccionar automáticamente el primer instructor
           if (data.instructors && data.instructors.length > 0) {
             const firstInstructor = data.instructors[0];
-            // console.log('🎯 Auto-selecting first instructor:', firstInstructor.name);
+            console.log('🎯 Auto-selecting first instructor:', firstInstructor.name);
             setIsLoadingSchedule(true);
-            setSelectedInstructorId(firstInstructor._id);
-            setSelectedInstructor(null);
-            setSelectedDate(null);
+            
+            // Small delay to prevent rapid connection changes
+            setTimeout(() => {
+              setSelectedInstructorId(firstInstructor._id);
+              setSelectedInstructor(null);
+              setSelectedDate(null);
+            }, 100);
           }
         } else {
           // console.error('❌ Error loading available classes:', data.error);
           setAvailableClasses([]);
         }
-      } catch (error) {
+      } catch {
         // console.error('❌ Failed to fetch available classes:', error);
         setAvailableClasses([]);
       }
@@ -570,12 +573,8 @@ export default function BookNowPage() {
                         return (
                           <td key={date.toDateString()} 
                               rowSpan={rowSpan}
-                              className="border border-gray-300 py-1 bg-blue-500 text-white font-bold cursor-pointer hover:bg-red-500 min-w-[80px] w-[80px]"
-                              onClick={() => {
-                                setSlotToCancel({ dateString, slot });
-                                setShowCancelConfirm(true);
-                              }}
-                              title="Click to cancel booking"
+                              className="border border-gray-300 py-1 bg-blue-500 text-white font-bold cursor-not-allowed min-w-[80px] w-[80px]"
+                              title="This is your booking - already reserved"
                           >
                             <div className="text-xs">Your Booking</div>
                             <div className="text-xs font-bold">${slot.amount || 50}</div>
@@ -661,8 +660,13 @@ export default function BookNowPage() {
             throw new Error(errorData.error || 'Failed to add to cart');
           }
 
-          const cartResult = await cartRes.json();
+          await cartRes.json();
           console.log('✅ Driving test added to cart successfully');
+
+          // Force refresh SSE to update calendar immediately
+          if (forceRefresh) {
+            forceRefresh();
+          }
 
           // Step 2: Add to local cart context
           await addToCart({
@@ -713,6 +717,12 @@ export default function BookNowPage() {
                   setIsBookingModalOpen(false);
                   setSelectedSlot(null);
                   setIsProcessingBooking(false);
+                  
+                  // Force refresh SSE to update calendar immediately
+                  if (forceRefresh) {
+                    forceRefresh();
+                  }
+                  
                   setShowContactModal(true);
                 } else {
                   setIsProcessingBooking(false);
@@ -1010,11 +1020,6 @@ export default function BookNowPage() {
                       </div>
                     </div>
                   )}
-                  {sseError && (
-                    <div className="absolute top-2 right-2 bg-red-100 border border-red-300 rounded px-3 py-1 z-20">
-                      <p className="text-red-600 text-xs">Connection error</p>
-                    </div>
-                  )}
                 </div>
               </>
             )}
@@ -1165,8 +1170,14 @@ export default function BookNowPage() {
                     setSlotToCancel(null);
                     
                     if (res.ok) {
-                      const responseData = await res.json();
+                      await res.json();
                       // console.log('✅ Cancellation successful:', responseData);
+                      
+                      // Force refresh SSE to update calendar immediately
+                      if (forceRefresh) {
+                        forceRefresh();
+                      }
+                      
                       setCancellationMessage('Booking cancelled successfully. The slot is now available again.');
                       setShowCancellation(true);
                     } else {
@@ -1175,7 +1186,7 @@ export default function BookNowPage() {
                       setCancellationMessage(`Could not cancel the booking: ${errorData.error || 'Please try again.'}`);
                       setShowCancellation(true);
                     }
-                  } catch (error) {
+                  } catch {
                     // console.error('❌ Network error during cancellation:', error);
                     setCancellationMessage('Error cancelling booking. Please try again.');
                     setShowCancellation(true);
