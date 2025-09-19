@@ -5,6 +5,7 @@ import "@/globals.css";
 import { useAuth } from "@/components/AuthContext";
 import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
+import Modal from "@/components/Modal";
 import { useAllDrivingLessonsSSE } from "../../hooks/useAllDrivingLessonsSSE";
 
 // Import our new components
@@ -88,6 +89,12 @@ function DrivingLessonsContent() {
     instructorId?: string;
     classType?: string;
   } | null>(null);
+
+  // Estados para modal de cancelación
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCancellation, setShowCancellation] = useState(false);
+  const [cancellationMessage, setCancellationMessage] = useState("");
+  const [slotToCancel, setSlotToCancel] = useState<ScheduleEntry & { instructorId: string } | null>(null);
 
   const { user, setUser } = useAuth();
   const { addToCart } = useCart();
@@ -486,6 +493,52 @@ function DrivingLessonsContent() {
     }
   };
 
+  const handleCancelPendingSlot = async (slot: ScheduleEntry & { instructorId: string }) => {
+    // Mostrar modal de confirmación primero
+    setSlotToCancel(slot);
+    setShowCancelConfirm(true);
+  };
+
+  const confirmCancelPendingSlot = async () => {
+    if (!slotToCancel) return;
+    
+    try {
+      console.log('🗑️ Canceling pending slot:', slotToCancel);
+      
+      const response = await fetch('/api/driving-lessons/cancel-pending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instructorId: slotToCancel.instructorId,
+          date: slotToCancel.date,
+          start: slotToCancel.start,
+          end: slotToCancel.end,
+          studentId: userId
+        })
+      });
+
+      const result = await response.json();
+      
+      setShowCancelConfirm(false);
+      setSlotToCancel(null);
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to cancel pending slot');
+      }
+
+      console.log('✅ Pending slot canceled successfully');
+      setCancellationMessage('Slot cancelled successfully. The slot is now available again.');
+      setShowCancellation(true);
+      
+      // SSE will automatically update the schedule
+      
+    } catch (error) {
+      console.error('❌ Error canceling pending slot:', error);
+      setCancellationMessage(`Error canceling slot: ${error.message || 'Please try again.'}`);
+      setShowCancellation(true);
+    }
+  };
+
   const getWeekDates = useCallback((date: Date) => {
     // Use UTC methods to avoid timezone issues
     const base = new Date(date.getTime());
@@ -605,7 +658,6 @@ function DrivingLessonsContent() {
           weekDates={weekDates}
           instructors={instructors}
           userId={userId}
-          onTimeSlotSelect={handleTimeSlotSelect}
           onSelectedHoursChange={setSelectedHours}
           selectedSlots={selectedSlots}
           onSelectedSlotsChange={setSelectedSlots}
@@ -625,6 +677,7 @@ function DrivingLessonsContent() {
             setPendingSlot(slotData);
             setShowLogin(true);
           }}
+          onCancelPendingSlot={handleCancelPendingSlot}
           key={`schedule-${Date.now()}`}
         />
       </div>
@@ -682,6 +735,78 @@ function DrivingLessonsContent() {
         }}
         onLoginSuccess={handleLoginSuccess}
       />
+
+      {/* Modal de confirmación de cancelación */}
+      <Modal
+        isOpen={showCancelConfirm}
+        onClose={() => {
+          setShowCancelConfirm(false);
+          setSlotToCancel(null);
+        }}
+      >
+        <div className="p-6 text-center">
+          <div className="mb-4">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold mb-4 text-red-600">Cancel Pending Slot</h2>
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to cancel this pending driving lesson slot?
+            </p>
+            {slotToCancel && (
+              <div className="bg-gray-50 p-4 rounded-lg mb-4 text-left">
+                <p><strong>Date:</strong> {slotToCancel.date}</p>
+                <p><strong>Time:</strong> {slotToCancel.start} - {slotToCancel.end}</p>
+                <p><strong>Status:</strong> <span className="text-orange-600">Pending</span></p>
+              </div>
+            )}
+            <p className="text-sm text-gray-500">The slot will become available for other students.</p>
+          </div>
+          <div className="flex justify-center gap-3">
+            <button
+              className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600"
+              onClick={() => {
+                setShowCancelConfirm(false);
+                setSlotToCancel(null);
+              }}
+            >
+              Keep Slot
+            </button>
+            <button
+              className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600"
+              onClick={confirmCancelPendingSlot}
+            >
+              Yes, Cancel Slot
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de resultado de cancelación */}
+      <Modal
+        isOpen={showCancellation}
+        onClose={() => setShowCancellation(false)}
+      >
+        <div className="p-6 text-center">
+          <div className="mb-4">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4">
+              <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold mb-4 text-orange-600">Cancellation Status</h2>
+            <p className="text-gray-700 mb-4">{cancellationMessage}</p>
+          </div>
+          <button
+            className="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600"
+            onClick={() => setShowCancellation(false)}
+          >
+            OK
+          </button>
+        </div>
+      </Modal>
     </section>
   );
 }

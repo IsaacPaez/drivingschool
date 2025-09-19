@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Instructor from "@/models/Instructor";
+import { broadcastScheduleUpdate } from '../../driving-lessons/schedule-updates/route';
 
 // Fixed: Removed invalid import that was causing build errors
 export async function POST(req: NextRequest) {
@@ -134,6 +135,13 @@ export async function POST(req: NextRequest) {
       
       // If update was successful, get the slot ID
       if (updateResult.modifiedCount > 0) {
+        // Broadcast the schedule update for this instructor
+        try {
+          await broadcastScheduleUpdate(instructorId.toString());
+        } catch (broadcastError) {
+          console.warn('⚠️ Failed to broadcast schedule update:', broadcastError);
+        }
+        
         // Find the updated slot to get its ID
         const updatedInstructor = await Instructor.findById(instructorId);
         const updatedSlot = updatedInstructor?.schedule_driving_lesson?.find((slot: {
