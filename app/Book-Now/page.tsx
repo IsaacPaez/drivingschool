@@ -10,7 +10,7 @@ import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
-import { useScheduleSSE } from "@/hooks/useScheduleSSE";
+import { useDrivingTestSSE } from "@/hooks/useDrivingTestSSE";
 import { useRouter } from "next/navigation";
 import { formatDateForDisplay } from "@/utils/dateFormat";
 
@@ -137,7 +137,7 @@ export default function BookNowPage() {
   };
 
   // Use SSE hook instead of polling
-  const { schedule: sseSchedule, error: sseError, isConnected } = useScheduleSSE(selectedInstructorId);
+  const { schedule: sseSchedule, error: sseError, isConnected, isReady } = useDrivingTestSSE(selectedInstructorId);
 
   // Debug SSE connection
   useEffect(() => {
@@ -174,21 +174,21 @@ export default function BookNowPage() {
       return;
     }
 
-    if (!sseSchedule) {
+    if (!isReady || !sseSchedule) {
       setIsLoadingSchedule(true);
       return;
     }
     
-    // console.log('🔍 Processing SSE schedule data:', {
-    //   selectedInstructorId,
-    //   sseScheduleLength: Array.isArray(sseSchedule) ? sseSchedule.length : 'not array',
-    //   sseSchedule: sseSchedule
-    // });
+    console.log('🔍 Processing SSE driving test schedule data:', {
+      selectedInstructorId,
+      sseScheduleLength: Array.isArray(sseSchedule) ? sseSchedule.length : 'not array',
+      isReady
+    });
     
     // Los datos de schedule_driving_test ya son de tipo "driving test", no necesitamos filtrar
     const scheduleSlots = Array.isArray(sseSchedule) ? sseSchedule as SlotWithDate[] : [];
     
-    // console.log('📋 Schedule slots to display:', scheduleSlots.length, scheduleSlots);
+    console.log('📋 Driving test schedule slots to display:', scheduleSlots.length, scheduleSlots);
     
     const groupedSchedule: Schedule[] = Object.values(
       scheduleSlots.reduce((acc, curr) => {
@@ -209,21 +209,21 @@ export default function BookNowPage() {
       }, {} as Record<string, { date: string; slots: Slot[] }>)
     );
     
-    // console.log('📅 Grouped schedule:', groupedSchedule);
+    console.log('📅 Grouped driving test schedule:', groupedSchedule);
     
     // Busca el instructor base por ID
     const base = instructors.find(i => i._id === selectedInstructorId);
-    // console.log('👨‍🏫 Found instructor base:', base?.name, 'with ID:', base?._id);
+    console.log('👨‍🏫 Found instructor base:', base?.name, 'with ID:', base?._id);
     
     if (base) {
       setSelectedInstructor({ ...base, schedule: groupedSchedule });
       setIsLoadingSchedule(false);
-      // console.log("✅ Instructor schedule updated:", groupedSchedule.length, "days with slots");
+      console.log("✅ Instructor driving test schedule updated:", groupedSchedule.length, "days with slots");
     } else {
-      // console.log("❌ No instructor base found for ID:", selectedInstructorId);
+      console.log("❌ No instructor base found for ID:", selectedInstructorId);
       setIsLoadingSchedule(false);
     }
-  }, [sseSchedule, selectedInstructorId, instructors]);
+  }, [sseSchedule, selectedInstructorId, instructors, isReady]);
 
   useEffect(() => {
     if (
