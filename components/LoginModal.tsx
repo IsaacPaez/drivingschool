@@ -408,16 +408,32 @@ export default function LoginModal({ open, onClose, initialMode = "login", onLog
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2 sm:p-4">
-      <div className={`bg-white rounded-xl sm:rounded-2xl shadow-2xl border-2 border-blue-600 w-full max-w-xs sm:max-w-sm md:max-w-md overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8 relative ${isTransitioning ? 'animate-flipTransition' : 'animate-flipIn'}`}>
-        <button onClick={handleClose} className="absolute top-1 right-1 sm:top-2 sm:right-2 md:top-4 md:right-4 text-gray-400 hover:text-blue-700 text-lg sm:text-xl md:text-2xl font-bold">&times;</button>
-        <h2 className="text-base sm:text-lg md:text-2xl lg:text-3xl font-extrabold text-blue-700 text-center mb-3 sm:mb-4 md:mb-6 drop-shadow-lg">
-          {mode === "login" ? (
-            step === "login" || step === "verify" ? "Sign In" : step === "reset-email" ? "Reset Password" : step === "reset-code" ? "Enter Code" : step === "reset-password" ? "Set New Password" : "Password Reset"
-          ) : (
-            registerStep === "credentials" ? "Sign Up" : registerStep === "personal" ? "Personal Information" : "Verify Your Email"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-1 sm:p-2 md:p-4">
+      <div className={`bg-white rounded-lg sm:rounded-xl md:rounded-2xl shadow-2xl border-2 border-blue-600 w-full max-w-[95vw] sm:max-w-sm md:max-w-md max-h-[95vh] p-2 sm:p-3 md:p-4 lg:p-6 relative ${isTransitioning ? 'animate-flipTransition' : 'animate-flipIn'}`}>
+        <button onClick={handleClose} className="absolute top-1 right-1 sm:top-2 sm:right-2 text-gray-400 hover:text-blue-700 text-lg sm:text-xl font-bold">&times;</button>
+        <div className="text-center mb-2 sm:mb-3 md:mb-4">
+          <h2 className="text-sm sm:text-base md:text-xl lg:text-2xl font-extrabold text-blue-700 drop-shadow-lg">
+            {mode === "login" ? (
+              step === "login" || step === "verify" ? "Sign In" : step === "reset-email" ? "Reset Password" : step === "reset-code" ? "Enter Code" : step === "reset-password" ? "Set New Password" : "Password Reset"
+            ) : (
+              "Sign Up"
+            )}
+          </h2>
+          {mode === "register" && (
+            <div className="mt-1 sm:mt-2">
+              <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1 sm:mb-2">
+                {registerStep === "credentials" && "1 of 3"}
+                {registerStep === "personal" && "2 of 3"}
+                {registerStep === "verify" && "3 of 3"}
+              </div>
+              <div className="flex justify-center space-x-1 sm:space-x-2">
+                <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${registerStep === "credentials" ? "bg-blue-600" : registerStep === "personal" || registerStep === "verify" ? "bg-blue-600" : "bg-gray-300"}`}></div>
+                <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${registerStep === "personal" ? "bg-blue-600" : registerStep === "verify" ? "bg-blue-600" : "bg-gray-300"}`}></div>
+                <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${registerStep === "verify" ? "bg-blue-600" : "bg-gray-300"}`}></div>
+              </div>
+            </div>
           )}
-        </h2>
+        </div>
         
         {/* Formulario de login principal - solo mostrar en steps login o verify */}
         {mode === "login" && (step === "login" || step === "verify") && (
@@ -465,14 +481,14 @@ export default function LoginModal({ open, onClose, initialMode = "login", onLog
           <>
             {/* Paso 1: Credenciales */}
             {registerStep === "credentials" && (
-              <form onSubmit={handleCredentialsSubmit} className="flex flex-col gap-2 sm:gap-3 md:gap-4">
+              <form onSubmit={handleCredentialsSubmit} className="flex flex-col gap-1.5 sm:gap-2 md:gap-3">
                 <input
                   name="email"
                   type="email"
                   placeholder="Email"
                   value={registerForm.email}
                   onChange={handleRegisterChange}
-                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm md:text-base"
+                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
                   required
                 />
                 <input
@@ -481,7 +497,7 @@ export default function LoginModal({ open, onClose, initialMode = "login", onLog
                   placeholder="Password"
                   value={registerForm.password}
                   onChange={handleRegisterChange}
-                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm md:text-base"
+                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
                   required
                 />
                 <input
@@ -507,15 +523,15 @@ export default function LoginModal({ open, onClose, initialMode = "login", onLog
 
             {/* Paso 2: Información Personal */}
             {registerStep === "personal" && (
-              <form onSubmit={handlePersonalInfoSubmit} className="flex flex-col gap-2 sm:gap-3 md:gap-4">
+              <form onSubmit={handlePersonalInfoSubmit} className="flex flex-col gap-1.5 sm:gap-2">
                 {/* Name Information */}
-                <div className="grid grid-cols-2 gap-1.5 sm:gap-2 md:gap-4">
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                   <input
                     name="firstName"
                     placeholder="First Name"
                     value={registerForm.firstName}
                     onChange={handleRegisterChange}
-                    className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm md:text-base"
+                    className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
                     required
                   />
                   <input
@@ -523,7 +539,7 @@ export default function LoginModal({ open, onClose, initialMode = "login", onLog
                     placeholder="Last Name"
                     value={registerForm.lastName}
                     onChange={handleRegisterChange}
-                    className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm md:text-base"
+                    className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
                     required
                   />
                 </div>
@@ -541,7 +557,7 @@ export default function LoginModal({ open, onClose, initialMode = "login", onLog
                   placeholder="DNI or ID"
                   value={registerForm.dni}
                   onChange={handleRegisterChange}
-                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm md:text-base"
+                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
                   required
                 />
                 <input
@@ -549,19 +565,19 @@ export default function LoginModal({ open, onClose, initialMode = "login", onLog
                   placeholder="Phone Number"
                   value={registerForm.phoneNumber}
                   onChange={handleRegisterChange}
-                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm md:text-base"
+                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
                   required
                 />
 
                 {/* Birth Date - 3 separate fields */}
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">Birth Date</label>
-                  <div className="grid grid-cols-3 gap-1 sm:gap-2 md:gap-4">
+                  <div className="grid grid-cols-3 gap-1 sm:gap-2">
                     <select
                       name="birthYear"
                       value={registerForm.birthYear}
                       onChange={handleRegisterChange}
-                      className="rounded-md sm:rounded-lg border border-gray-300 px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 bg-white text-xs sm:text-sm md:text-base"
+                      className="rounded-md sm:rounded-lg border border-gray-300 px-1 sm:px-2 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 bg-white text-xs sm:text-sm"
                       required
                     >
                       <option value="">Year</option>
