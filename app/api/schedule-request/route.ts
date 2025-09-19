@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
             'schedule_driving_lesson.$.dropoffLocation': dropoffLocation,
             'schedule_driving_lesson.$.paymentMethod': paymentMethod,
             'schedule_driving_lesson.$.requestDate': new Date(),
+            'schedule_driving_lesson.$.reservedAt': new Date(),
             'schedule_driving_lesson.$.paid': false
           }
         }
