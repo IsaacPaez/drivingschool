@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Instructor from '@/models/Instructor';
+import { broadcastScheduleUpdate } from '../driving-lessons/schedule-updates/route';
 
 export async function POST(request: NextRequest) {
   try {
@@ -133,6 +134,13 @@ export async function POST(request: NextRequest) {
       );
 
       console.log('✅ Update result:', updateResult);
+      
+      // Broadcast the schedule update for this instructor
+      try {
+        await broadcastScheduleUpdate(slot.instructorId);
+      } catch (broadcastError) {
+        console.warn('⚠️ Failed to broadcast schedule update:', broadcastError);
+      }
     }
 
     // Create a schedule request record for tracking

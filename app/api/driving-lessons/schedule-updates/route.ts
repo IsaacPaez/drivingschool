@@ -10,6 +10,46 @@ interface SSEEvent {
   schedule?: unknown[];
 }
 
+// Global connections map for broadcasting updates
+const activeConnections = new Map<string, {
+  writer: WritableStreamDefaultWriter<Uint8Array>;
+  encoder: TextEncoder;
+  instructorId: string;
+  lastActivity: number;
+}>();
+
+// Broadcast function to send updates to all connected clients for a specific instructor
+export async function broadcastScheduleUpdate(instructorId: string) {
+  console.log(`📡 Broadcasting schedule update for instructor: ${instructorId}`);
+  
+  const connectionsToRemove: string[] = [];
+  let updatesSent = 0;
+
+  for (const [connectionId, connection] of activeConnections.entries()) {
+    if (connection.instructorId === instructorId) {
+      try {
+        await connectDB();
+        const instructor = await Instructor.findById(instructorId);
+        if (instructor) {
+          const drivingLessons = instructor.get('schedule_driving_lesson', { lean: true }) || [];
+          const payload = `data: ${JSON.stringify({ type: "update", schedule: drivingLessons })}\n\n`;
+          await connection.writer.write(connection.encoder.encode(payload));
+          updatesSent++;
+          console.log(`✅ Sent update to connection ${connectionId}`);
+        }
+      } catch (error) {
+        console.warn(`❌ Failed to send update to connection ${connectionId}:`, error);
+        connectionsToRemove.push(connectionId);
+      }
+    }
+  }
+
+  // Clean up failed connections
+  connectionsToRemove.forEach(id => activeConnections.delete(id));
+  
+  console.log(`📡 Broadcast complete: ${updatesSent} updates sent, ${connectionsToRemove.length} connections removed`);
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const instructorId = searchParams.get("id");
@@ -58,10 +98,30 @@ export async function GET(req: NextRequest) {
     console.log(`📊 Instructor ${instructorId} (${instructor.name}): Found ${drivingLessons.length} driving lessons`);
     
     sendEvent({ type: "initial", schedule: drivingLessons });
+    
+    // Add this connection to active connections for broadcasting
+    const connectionId = `${instructorId}-${Date.now()}-${Math.random()}`;
+    activeConnections.set(connectionId, {
+      writer,
+      encoder,
+      instructorId,
+      lastActivity: Date.now()
+    });
+    console.log(`📡 New connection added: ${connectionId} for instructor ${instructorId}`);
   } catch (error) {
     console.error("Error fetching initial driving lessons schedule:", error);
     sendEvent({ type: "error", message: "Failed to fetch initial data" });
   }
+
+  // Add this connection to active connections for broadcasting
+  const connectionId = `${instructorId}-${Date.now()}-${Math.random()}`;
+  activeConnections.set(connectionId, {
+    writer,
+    encoder,
+    instructorId,
+    lastActivity: Date.now()
+  });
+  console.log(`📡 New connection added: ${connectionId} for instructor ${instructorId}`);
 
   // Setup Change Stream with error handling
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,6 +221,10 @@ export async function GET(req: NextRequest) {
   // Handle client disconnect
   req.signal.addEventListener('abort', () => {
     isWriterClosed = true;
+    // Remove from active connections
+    activeConnections.delete(connectionId);
+    console.log(`📡 Connection removed: ${connectionId}`);
+    
     if (changeStream) {
       changeStream.close();
     }

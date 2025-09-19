@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import Instructor, { ScheduleSlot } from '@/models/Instructor';
+import { broadcastScheduleUpdate } from '@/app/api/sse/driving-test-schedule/route';
 
 export async function POST(request: Request) {
   try {
     await connectToDatabase();
-    const { studentId, instructorId, date, start, end, slotId, classType } = await request.json();
+    const { studentId, instructorId, date, start, end } = await request.json();
     
     // console.log('🔥 Cancel booking request:', { studentId, instructorId, date, start, end, slotId, classType });
     
@@ -62,20 +63,28 @@ export async function POST(request: Request) {
     foundSlot.paymentMethod = undefined as unknown as string;
     
     // Eliminar campos innecesarios
-    delete (foundSlot as any).booked;
-    delete (foundSlot as any).orderId;
-    delete (foundSlot as any).orderNumber;
+    delete (foundSlot as unknown as Record<string, unknown>).booked;
+    delete (foundSlot as unknown as Record<string, unknown>).orderId;
+    delete (foundSlot as unknown as Record<string, unknown>).orderNumber;
     
     // Limpiar campos que solo aplican a driving lessons
-    delete (foundSlot as any).pickupLocation;
-    delete (foundSlot as any).dropoffLocation;
-    delete (foundSlot as any).selectedProduct;
+    delete (foundSlot as unknown as Record<string, unknown>).pickupLocation;
+    delete (foundSlot as unknown as Record<string, unknown>).dropoffLocation;
+    delete (foundSlot as unknown as Record<string, unknown>).selectedProduct;
     
     // Mark the correct schedule as modified
     instructor.markModified(scheduleType);
     await instructor.save();
 
     // console.log('✅ Slot cancelled and set to available');
+
+    // Broadcast real-time update to SSE connections
+    try {
+      broadcastScheduleUpdate(instructorId);
+      console.log('✅ Schedule update broadcasted via SSE');
+    } catch (broadcastError) {
+      console.error('❌ Failed to broadcast schedule update:', broadcastError);
+    }
 
     // Emit socket event for real-time updates (if socket.io is available)
     try {
@@ -89,7 +98,7 @@ export async function POST(request: Request) {
           studentId: null
         });
       }
-    } catch (socketError) {
+    } catch {
       // console.log('Socket emission failed:', socketError);
     }
 

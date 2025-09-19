@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import Instructor from "@/models/Instructor";
 import mongoose from "mongoose";
 import User from "@/models/User";
+import { broadcastScheduleUpdate } from '@/app/api/sse/driving-test-schedule/route';
 
 export async function POST(req: NextRequest) {
   try {
@@ -126,6 +127,14 @@ export async function POST(req: NextRequest) {
     // Mark the instructor document as modified to trigger save
     instructor.markModified('schedule_driving_test');
     await instructor.save();
+
+    // Broadcast real-time update to SSE connections
+    try {
+      broadcastScheduleUpdate(instructorId);
+      console.log('✅ Schedule update broadcasted via SSE for pending reservation');
+    } catch (broadcastError) {
+      console.error('❌ Failed to broadcast schedule update:', broadcastError);
+    }
 
     return NextResponse.json({
       success: true,

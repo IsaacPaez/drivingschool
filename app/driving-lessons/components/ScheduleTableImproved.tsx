@@ -40,13 +40,6 @@ interface Product {
   media?: string[];
 }
 
-interface SelectedTimeSlot {
-  date: string;
-  start: string;
-  end: string;
-  instructors: Instructor[];
-}
-
 interface ScheduleTableProps {
   selectedProduct: Product | null;
   weekOffset: number;
@@ -54,7 +47,6 @@ interface ScheduleTableProps {
   weekDates: Date[];
   instructors: Instructor[];
   userId: string;
-  onTimeSlotSelect: (timeSlot: SelectedTimeSlot, lesson: ScheduleEntry) => void;
   onSelectedHoursChange?: (hours: number) => void;
   selectedSlots: Set<string>;
   onSelectedSlotsChange: (slots: Set<string>) => void;
@@ -62,6 +54,7 @@ interface ScheduleTableProps {
   selectedHours: number;
   onRequestSchedule: () => void;
   onAuthRequired?: () => void;
+  onCancelPendingSlot?: (slot: ScheduleEntry & { instructorId: string }) => void;
 }
 
 export default function ScheduleTableImproved({
@@ -71,14 +64,14 @@ export default function ScheduleTableImproved({
   weekDates,
   instructors,
   userId,
-  onTimeSlotSelect,
   onSelectedHoursChange,
   selectedSlots,
   onSelectedSlotsChange,
   selectedInstructorForSchedule,
   selectedHours,
   onRequestSchedule,
-  onAuthRequired
+  onAuthRequired,
+  onCancelPendingSlot
 }: ScheduleTableProps) {
   
   // Use SSE hook for real-time schedule updates for all instructors
@@ -89,7 +82,6 @@ export default function ScheduleTableImproved({
   const { 
     getScheduleForInstructor, 
     getErrorForInstructor, 
-    isConnectedForInstructor,
     getAllSchedules 
   } = useAllDrivingLessonsSSE(instructorIds);
   
@@ -97,7 +89,7 @@ export default function ScheduleTableImproved({
   const { cart } = useCart();
   const pendingSlotKeysInCart = React.useMemo(() => {
     const keys = new Set<string>();
-    cart.forEach((item: any) => {
+    cart.forEach((item: { slotDetails?: { slotKey: string }[], selectedSlots?: string[] }) => {
       if (Array.isArray(item.selectedSlots)) {
         item.selectedSlots.forEach((k: string) => keys.add(k));
       }
@@ -106,17 +98,64 @@ export default function ScheduleTableImproved({
   }, [cart]);
 
   // Helper to decide availability, considering pending-but-not-in-cart as available
-  const isEffectivelyAvailable = React.useCallback((lesson: any): boolean => {
+  const isEffectivelyAvailable = React.useCallback((lesson: ScheduleEntry): boolean => {
     if (!lesson) return false;
+    
+    // If it's truly available/free and not paid, it's available
     if ((lesson.status === 'available' || lesson.status === 'free') && !lesson.paid) return true;
+    
+    // If it's pending by another user, it's NOT available
+    if (lesson.status === 'pending' && lesson.studentId && (!userId || lesson.studentId.toString() !== userId)) {
+      return false;
+    }
+    
     const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
     const isUsersPending = lesson.status === 'pending' && lesson.studentId && userId && lesson.studentId.toString() === userId;
-    // If it's pending of this user but payment method is physical/local (pay at location), DO NOT treat as available
-    if (isUsersPending && (lesson.paymentMethod === 'physical' || lesson.paymentMethod === 'local')) return false;
+    
+    // If it's pending of this user but payment method is physical/local/online (pay at location), DO NOT treat as available
+    if (isUsersPending && (lesson.paymentMethod === 'physical' || lesson.paymentMethod === 'local' || lesson.paymentMethod === 'online')) return false;
+    
     // Otherwise, if it's user's pending but no longer in cart, treat as available
     if (isUsersPending && !pendingSlotKeysInCart.has(slotKey)) return true;
+    
     return false;
   }, [pendingSlotKeysInCart, userId]);
+
+  // Handle canceling a pending slot
+  const handleCancelPendingSlot = React.useCallback(async (slot: ScheduleEntry & { instructorId?: string }) => {
+    if (!onCancelPendingSlot) {
+      console.warn('No cancel function provided');
+      return;
+    }
+
+    // Find the instructor ID for this slot
+    let instructorId = slot.instructorId;
+    if (!instructorId) {
+      // Find instructor by searching through all schedules
+      for (const instructor of instructors) {
+        const foundSlot = instructor.schedule_driving_lesson?.find(
+          (scheduleSlot) =>
+            scheduleSlot.date === slot.date &&
+            scheduleSlot.start === slot.start &&
+            scheduleSlot.end === slot.end &&
+            scheduleSlot.status === 'pending' &&
+            scheduleSlot.studentId === userId
+        );
+        if (foundSlot) {
+          instructorId = instructor._id;
+          break;
+        }
+      }
+    }
+
+    if (!instructorId) {
+      console.error('Could not find instructor for slot:', slot);
+      return;
+    }
+
+    // Call the cancel function with instructor ID
+    onCancelPendingSlot({ ...slot, instructorId });
+  }, [onCancelPendingSlot, instructors, userId]);
 
   // Debug: Log userId and user bookings
   useEffect(() => {
@@ -126,7 +165,7 @@ export default function ScheduleTableImproved({
       if (allSchedules.length > 0) {
         console.log('🔍 [USER BOOKINGS DEBUG] Checking for user bookings...');
         allSchedules.forEach(({ instructorId, schedule }) => {
-          const userBookings = (schedule as any[]).filter(slot => 
+          const userBookings = (schedule as ScheduleEntry[]).filter(slot => 
             slot.studentId && slot.studentId.toString() === userId && 
             (slot.status === 'booked' || slot.status === 'scheduled' || slot.paid)
           );
@@ -205,13 +244,6 @@ export default function ScheduleTableImproved({
     return selectedSlots.has(slotKey);
   };
 
-  // Helper function like Book-Now to determine if this is the starting row for a slot
-  const isRowStart = (dateString: string, slot: ScheduleEntry, blockStart: string) => {
-    const slotStartMin = timeToMinutes(slot.start);
-    const blockStartMin = timeToMinutes(blockStart);
-    return slotStartMin === blockStartMin;
-  };
-
   // Helper function to calculate selected hours
   const calculateSelectedHours = React.useCallback((): number => {
     let totalMinutes = 0;
@@ -220,21 +252,23 @@ export default function ScheduleTableImproved({
       for (const instructor of instructors) {
         // First try SSE data
         const sseSchedule = getScheduleForInstructor(instructor._id);
-        let lesson: any = null;
+        let lesson: ScheduleEntry | null = null;
         
         if (sseSchedule && Array.isArray(sseSchedule)) {
-          lesson = sseSchedule.find((l: any) => {
+          const foundLesson = (sseSchedule as ScheduleEntry[]).find((l: ScheduleEntry) => {
             const lessonKey = `${l.date}-${l.start}-${l.end}`;
             return lessonKey === slotKey && isEffectivelyAvailable(l);
-          }) || null;
+          });
+          lesson = foundLesson || null;
         }
         
         // Fallback to static data if SSE data not found
         if (!lesson && instructor.schedule_driving_lesson) {
-          lesson = instructor.schedule_driving_lesson.find(l => {
+          const foundLesson = instructor.schedule_driving_lesson.find(l => {
             const lessonKey = `${l.date}-${l.start}-${l.end}`;
             return lessonKey === slotKey && isEffectivelyAvailable(l);
           });
+          lesson = foundLesson || null;
         }
         
         if (lesson) {
@@ -266,7 +300,7 @@ export default function ScheduleTableImproved({
         // Process SSE data similar to Book-Now
         const scheduleByDate: { [date: string]: ScheduleEntry[] } = {};
         
-        sseSchedule.forEach((lesson: any) => {
+        sseSchedule.forEach((lesson: ScheduleEntry) => {
           if (!scheduleByDate[lesson.date]) {
             scheduleByDate[lesson.date] = [];
           }
@@ -540,7 +574,7 @@ export default function ScheduleTableImproved({
                       allSchedules.forEach(({ instructorId, schedule }) => {
                         const instructor = instructors.find(inst => inst._id === instructorId);
                         if (instructor) {
-                          const userBookings = (schedule as any[]).filter(slot => 
+                          const userBookings = (schedule as ScheduleEntry[]).filter(slot => 
                             slot.studentId && slot.studentId.toString() === userId && 
                             (slot.status === 'booked' || slot.status === 'scheduled' || slot.paid) &&
                             slot.date === dateString &&
@@ -551,7 +585,7 @@ export default function ScheduleTableImproved({
                           userBookings.forEach(booking => {
                             // Only add if not already in slotsAtTime
                             const alreadyExists = slotsAtTime.some(({ lesson }) => 
-                              (lesson as any)._id === (booking as any)._id
+                              (lesson as ScheduleEntry & { _id?: string })._id === (booking as ScheduleEntry & { _id?: string })._id
                             );
                             if (!alreadyExists) {
                               slotsAtTime.push({ instructor, lesson: booking });
@@ -574,7 +608,7 @@ export default function ScheduleTableImproved({
                       );
                       
                       if (slotStartingHere) {
-                        const { instructor, lesson: slot } = slotStartingHere;
+                        const { lesson: slot } = slotStartingHere;
                         
                         // Calculate rowSpan (same logic as Book-Now)
                         const slotStartMin = timeToMinutes(slot.start);
@@ -588,8 +622,13 @@ export default function ScheduleTableImproved({
                         // Slot available for booking (or pending but no longer present in user's cart -> treat as available immediately)
                         const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
                         const isUsersPendingHere = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
-                        const isPendingButNotInCart = isUsersPendingHere && !pendingSlotKeysInCart.has(slotKey) && slot.paymentMethod !== 'physical';
-                        if (((slot.status === 'available' || slot.status === 'free') && !slot.paid) || isPendingButNotInCart) {
+                        const isPendingByOtherUser = slot.status === 'pending' && slot.studentId && (!userId || slot.studentId.toString() !== userId);
+                        const isPendingButNotInCart = isUsersPendingHere && !pendingSlotKeysInCart.has(slotKey) && slot.paymentMethod !== 'physical' && slot.paymentMethod !== 'local' && slot.paymentMethod !== 'online';
+                        
+                        // Don't show as available if it's pending by another user
+                        if (isPendingByOtherUser) {
+                          // This slot is pending by another user - skip it
+                        } else if (((slot.status === 'available' || slot.status === 'free') && !slot.paid) || isPendingButNotInCart) {
                           const isSelected = isSlotSelected(slot);
                           
                           if (multipleInstructors) {
@@ -650,20 +689,25 @@ export default function ScheduleTableImproved({
                         }
                         // Slot pending del usuario actual - mostrar si sigue en el carrito o si es 'physical' (pago en sitio)
                         const isUsersPending = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
-                        if (isUsersPending && (pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`) || slot.paymentMethod === 'physical' || slot.paymentMethod === 'local')) {
+                        if (isUsersPending && (pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`) || slot.paymentMethod === 'physical' || slot.paymentMethod === 'local' || slot.paymentMethod === 'online')) {
                           const isLocalPayment = slot.paymentMethod === 'physical' || slot.paymentMethod === 'local';
+                          const isOnlinePayment = slot.paymentMethod === 'online';
                           const isInCart = pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`);
                           
                           return (
                             <td 
                               key={date.toDateString()} 
                               rowSpan={rowSpan}
-                              className="border border-gray-300 py-1 bg-orange-200 text-orange-800 font-bold min-w-[80px] w-[80px]"
+                              className={`border border-gray-300 py-1 bg-orange-200 text-orange-800 font-bold min-w-[80px] w-[80px] ${
+                                isLocalPayment ? 'cursor-pointer hover:bg-orange-300' : ''
+                              }`}
+                              onClick={isLocalPayment ? () => handleCancelPendingSlot(slot) : undefined}
+                              title={isLocalPayment ? 'Click to cancel this pending lesson' : undefined}
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
                               <div className="text-xs">{slot.start} - {slot.end}</div>
                               <div className="text-xs">
-                                {isLocalPayment ? 'Pay at Location' : isInCart ? 'In Cart' : 'Pending'}
+                                {isLocalPayment ? 'Pay at Location' : isOnlinePayment ? 'Payment Pending' : isInCart ? 'In Cart' : 'Pending'}
                               </div>
                             </td>
                           );
@@ -769,7 +813,7 @@ export default function ScheduleTableImproved({
           </div>
           
           <div className="max-h-96 overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            {multipleInstructorsData?.instructors.map(({ instructor, lesson }, index) => (
+            {multipleInstructorsData?.instructors.map(({ instructor, lesson }) => (
               <div
                 key={instructor._id}
                 className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
