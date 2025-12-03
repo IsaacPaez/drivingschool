@@ -4,7 +4,7 @@ import User from "@/models/User";
 import { startAndWaitEC2 } from "@/app/api/checkout/aws-ec2";
 import { secureFetch } from "@/app/utils/secure-fetch";
 
-const BASE_URL = "https://driving-school-mocha.vercel.app";
+const BASE_URL = "https://drivingschool-kappa.vercel.app";
 const EC2_URL = "https://botopiapagosatldriving.xyz";
 
 async function getRedirectUrlFromEC2(payload: any) {
@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
     const ec2Result = await startAndWaitEC2(process.env.EC2_INSTANCE_ID!);
     const ok = ec2Result.success;
     if (!ok) {
-      return NextResponse.json({ 
-        error: "ec2", 
+      return NextResponse.json({
+        error: "ec2",
         message: "No se pudo encender la instancia EC2",
         details: ec2Result.error || "Unknown error"
       }, { status: 500 });
@@ -121,9 +121,9 @@ export async function POST(req: NextRequest) {
     const redirectUrl = await getRedirectUrlFromEC2(payload);
     return NextResponse.json({ redirectUrl });
   } catch (error) {
-    return NextResponse.json({ 
-      error: "payment", 
-      message: "There was an error processing the payment.", 
+    return NextResponse.json({
+      error: "payment",
+      message: "There was an error processing the payment.",
       details: error instanceof Error ? error.message : "Unknown error"
     }, { status: 500 });
   }

@@ -81,12 +81,12 @@ export async function POST(req: Request) {
   if (data.code) {
     // Limpiar códigos expirados primero
     await AuthCode.deleteMany({ expires: { $lt: new Date() } });
-    
+
     // Verificar el código
-    const authCode = await AuthCode.findOne({ 
-      email: data.email.trim().toLowerCase(), 
-      code: data.code, 
-      used: false 
+    const authCode = await AuthCode.findOne({
+      email: data.email.trim().toLowerCase(),
+      code: data.code,
+      used: false
     });
 
     if (!authCode || authCode.expires < new Date()) {
@@ -126,8 +126,8 @@ export async function POST(req: Request) {
 
       await newUser.save();
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: 'User registered successfully!',
         user: {
           _id: newUser._id,
@@ -140,9 +140,9 @@ export async function POST(req: Request) {
     } catch (saveError: unknown) {
       console.error('Error saving user:', saveError);
       const errorMessage = saveError instanceof Error ? saveError.message : 'Unknown error occurred';
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Failed to create user account. Please try again.',
-        details: errorMessage 
+        details: errorMessage
       }, { status: 500 });
     }
   }
@@ -171,7 +171,10 @@ export async function POST(req: Request) {
 
   // Enviar correo (usa la plantilla del login)
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.fastmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -211,7 +214,7 @@ export async function POST(req: Request) {
     </div>
   `;
   await transporter.sendMail({
-    from: 'info@drivingschoolpalmbeach.com',
+    from: `"Affordable Driving Traffic School" <${process.env.SMTP_USER}>`,
     to: data.email,
     subject: 'Your Verification Code',
     html,

@@ -43,11 +43,16 @@ export async function POST(req: NextRequest) {
 
     // Enviar correo de verificación
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.fastmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      tls: {
+        rejectUnauthorized: false
+      }
     });
 
     const logoUrl = "https://res.cloudinary.com/dgnqk0ucm/image/upload/v1758091374/logo_1_iol4hm.png";
@@ -86,7 +91,7 @@ export async function POST(req: NextRequest) {
     `;
 
     await transporter.sendMail({
-      from: 'info@drivingschoolpalmbeach.com',
+      from: `"Affordable Driving Traffic School" <${process.env.SMTP_USER}>`,
       to: email,
       subject: 'Your Email Verification Code',
       html,

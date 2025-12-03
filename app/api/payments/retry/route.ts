@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Order from '@/models/Order';
 
-const BASE_URL = "https://driving-school-mocha.vercel.app";
+const BASE_URL = "https://drivingschool-kappa.vercel.app";
 const EC2_URL = "https://botopiapagosatldriving.xyz";
 
 // Función helper para crear customer_code de 8 dígitos
