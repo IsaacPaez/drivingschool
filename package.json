@@ -26,7 +26,7 @@
     "handlebars": "^4.7.8",
     "heatmap.js": "^2.0.5",
     "mongoose": "^8.15.0",
-    "next": "^15.3.2",
+    "next": "^15.5.7",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
     "react": "^19.0.0",
