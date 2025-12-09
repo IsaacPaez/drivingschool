@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import CartIcon from "./CartIcon";
 import { useAuth } from "@/components/AuthContext";
 import LoginModal from "@/components/LoginModal";
+import BookNowModal from "@/components/BookNowModal";
 import { useCart } from "@/app/context/CartContext";
 import LoadingSpinner from "./common/LoadingSpinner";
 import UserDropdown from "./UserDropdown";
@@ -23,6 +24,7 @@ const Header = () => {
   const [showTeacherLoading, setShowTeacherLoading] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("(561) 969-0150");
+  const [showBookNowModal, setShowBookNowModal] = useState(false);
 
   // Cargar número de teléfono desde la base de datos
   useEffect(() => {
@@ -42,11 +44,11 @@ const Header = () => {
 
   // Scroll detection for home page
   useEffect(() => {
-          const handleScroll = () => {
-        if (isHome) {
-          setIsScrolled(window.scrollY > 850);
-        }
-      };
+    const handleScroll = () => {
+      if (isHome) {
+        setIsScrolled(window.scrollY > 850);
+      }
+    };
 
     if (isHome) {
       window.addEventListener('scroll', handleScroll);
@@ -205,7 +207,7 @@ const Header = () => {
                 className={`font-semibold text-base transition ${pathname === item.href
                   ? "text-[#27ae60] font-bold"
                   : "text-blue-800 hover:text-green-600"
-                }`}
+                  }`}
               >
                 {item.name}
               </Link>
@@ -222,7 +224,7 @@ const Header = () => {
                 className={`font-semibold text-base transition ${pathname === item.href
                   ? "text-[#27ae60] font-bold"
                   : "text-blue-800 hover:text-green-600"
-                }`}
+                  }`}
               >
                 {item.name}
               </Link>
@@ -239,7 +241,7 @@ const Header = () => {
                 className={`font-medium transition ${pathname === item.href
                   ? "text-[#27ae60] font-bold"
                   : "text-[#000000] hover:text-[#0056b3]"
-                }`}
+                  }`}
               >
                 {item.name}
               </Link>
@@ -250,11 +252,11 @@ const Header = () => {
         {/* Botón Book Now (sólo en desktop) */}
         {!isTeacherSection && typeof pathname === "string" && !pathname.startsWith("/Students") && (
           <div className="hidden lg:block text-left">
-            <Link href="/Book-Now" passHref>
+            <button onClick={() => setShowBookNowModal(true)}>
               <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg  shadow-gray-700 hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
                 Book Now
               </div>
-            </Link>
+            </button>
           </div>
         )}
 
@@ -278,7 +280,7 @@ const Header = () => {
                     className={`font-semibold text-base transition ${pathname === item.href
                       ? "text-[#27ae60] font-bold"
                       : "text-blue-800 hover:text-green-600"
-                    }`}
+                      }`}
                   >
                     {item.name}
                   </Link>
@@ -290,8 +292,8 @@ const Header = () => {
                     href={item.href}
                     onClick={() => setIsOpen(false)} // Cerrar al hacer clic
                     className={`font-medium transition ${pathname === item.href
-                        ? "text-[#27ae60] font-bold"
-                        : "text-black hover:text-gray-200"
+                      ? "text-[#27ae60] font-bold"
+                      : "text-black hover:text-gray-200"
                       }`}
                   >
                     {item.name}
@@ -301,11 +303,11 @@ const Header = () => {
 
               {/* Botón Book Now en móvil */}
               <div className="text-left">
-                <Link href="/Book-Now" passHref>
+                <button onClick={() => { setShowBookNowModal(true); setIsOpen(false); }}>
                   <div className="bg-[#27ae60] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg hover:bg-[#0056b3] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
                     Book Now
                   </div>
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -313,9 +315,9 @@ const Header = () => {
       </div>
 
       {/* Al final del header, renderiza los modales */}
-      <LoginModal 
-        open={showLogin} 
-        onClose={() => setShowLogin(false)} 
+      <LoginModal
+        open={showLogin}
+        onClose={() => setShowLogin(false)}
         initialMode="login"
         onLoginSuccess={(user) => {
           clearCart();
@@ -325,11 +327,11 @@ const Header = () => {
             setShowTeacherLoading(true);
             router.replace("/myschedule");
           }
-        }} 
+        }}
       />
-      <LoginModal 
-        open={showRegister} 
-        onClose={() => setShowRegister(false)} 
+      <LoginModal
+        open={showRegister}
+        onClose={() => setShowRegister(false)}
         initialMode="register"
         onLoginSuccess={(user) => {
           clearCart();
@@ -339,13 +341,17 @@ const Header = () => {
             setShowTeacherLoading(true);
             router.replace("/myschedule");
           }
-        }} 
+        }}
       />
       {showTeacherLoading && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80">
           <LoadingSpinner />
         </div>
       )}
+      <BookNowModal
+        isOpen={showBookNowModal}
+        onClose={() => setShowBookNowModal(false)}
+      />
     </header>
   );
 };
