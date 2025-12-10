@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import LocationMap from "./LocationMap";
 import { useRouter } from 'next/navigation';
+import BookNowModal from "@/components/BookNowModal";
 
 interface Instructor {
   _id: string;
@@ -28,6 +29,7 @@ const LocationPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState("(561) 969-0150");
+  const [showBookNowModal, setShowBookNowModal] = useState(false);
 
   // Cargar número de teléfono desde la base de datos
   useEffect(() => {
@@ -46,13 +48,13 @@ const LocationPage: React.FC = () => {
     const fetchLocation = async () => {
       try {
         const res = await fetch("/api/locations");
-        
+
         if (!res.ok) {
           throw new Error(`HTTP error! Status: ${res.status}`);
         }
-    
+
         const data: Zone[] = await res.json();
-    
+
         if (data.length > 0) {
           setLocation(data[0]); // 📌 Verifica que esto se ejecuta
           setZones(data);
@@ -63,8 +65,8 @@ const LocationPage: React.FC = () => {
         setLoading(false);
       }
     };
-    
-    
+
+
 
     fetchLocation();
   }, []);
@@ -72,7 +74,7 @@ const LocationPage: React.FC = () => {
   const handleZoneClick = (zone: Zone) => {
     router.push(`/locations/${zone.slug || zone._id}`);
   };
-  
+
 
   return (
     <section className="bg-gray-100 pt-[150px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
@@ -99,7 +101,7 @@ const LocationPage: React.FC = () => {
                       {location.title}
                     </p>
                   </div>
-                  
+
                   <div className="text-gray-700 mb-6 space-y-3">
                     <div className="flex items-center">
                       <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-3">
@@ -144,7 +146,7 @@ const LocationPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                       <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-3">
@@ -170,12 +172,12 @@ const LocationPage: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                  
-                  <button className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg flex items-center justify-center" onClick={() => window.location.href = '/Book-Now'}>
+
+                  <button className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg flex items-center justify-center" onClick={() => setShowBookNowModal(true)}>
                     <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                     </svg>
-                    Book Your Lesson Now
+                    Book Now
                   </button>
                 </div>
               </div>
@@ -194,8 +196,8 @@ const LocationPage: React.FC = () => {
                   Areas We Serve
                 </h3>
                 <p className="text-gray-600 max-w-3xl mx-auto">
-                  While our main office is located in West Palm Beach, we provide driving lessons 
-                  throughout the following areas. Our certified instructors will meet 
+                  While our main office is located in West Palm Beach, we provide driving lessons
+                  throughout the following areas. Our certified instructors will meet
                   you at convenient locations within these zones.
                 </p>
               </div>
@@ -230,6 +232,10 @@ const LocationPage: React.FC = () => {
           )
         )}
       </div>
+      <BookNowModal
+        isOpen={showBookNowModal}
+        onClose={() => setShowBookNowModal(false)}
+      />
     </section>
   );
 };

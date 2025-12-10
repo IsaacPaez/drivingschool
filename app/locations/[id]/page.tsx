@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { FaArrowLeft } from "react-icons/fa";
+import BookNowModal from "@/components/BookNowModal";
 
 interface Instructor {
   _id: string;
@@ -30,6 +31,7 @@ const LocationDetailPage: React.FC = () => {
   const [locationData, setLocationData] = useState<Zone | null>(null);
   const [loading, setLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState("(561) 969-0150");
+  const [showBookNowModal, setShowBookNowModal] = useState(false);
 
   // Cargar número de teléfono desde la base de datos
   useEffect(() => {
@@ -147,9 +149,9 @@ const LocationDetailPage: React.FC = () => {
                 <div className="flex items-start gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
                   <span className="inline-block w-6 h-6 flex-shrink-0 mt-1">
                     <svg width="24" height="24" fill="none" viewBox="0 0 20 20">
-                      <circle cx="10" cy="10" r="9" stroke="#1A7F5A" strokeWidth="2"/>
-                      <path d="M10 4C7.23858 4 5 6.23858 5 9C5 12.75 10 17 10 17C10 17 15 12.75 15 9C15 6.23858 12.7614 4 10 4Z" fill="#1A7F5A"/>
-                      <circle cx="10" cy="9" r="2" fill="white"/>
+                      <circle cx="10" cy="10" r="9" stroke="#1A7F5A" strokeWidth="2" />
+                      <path d="M10 4C7.23858 4 5 6.23858 5 9C5 12.75 10 17 10 17C10 17 15 12.75 15 9C15 6.23858 12.7614 4 10 4Z" fill="#1A7F5A" />
+                      <circle cx="10" cy="9" r="2" fill="white" />
                     </svg>
                   </span>
                   <div className="flex-1">
@@ -166,8 +168,8 @@ const LocationDetailPage: React.FC = () => {
                 <div className="flex items-start gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
                   <span className="inline-block w-6 h-6 flex-shrink-0 mt-1">
                     <svg width="24" height="24" fill="none" viewBox="0 0 20 20">
-                      <rect x="2" y="4" width="16" height="12" rx="2" fill="#1A7F5A"/>
-                      <path d="M2 4L10 12L18 4" stroke="white" strokeWidth="2"/>
+                      <rect x="2" y="4" width="16" height="12" rx="2" fill="#1A7F5A" />
+                      <path d="M2 4L10 12L18 4" stroke="white" strokeWidth="2" />
                     </svg>
                   </span>
                   <div className="flex-1">
@@ -224,17 +226,21 @@ const LocationDetailPage: React.FC = () => {
 
             {/* Book Now Button */}
             <button
-              onClick={() => router.push('/Book-Now')}
+              onClick={() => setShowBookNowModal(true)}
               className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 sm:py-5 rounded-xl transition shadow-lg text-lg flex items-center justify-center gap-3 transform hover:scale-[1.02] duration-200"
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
               </svg>
-              Book Your Lesson Now
+              Book Now
             </button>
           </div>
         </motion.div>
       </div>
+      <BookNowModal
+        isOpen={showBookNowModal}
+        onClose={() => setShowBookNowModal(false)}
+      />
     </section>
   );
 };
