@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReCAPTCHA from "react-google-recaptcha";
 
 interface LoginModalProps {
@@ -17,12 +17,13 @@ interface LoginModalProps {
 export default function LoginModal({
   open,
   onClose,
-  initialMode = "login",
+  initialMode = "register",
   onLoginSuccess,
 }: LoginModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<
@@ -75,6 +76,13 @@ export default function LoginModal({
   const [emailCheckTimeout, setEmailCheckTimeout] =
     useState<NodeJS.Timeout | null>(null);
 
+  // Actualizar mode cuando se abre el modal
+  useEffect(() => {
+    if (open) {
+      setMode(initialMode);
+    }
+  }, [open, initialMode]);
+
   // Función para resetear todos los estados del modal
   const resetAllStates = () => {
     // Reset login states
@@ -83,7 +91,7 @@ export default function LoginModal({
     setError("");
     setLoading(false);
     setStep("login");
-    setMode("login");
+    setMode("register");
 
     // Reset register states
     setRegisterForm({
@@ -372,7 +380,6 @@ export default function LoginModal({
     if (
       !registerForm.firstName ||
       !registerForm.lastName ||
-      !registerForm.secondaryPhoneNumber ||
       !registerForm.phoneNumber ||
       !registerForm.birthYear ||
       !registerForm.birthMonth ||
@@ -598,24 +605,44 @@ export default function LoginModal({
                   className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
                   required
                 />
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="Password"
-                  value={registerForm.password}
-                  onChange={handleRegisterChange}
-                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
-                  required
-                />
-                <input
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Confirm Password"
-                  value={registerForm.confirmPassword}
-                  onChange={handleRegisterChange}
-                  className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm md:text-base"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={registerForm.password}
+                    onChange={handleRegisterChange}
+                    className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 pr-12 text-gray-900 w-full focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800 text-xs font-medium"
+                    onClick={() => setShowPassword((v) => !v)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm Password"
+                    value={registerForm.confirmPassword}
+                    onChange={handleRegisterChange}
+                    className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 pr-14 text-gray-900 w-full focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm md:text-base [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800 text-xs font-medium"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
                 {registerError && (
                   <div className="text-red-600 text-center text-xs sm:text-sm">
                     {registerError}
@@ -680,11 +707,10 @@ export default function LoginModal({
                 />
                 <input
                   name="secondaryPhoneNumber"
-                  placeholder="Phone Number 2"
+                  placeholder="Phone Number 2 (optional)"
                   value={registerForm.secondaryPhoneNumber}
                   onChange={handleRegisterChange}
                   className="rounded-md sm:rounded-lg border border-gray-300 px-2 sm:px-3 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-xs sm:text-sm"
-                  required
                 />
 
                 {/* Birth Date - 3 separate fields */}
@@ -694,21 +720,20 @@ export default function LoginModal({
                   </label>
                   <div className="grid grid-cols-3 gap-1 sm:gap-2">
                     <select
-                      name="birthYear"
-                      value={registerForm.birthYear}
+                      name="birthDay"
+                      value={registerForm.birthDay}
                       onChange={handleRegisterChange}
-                      className="rounded-md sm:rounded-lg border border-gray-300 px-1 sm:px-2 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 bg-white text-xs sm:text-sm"
+                      className="rounded-md sm:rounded-lg border border-gray-300 px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 bg-white text-xs sm:text-sm md:text-base"
                       required
                     >
-                      <option value="">Year</option>
-                      {Array.from(
-                        { length: 80 },
-                        (_, i) => new Date().getFullYear() - 16 - i
-                      ).map((year) => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
+                      <option value="">Day</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                        (day) => (
+                          <option key={day} value={day}>
+                            {day.toString().padStart(2, "0")}
+                          </option>
+                        )
+                      )}
                     </select>
                     <select
                       name="birthMonth"
@@ -727,20 +752,21 @@ export default function LoginModal({
                       )}
                     </select>
                     <select
-                      name="birthDay"
-                      value={registerForm.birthDay}
+                      name="birthYear"
+                      value={registerForm.birthYear}
                       onChange={handleRegisterChange}
-                      className="rounded-md sm:rounded-lg border border-gray-300 px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 md:py-3 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 bg-white text-xs sm:text-sm md:text-base"
+                      className="rounded-md sm:rounded-lg border border-gray-300 px-1 sm:px-2 py-1.5 sm:py-2 text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 bg-white text-xs sm:text-sm"
                       required
                     >
-                      <option value="">Day</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                        (day) => (
-                          <option key={day} value={day}>
-                            {day.toString().padStart(2, "0")}
-                          </option>
-                        )
-                      )}
+                      <option value="">Year</option>
+                      {Array.from(
+                        { length: 80 },
+                        (_, i) => new Date().getFullYear() - 16 - i
+                      ).map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
