@@ -58,6 +58,8 @@ interface ScheduleTableProps {
   onCancelPendingSlot?: (slot: ScheduleEntry & { instructorId: string }) => void;
   onCancelBookedSlot?: (slot: ScheduleEntry & { instructorId: string; dateString: string }) => void;
   isProcessingSlots?: boolean;
+  products: Product[];
+  onProductSelect: (product: Product | null) => void;
 }
 
 export default function ScheduleTableImproved({
@@ -76,7 +78,9 @@ export default function ScheduleTableImproved({
   onAuthRequired,
   onCancelPendingSlot,
   onCancelBookedSlot,
-  isProcessingSlots = false
+  isProcessingSlots = false,
+  products,
+  onProductSelect
 }: ScheduleTableProps) {
 
   // Use instructors directly from props - SSE is handled in parent component
@@ -328,10 +332,28 @@ export default function ScheduleTableImproved({
   if (!selectedProduct) {
     return (
       <div className="w-full lg:w-2/3 mt-6 lg:mt-0">
-        <div className="text-center py-20">
-          <p className="text-gray-500 text-lg">
-            Please select a driving package to view available times.
-          </p>
+        <div className="flex flex-col items-center py-10">
+          <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
+            Available Driving Packages
+          </h3>
+          <div className="w-full max-w-md px-4">
+            <select
+              value=""
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const product = products.find(p => p._id === selectedId);
+                onProductSelect(product || null);
+              }}
+              className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-white text-black font-medium"
+            >
+              <option value="" className="text-black text-lg">Select a driving package...</option>
+              {products.map((product) => (
+                <option key={product._id} value={product._id} className="text-black text-lg">
+                  {product.title} - ${product.price} ({product.duration || 0} hrs)
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
     );

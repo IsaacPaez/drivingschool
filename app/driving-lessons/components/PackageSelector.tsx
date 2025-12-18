@@ -82,31 +82,6 @@ export default function PackageSelector({
         />
       </div>
 
-      {/* Available Driving Packages Title */}
-      <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
-        Available Driving Packages
-      </h3>
-
-      {/* Packages Dropdown */}
-      <div className="w-full mb-4">
-        <select
-          value={selectedProduct?._id || ""}
-          onChange={(e) => {
-            const selectedId = e.target.value;
-            const product = products.find(p => p._id === selectedId);
-            onProductSelect(product || null);
-          }}
-          className="w-full p-4 border-2 border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-white text-black font-medium"
-        >
-          <option value="" className="text-black text-lg">Select a driving package...</option>
-          {products.map((product) => (
-            <option key={product._id} value={product._id} className="text-black text-lg">
-              {product.title} - ${product.price} ({product.duration || 0} hrs)
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* Instructors */}
       <div className="w-full mb-6">
         <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
