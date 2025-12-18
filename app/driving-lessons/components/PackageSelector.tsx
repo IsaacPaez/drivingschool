@@ -82,7 +82,6 @@ export default function PackageSelector({
         />
       </div>
 
-
       {/* Available Driving Packages Title */}
       <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
         Available Driving Packages

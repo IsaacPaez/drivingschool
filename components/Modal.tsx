@@ -27,7 +27,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-2 sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modal"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40 p-2 sm:p-4"
       onClick={onClose}
       onTouchMove={(e) => e.stopPropagation()}
       style={{ overflow: 'hidden' }}

@@ -4,9 +4,11 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FaFacebook, FaInstagram, } from "react-icons/fa";
+import BookNowModal from "@/components/BookNowModal";
 
 const Footer = () => {
   const [phoneNumber, setPhoneNumber] = useState("(561) 969-0150");
+  const [showBookNowModal, setShowBookNowModal] = useState(false);
 
   // Cargar número de teléfono desde la base de datos
   useEffect(() => {
@@ -38,12 +40,14 @@ const Footer = () => {
           <h2 className="text-2xl font-extrabold tracking-widest text-white">
             Affordable Driving <br /> Traffic School
           </h2>
-          <Link
-            href="/Book-Now"
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); console.log('Footer Book Now clicked'); setShowBookNowModal(true); }}
+            aria-label="Open booking options"
             className="mt-6 bg-[#27ae60] text-white font-bold px-6 py-3 rounded-full transition-all duration-500 transform hover:scale-105 hover:shadow-lg hover:bg-[#219150]"
           >
             Book Now
-          </Link>
+          </button>
         </div>
 
         {/* 🔹 Sección Central - Navegación con efecto Glow */}
@@ -110,6 +114,8 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
+      <BookNowModal isOpen={showBookNowModal} onClose={() => setShowBookNowModal(false)} />
 
       {/* 🔹 Derechos de Autor (Centrado completamente en el contenedor) */}
       <div className="relative text-center text-gray-400 text-sm mt-10 pb-4 font-bold">

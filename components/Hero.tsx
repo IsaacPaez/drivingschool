@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import BookNowModal from "./BookNowModal";
 import Image from "next/image";
 import AnimatedCounter from "./AnimatedCounter";
 
 const Hero = () => {
+  const [modalOpen, setModalOpen] = useState(false);
   return (
     <section className="relative min-h-[100vh] flex items-center justify-start px-4 sm:px-6 md:px-12 pt-20 sm:pt-16 md:pt-8 lg:pt-0 overflow-hidden">
       {/* Imagen de fondo para móvil - Cloudinary optimizada */}
@@ -93,12 +95,15 @@ const Hero = () => {
         </div>
         {/* 📌 Botones */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-xl mb-8 sm:mb-12 md:mb-16">
-          <Link
-            href="/driving-lessons"
+          {/* Use a button to open the Book Now modal with the same options as the navbar */}
+          <button
+            type="button"
+            aria-label="Open booking options"
+            onClick={() => setModalOpen(true)}
             className="bg-[#4CAF50] text-white text-base sm:text-lg md:text-xl px-4 sm:px-6 py-3 sm:py-4 rounded-full border-white hover:bg-[#0056b3] text-center transition-all shadow-lg hover:shadow-xl"
           >
             Book Driving Lessons
-          </Link>
+          </button>
           <Link
             href="/classes"
             className="bg-[#4CAF50] text-white text-base sm:text-lg md:text-xl px-4 sm:px-6 py-3 sm:py-4 rounded-full border-white hover:bg-[#0056b3] text-center transition-all shadow-lg hover:shadow-xl"
@@ -106,6 +111,8 @@ const Hero = () => {
             Book a Traffic Ticket Class
           </Link>
         </div>
+        {/* Modal */}
+        <BookNowModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
       </div>
     </section>
   );

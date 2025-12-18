@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface Lesson {
   _id: string;
@@ -15,6 +16,34 @@ interface Lesson {
 
 const DrivingLessons = ({ category }: { category: string }) => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const router = useRouter();
+
+  const handleButtonClick = (lesson: Lesson) => {
+    try {
+      const isBooking = lesson.buttonLabel?.toLowerCase().includes("book");
+
+      // Save selected package to localStorage for preselection
+      localStorage.setItem('selectedPackage', JSON.stringify({
+        id: lesson._id,
+        title: lesson.title
+      }));
+
+      console.log(`Button clicked for: ${lesson.title}, Type: ${isBooking ? 'BOOK' : 'BUY'}`);
+
+      if (isBooking) {
+        // If it's "Book now!" - redirect to driving lessons page to schedule
+        console.log('Redirecting to /driving-lessons');
+        window.location.href = '/driving-lessons';
+      } else {
+        // If it's "Buy now" - add to cart and redirect to checkout
+        console.log('Adding to cart and redirecting to checkout');
+        // Add product to cart (you may need to implement this)
+        window.location.href = '/checkout';
+      }
+    } catch (error) {
+      console.error('Error handling button click:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchLessons = async () => {
@@ -83,7 +112,7 @@ const DrivingLessons = ({ category }: { category: string }) => {
                   <button
                     type="button"
                     className="w-full bg-[#0056b3] text-white font-extrabold text-sm py-3 px-4 rounded-full shadow-md hover:bg-[#27ae60] hover:shadow-lg transition-all duration-200 active:scale-95 border-none flex-shrink-0 min-h-[48px] flex items-center justify-center"
-                    onClick={() => {}}
+                    onClick={() => handleButtonClick(lesson)}
                   >
                     {lesson.buttonLabel || (isBooking ? "Book now!" : "Add to Cart")}
                   </button>
