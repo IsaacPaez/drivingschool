@@ -977,6 +977,8 @@ function DrivingLessonsContent() {
           onCancelPendingSlot={handleCancelPendingSlot}
           onCancelBookedSlot={handleCancelBookedSlot}
           isProcessingSlots={isProcessingSlots}
+          products={products}
+          onProductSelect={handleProductSelect}
           key={`schedule-${Date.now()}`}
         />
       </div>
