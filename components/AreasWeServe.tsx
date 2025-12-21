@@ -17,7 +17,9 @@ interface Area {
 
 const AreasWeServe = () => {
   const [areas, setAreas] = useState<Area[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
   const router = useRouter();
+  const itemsPerPage = 4;
 
   useEffect(() => {
     const fetchAreas = async () => {
@@ -33,6 +35,19 @@ const AreasWeServe = () => {
     };
     fetchAreas();
   }, []);
+
+  const totalPages = Math.ceil(areas.length / itemsPerPage);
+  const startIndex = currentPage * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentAreas = areas.slice(startIndex, endIndex);
+
+  const handlePrevious = () => {
+    setCurrentPage((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
+  };
 
   // Fondo blanco puro y layout premium
   return (
@@ -73,40 +88,88 @@ const AreasWeServe = () => {
             </div>
           )}
 
-          {/* Si hay varias zonas, mostrar como grid con máximo 2 por fila */}
+          {/* Si hay varias zonas, mostrar como carrusel con 4 a la vez */}
           {areas.length > 1 && (
-            <div className="w-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full">
-                {areas.map((area) => (
-                  <div
-                    key={area._id}
-                    className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col items-center hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 cursor-pointer group min-h-[300px] max-h-[350px]"
-                    onClick={() => {
-                      const locationSlug = area.slug || area._id;
-                      router.push(`/locations/${locationSlug}`);
-                    }}
+            <div className="w-full relative">
+              {/* Contenedor del carrusel */}
+              <div className="relative">
+                {/* Flecha izquierda */}
+                {totalPages > 1 && currentPage > 0 && (
+                  <button
+                    onClick={handlePrevious}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-white rounded-full p-3 shadow-lg border-2 border-[#27ae60] hover:bg-green-50 hover:scale-110 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+                    aria-label="Previous locations"
                   >
-                    <div className="w-12 h-12 mb-3 flex items-center justify-center bg-[#F5F6FA] rounded-full group-hover:bg-green-100 transition">
-                      <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="16" cy="16" r="15" fill="#F5F6FA" stroke="#1A7F5A" strokeWidth="2"/>
-                        <path d="M16 8C12.6863 8 10 10.6863 10 14C10 18.25 16 24 16 24C16 24 22 18.25 22 14C22 10.6863 19.3137 8 16 8Z" fill="#1A7F5A"/>
-                        <circle cx="16" cy="14" r="3" fill="white"/>
-                      </svg>
+                    <svg className="w-6 h-6 text-[#27ae60]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                )}
+
+                {/* Grid de 4 ubicaciones */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 w-full">
+                  {currentAreas.map((area) => (
+                    <div
+                      key={area._id}
+                      className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 flex flex-col items-center hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group min-h-[240px] max-h-[280px]"
+                      onClick={() => {
+                        const locationSlug = area.slug || area._id;
+                        router.push(`/locations/${locationSlug}`);
+                      }}
+                    >
+                      <div className="w-10 h-10 mb-2 flex items-center justify-center bg-[#F5F6FA] rounded-full group-hover:bg-green-100 transition">
+                        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="16" cy="16" r="15" fill="#F5F6FA" stroke="#1A7F5A" strokeWidth="2"/>
+                          <path d="M16 8C12.6863 8 10 10.6863 10 14C10 18.25 16 24 16 24C16 24 22 18.25 22 14C22 10.6863 19.3137 8 16 8Z" fill="#1A7F5A"/>
+                          <circle cx="16" cy="14" r="3" fill="white"/>
+                        </svg>
+                      </div>
+                      <h3 className="text-base font-bold text-[#1A7F5A] mb-2 text-center leading-tight">{area.zone}</h3>
+                      <p className="text-gray-600 text-xs text-center mb-3 flex-grow leading-relaxed line-clamp-3 overflow-hidden">
+                        {area.description?.slice(0, 100) || 'Driving lessons available here.'}
+                        {area.description && area.description.length > 100 ? '...' : ''}
+                      </p>
+                      <button className="mt-auto flex items-center gap-2 border-2 border-[#27ae60] text-[#27ae60] font-bold py-2 px-4 rounded-full bg-white shadow hover:bg-green-50 hover:shadow-lg hover:border-[#1A7F5A] hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 text-xs">
+                        <svg xmlns='http://www.w3.org/2000/svg' className='h-3 w-3' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2} style={{minWidth: '0.75rem'}}>
+                          <path strokeLinecap='round' strokeLinejoin='round' d='M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z' />
+                        </svg>
+                        View Details
+                      </button>
                     </div>
-                    <h3 className="text-lg font-bold text-[#1A7F5A] mb-3 text-center leading-tight">{area.zone}</h3>
-                    <p className="text-gray-600 text-sm text-center mb-4 flex-grow leading-relaxed line-clamp-3 overflow-hidden">
-                      {area.description?.slice(0, 100) || 'Driving lessons available here.'}
-                      {area.description && area.description.length > 100 ? '...' : ''}
-                    </p>
-                    <button className="mt-auto flex items-center gap-2 border-2 border-[#27ae60] text-[#27ae60] font-bold py-2.5 px-5 rounded-full bg-white shadow hover:bg-green-50 hover:shadow-lg hover:border-[#1A7F5A] hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 text-sm">
-                      <svg xmlns='http://www.w3.org/2000/svg' className='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2} style={{minWidth: '1rem'}}>
-                        <path strokeLinecap='round' strokeLinejoin='round' d='M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z' />
-                      </svg>
-                      View Details
-                    </button>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                {/* Flecha derecha */}
+                {totalPages > 1 && currentPage < totalPages - 1 && (
+                  <button
+                    onClick={handleNext}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-white rounded-full p-3 shadow-lg border-2 border-[#27ae60] hover:bg-green-50 hover:scale-110 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+                    aria-label="Next locations"
+                  >
+                    <svg className="w-6 h-6 text-[#27ae60]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
               </div>
+
+              {/* Indicadores de página */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-6">
+                  {Array.from({ length: totalPages }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentPage(index)}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        index === currentPage
+                          ? 'bg-[#27ae60] scale-125'
+                          : 'bg-gray-300 hover:bg-gray-400'
+                      }`}
+                      aria-label={`Go to page ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
