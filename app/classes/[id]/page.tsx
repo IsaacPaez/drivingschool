@@ -9,11 +9,12 @@ import { FaArrowLeft } from "react-icons/fa";
 interface Class {
   _id: string;
   title: string;
-  alsoKnownAs?: string[];
+  alsoKnownAs?: string[]; // Deprecated
   image?: string;
   length?: number;
   price?: number;
-  overview: string;
+  overview?: string; // Deprecated
+  description?: string; // New combined field with HTML content
   objectives?: string[];
   contact?: string;
   buttonLabel?: string;
@@ -129,20 +130,35 @@ const ClassDetailPage: React.FC = () => {
           <div className="p-10">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">{classData.title}</h1>
 
-            {/* Also Known As */}
-            {(classData.alsoKnownAs?.length ?? 0) > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Also known as:</h3>
-                <ul className="list-disc pl-5 text-gray-700">
-                  {classData.alsoKnownAs?.map((item, index) => (
-                    <li key={index} className="mb-1">{item}</li>
-                  ))}
-                </ul>
-              </div>
+            {/* Description - HTML content from database */}
+            {classData.description && (
+              <div
+                className="prose max-w-none text-gray-700 leading-relaxed mb-6"
+                dangerouslySetInnerHTML={{ __html: classData.description }}
+              />
             )}
 
-            {/* Overview */}
-            <p className="text-lg text-gray-700 leading-relaxed mb-6">{classData.overview}</p>
+            {/* Fallback to old fields if description doesn't exist */}
+            {!classData.description && (
+              <>
+                {/* Also Known As */}
+                {(classData.alsoKnownAs?.length ?? 0) > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Also known as:</h3>
+                    <ul className="list-disc pl-5 text-gray-700">
+                      {classData.alsoKnownAs?.map((item, index) => (
+                        <li key={index} className="mb-1">{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Overview */}
+                {classData.overview && (
+                  <p className="text-lg text-gray-700 leading-relaxed mb-6">{classData.overview}</p>
+                )}
+              </>
+            )}
 
             {/* Price and Duration */}
             <div className="flex gap-4 mb-6">
