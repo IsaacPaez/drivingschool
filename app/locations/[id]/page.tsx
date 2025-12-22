@@ -21,6 +21,7 @@ interface Zone {
   description?: string;
   instructors?: Instructor[];
   instructorsDetails?: Instructor[];
+  content?: string; // Contenido rico en HTML
 }
 
 const LocationDetailPage: React.FC = () => {
@@ -125,23 +126,37 @@ const LocationDetailPage: React.FC = () => {
           </div>
 
           {/* Content */}
-          <div className="px-6 sm:px-8 lg:px-12 py-10">
-            {/* Location Image */}
-            {locationData.locationImage && (
-              <div className="w-full flex items-center justify-center mb-10">
-                <div className="w-48 h-48 sm:w-56 sm:h-56 relative">
-                  <Image
-                    src={locationData.locationImage}
-                    alt={locationData.title}
-                    fill
-                    className="object-contain"
-                  />
+          <div className="px-6 sm:px-8 lg:px-12 pt-6 pb-2">
+
+
+            {locationData.content && (
+              <div className="mb-4">
+                <div className="max-w-7xl mx-auto px-4 pb-4">
+                  <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
+                    {locationData.locationImage && (
+                      <div className="mb-6 flex justify-center">
+                        <div className="relative w-full max-w-2xl h-[200px] sm:h-[300px] rounded-xl overflow-hidden">
+                          <Image
+                            src={locationData.locationImage}
+                            alt={locationData.title}
+                            fill
+                            className="object-contain"
+                            priority
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div
+                      className="prose max-w-none"
+                      dangerouslySetInnerHTML={{ __html: locationData.content }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Location Info Card */}
-            <div className="mb-10 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8 border border-gray-200">
+            <div className="mb-10 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8 border border-gray-200 mt-2">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Location Info</h2>
 
               {/* Contact Information */}
@@ -207,6 +222,8 @@ const LocationDetailPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+
 
             {/* Map */}
             <div className="mb-10">
