@@ -128,24 +128,32 @@ const LocationDetailPage: React.FC = () => {
           {/* Content */}
           <div className="px-6 sm:px-8 lg:px-12 pt-6 pb-2">
 
+            {/* Logo - Always visible */}
+            {locationData.locationImage && (
+              <div className="mb-4">
+                <div className="max-w-7xl mx-auto px-4 pb-4">
+                  <div className="rounded-2xl p-8">
+                    <div className="mb-6 flex justify-center">
+                      <div className="relative w-full max-w-2xl h-[200px] sm:h-[300px] rounded-xl overflow-hidden">
+                        <Image
+                          src={locationData.locationImage}
+                          alt={locationData.title}
+                          fill
+                          className="object-contain"
+                          priority
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
+            {/* Content - Only if exists */}
             {locationData.content && (
               <div className="mb-4">
                 <div className="max-w-7xl mx-auto px-4 pb-4">
-                  <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
-                    {locationData.locationImage && (
-                      <div className="mb-6 flex justify-center">
-                        <div className="relative w-full max-w-2xl h-[200px] sm:h-[300px] rounded-xl overflow-hidden">
-                          <Image
-                            src={locationData.locationImage}
-                            alt={locationData.title}
-                            fill
-                            className="object-contain"
-                            priority
-                          />
-                        </div>
-                      </div>
-                    )}
+                  <div className="rounded-2xl p-8">
                     <div
                       className="prose max-w-none"
                       dangerouslySetInnerHTML={{ __html: locationData.content }}
