@@ -3,6 +3,33 @@ body {
   font-family: var(--font-poppins), system-ui, -apple-system, sans-serif;
 }
 
+/* Force black bullets for lists in class descriptions */
+.prose ul li::marker,
+.prose ol li::marker {
+  color: #000 !important;
+}
+
+/* Custom button links from TipTap editor */
+.custom-button-link {
+  display: inline-block !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: all 0.2s !important;
+  margin: 0.5rem 0 !important;
+  cursor: pointer !important;
+}
+
+/* Ensure button text color is preserved - force all children to inherit */
+.custom-button-link,
+.custom-button-link *,
+.custom-button-link strong,
+.custom-button-link span,
+.custom-button-link p {
+  color: inherit !important;
+}
+
 .react-calendar__navigation button,
 .react-calendar__navigation span,
 .react-calendar__month-view__weekdays__weekday,
