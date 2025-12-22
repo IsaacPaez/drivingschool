@@ -32,7 +32,19 @@ export default {
       },
       rotate: {
         'y-180': 'rotateY(180deg)',
-      }
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            'ul > li::marker': {
+              color: '#000',
+            },
+            'ol > li::marker': {
+              color: '#000',
+            },
+          },
+        },
+      },
     },
   },
   plugins: [

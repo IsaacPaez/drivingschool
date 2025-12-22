@@ -3,6 +3,12 @@ body {
   font-family: var(--font-poppins), system-ui, -apple-system, sans-serif;
 }
 
+/* Force black bullets for lists in class descriptions */
+.prose ul li::marker,
+.prose ol li::marker {
+  color: #000 !important;
+}
+
 .react-calendar__navigation button,
 .react-calendar__navigation span,
 .react-calendar__month-view__weekdays__weekday,

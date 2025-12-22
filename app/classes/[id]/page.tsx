@@ -133,7 +133,7 @@ const ClassDetailPage: React.FC = () => {
             {/* Description - HTML content from database */}
             {classData.description && (
               <div
-                className="prose max-w-none text-gray-700 leading-relaxed mb-6"
+                className="prose max-w-none text-gray-700 leading-relaxed mb-6 [&_ul]:list-disc [&_ul]:pl-5 [&_ul_li]:text-gray-700 [&_ul]:marker:!text-black [&_ol]:marker:!text-black"
                 dangerouslySetInnerHTML={{ __html: classData.description }}
               />
             )}
