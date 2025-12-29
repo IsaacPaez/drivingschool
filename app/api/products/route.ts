@@ -17,33 +17,21 @@ async function connectDatabase() {
   }
 }
 
-export async function GET(request: NextRequest | Request) {
+export async function GET() {
   try {
     await connectDatabase();
-    
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
-    
-    console.log('🔍 Fetching products with category:', category);
-    
-    let products;
 
-    if (category) {
-      products = await Product.find({ category })
-        .select('title description price buttonLabel category duration media')
-        .sort({ title: 1 })
-        .lean();
-    } else {
-      products = await Product.find()
-        .select('title description price buttonLabel category duration media')
-        .sort({ title: 1 })
-        .lean();
-    }
-    
+    console.log('🔍 Fetching all products');
+
+    const products = await Product.find()
+      .select('title description price buttonLabel tag duration media')
+      .sort({ title: 1 })
+      .lean();
+
     console.log('📦 Products found:', products.length);
-    
+
     return NextResponse.json(products);
-    
+
   } catch (error) {
     console.error('❌ Error fetching products:', error);
     return NextResponse.json(

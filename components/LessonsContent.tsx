@@ -15,7 +15,7 @@ const poppins = Poppins({
 });
 
 const LessonsContent = () => {
-  const lessons = useDrivingLessons("Road Skills for Life");
+  const lessons = useDrivingLessons();
 
   return (
     <section className={`${poppins.variable} bg-[#f5f5f5] py-24 px-8 relative`}>

@@ -18,7 +18,7 @@ const poppins = Poppins({
 });
 
 const LessonsPage = () => {
-  const lessons = useDrivingLessons("Road Skills for Life");
+  const lessons = useDrivingLessons();
 
   return (
     <section className={clsx(poppins.variable, "bg-[#f5f5f5] py-20 px-4 relative")}> 
@@ -248,7 +248,7 @@ const LessonsPage = () => {
                         itemId: lesson._id,
                         title: lesson.title,
                         price: lesson.price,
-                        category: lesson.category, // Pasar categoría
+                        tag: lesson.tag, // Pasar tag opcional
                         duration: lesson.duration, // Pasar duración
                       }}
                       label={lesson.buttonLabel || "Add to Cart"}

@@ -13,7 +13,7 @@ export default function StudentsHome() {
       <Hero />
       <Body />
       <Learn />
-      <DrivingLessons category="General" />
+      <DrivingLessons />
       <TrafficCourses />
       <Resources />
       <AreasWeServe />

@@ -6,7 +6,7 @@ const ProductSchema = new mongoose.Schema(
     description: String,
     price: Number,
     buttonLabel: String,
-    category: String,
+    tag: String, // Etiqueta decorativa opcional (ej: "OFERTAS", "NUEVO")
     duration: Number, // Campo para las horas del paquete
     media: [String], // Asegura que el array de imágenes sea reconocido
   },

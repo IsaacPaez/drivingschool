@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
 interface Lesson {
   _id: string;
@@ -11,12 +10,12 @@ interface Lesson {
   price: number;
   buttonLabel?: string;
   media?: string[];
+  tag?: string;
   type: "buy" | "book";
 }
 
-const DrivingLessons = ({ category }: { category: string }) => {
+const DrivingLessons = () => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const router = useRouter();
 
   const handleButtonClick = (lesson: Lesson) => {
     try {
@@ -48,7 +47,7 @@ const DrivingLessons = ({ category }: { category: string }) => {
   useEffect(() => {
     const fetchLessons = async () => {
       try {
-        const response = await fetch(`/api/products?category=${category}`);
+        const response = await fetch('/api/products');
         const data = await response.json();
         setLessons(data);
       } catch (error) {
@@ -57,7 +56,7 @@ const DrivingLessons = ({ category }: { category: string }) => {
     };
 
     fetchLessons();
-  }, [category]);
+  }, []);
 
   return (
     <section className="bg-white py-6 px-4">
@@ -76,9 +75,11 @@ const DrivingLessons = ({ category }: { category: string }) => {
                   key={lesson._id}
                   className="relative w-full max-w-[320px] sm:max-w-[340px] min-h-[400px] bg-white rounded-2xl border-2 border-[#0056b3] shadow-lg flex flex-col items-center px-5 py-6 group transition-transform duration-300 hover:-translate-y-3 hover:shadow-2xl"
                 >
-                  {/* Banda Best Seller */}
-                  {lesson.title?.toLowerCase().includes("pack") && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#27ae60] text-white text-xs font-bold px-3 py-1 rounded-full shadow z-20 border-2 border-white whitespace-nowrap">Best Seller</span>
+                  {/* Banda de Tag (si existe) */}
+                  {lesson.tag && lesson.tag.trim() !== "" && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#27ae60] text-white text-xs font-bold px-3 py-1 rounded-full shadow z-20 border-2 border-white whitespace-nowrap uppercase">
+                      {lesson.tag}
+                    </span>
                   )}
                   {/* Imagen/Icono circular */}
                   <div className="w-20 h-20 mb-4 flex items-center justify-center rounded-full border-4 border-[#0056b3] bg-white overflow-hidden shadow-sm flex-shrink-0">

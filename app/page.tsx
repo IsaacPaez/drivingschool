@@ -32,7 +32,7 @@ export default function Home() {
         <Hero />
         <Body />
         <Learn />
-        <DrivingLessons category="General" />
+        <DrivingLessons />
         <TrafficCourses />
         <Resources />
         <AreasWeServe />

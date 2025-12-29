@@ -8,18 +8,18 @@ interface Lesson {
   description: string;
   price: number;
   buttonLabel?: string;
-  category?: string;
+  tag?: string;
   duration?: number; // Agregamos duración para mostrar horas
   media?: string[];
 }
 
-const useDrivingLessons = (category: string) => {
+const useDrivingLessons = () => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
 
   useEffect(() => {
     const fetchLessons = async () => {
       try {
-        const response = await fetch(`/api/products?category=${category}`);
+        const response = await fetch('/api/products');
         if (!response.ok) throw new Error("Failed to fetch lessons");
         const data = await response.json();
         setLessons(data);
@@ -29,7 +29,7 @@ const useDrivingLessons = (category: string) => {
     };
 
     fetchLessons();
-  }, [category]);
+  }, []);
 
   return lessons;
 };

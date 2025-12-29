@@ -12,7 +12,7 @@ interface AuthenticatedButtonActionData {
   itemId?: string;
   title?: string;
   price?: number;
-  category?: string; // Agregamos categoría para identificar paquetes
+  tag?: string; // Tag decorativo opcional
   duration?: number; // Agregamos duración para mostrar horas del paquete
   // ...otros campos que necesites
 }
@@ -42,25 +42,24 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
     switch (type) {
       case "buy":
         // Verificar si es un paquete que debe ir a la página de scheduling
-        const isPackage = actionData.category === "Road Skills for Life" || 
-                         actionData.title?.toLowerCase().includes("hour") ||
+        const isPackage = actionData.title?.toLowerCase().includes("hour") ||
                          actionData.title?.toLowerCase().includes("pack") ||
-                         label.toLowerCase().includes("buy") && 
+                         label.toLowerCase().includes("buy") &&
                          (label.toLowerCase().includes("hour") || label.toLowerCase().includes("pack"));
-        
+
         if (isPackage) {
           // Redirigir a la página de driving-lessons en lugar de Calendly externo
           console.log('🎯 Redirecting package to driving-lessons page:', actionData.title);
-          
+
           // Guardar información del paquete seleccionado en localStorage para la página
           localStorage.setItem('selectedPackage', JSON.stringify({
             id: actionData.itemId,
             title: actionData.title,
             price: actionData.price,
             duration: actionData.duration,
-            category: actionData.category
+            tag: actionData.tag
           }));
-          
+
           // Redirigir a la página de driving-lessons
           router.push('/driving-lessons');
           return;
