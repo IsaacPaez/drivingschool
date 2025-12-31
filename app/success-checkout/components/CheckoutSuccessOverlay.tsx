@@ -121,9 +121,8 @@ function CheckoutSuccessOverlay({
     >
       {/* Efecto de ondas concentricas desde el centro */}
       <div
-        className={`absolute inset-0 ${
-          expand ? "animate-rippleEffect" : ""
-        }`}
+        className={`absolute inset-0 ${expand ? "animate-rippleEffect" : ""
+          }`}
         aria-hidden="true"
       >
         {/* Ondas múltiples para mejor efecto visual */}
@@ -132,7 +131,7 @@ function CheckoutSuccessOverlay({
       </div>
       {/* Contenido central animado */}
       {showContent && (
-        <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-md px-6 py-12 animate-fadeInContent">
+        <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-md px-6 py-8 animate-fadeInContent">
           {/* Ícono animado (video MP4) */}
           <div className="flex justify-center w-full mb-2">
             <video
@@ -142,7 +141,7 @@ function CheckoutSuccessOverlay({
               controls={false}
               loop
               muted
-              className="w-42 h-42 object-contain rounded-full shadow-2xl border-4 border-white"
+              className="w-28 h-28 object-contain rounded-full shadow-2xl border-4 border-white"
               aria-label="Animación de éxito"
               style={{ boxShadow: "0 4px 32px #00904755" }}
             >
@@ -155,7 +154,7 @@ function CheckoutSuccessOverlay({
             <h2
               id={headingId}
               tabIndex={-1}
-              className="text-white text-3xl md:text-4xl font-extrabold outline-none animate-riseFade drop-shadow-lg mb-2"
+              className="text-white text-2xl md:text-3xl font-extrabold outline-none animate-riseFade drop-shadow-lg mb-2"
               style={{ letterSpacing: "-1px" }}
             >
               {content.title}
@@ -175,13 +174,13 @@ function CheckoutSuccessOverlay({
               </div>
               <h3 className="text-white text-xl font-bold mb-1">{content.thankYou}</h3>
               <p className="text-white/80 text-sm">
-                {locale === "en" 
+                {locale === "en"
                   ? "Your booking has been confirmed and you will receive a confirmation email shortly."
                   : "Tu reserva ha sido confirmada y recibirás un email de confirmación en breve."
                 }
               </p>
             </div>
-            
+
             <div className="space-y-2 text-sm">
               <div className="flex justify-between items-center text-white/90">
                 <span>{locale === "en" ? "Status:" : "Estado:"}</span>
@@ -215,7 +214,7 @@ function CheckoutSuccessOverlay({
               // Execute close handler
               if (onClose) onClose();
             }}
-            className="mt-6 px-8 py-4 rounded-xl bg-white text-[#009047] text-lg font-bold shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#009047] transition-all duration-150 hover:bg-[#e6ffe6] hover:scale-105 transform active:scale-95"
+            className="mt-6 px-6 py-3 rounded-xl bg-white text-[#009047] text-base md:text-lg font-bold shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#009047] transition-all duration-150 hover:bg-[#e6ffe6] hover:scale-105 transform active:scale-95"
             data-testid="checkout-success-continue"
             style={{ boxShadow: "0 4px 24px #00904733" }}
           >
