@@ -77,9 +77,23 @@ const LocationInput: React.FC<LocationInputProps> = ({
       <style jsx global>{`
         /* Override Google Map Element Variables for "Light Mode" look */
         gmp-place-autocomplete {
+          /* Force standard light mode */
+          color-scheme: light; 
+
+          /* Background colors */
           --gmp-px-color-surface: #ffffff;
-          --gmp-px-color-on-surface: #1f2937; /* gray-800 */
-          --gmp-px-color-on-surface-variant: #6b7280; /* gray-500 */
+          --gmp-px-color-surface-variant: #f3f4f6;
+          
+          /* Text colors - Forcing pure black/dark for visibility */
+          --gmp-px-color-on-surface: #000000;
+          --gmp-px-color-on-surface-variant: #374151;
+          
+          /* Border and focus */
+          --gmp-px-color-outline: #d1d5db;
+          --gmp-px-color-primary: #2563eb; /* Blue focus */
+          
+          /* Make it look more like a standard input */
+          border-radius: 0.5rem;
         }
       `}</style>
       <label className="block text-sm font-medium mb-2">{label}</label>
