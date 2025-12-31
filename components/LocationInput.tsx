@@ -44,20 +44,24 @@ const LocationInput: React.FC<LocationInputProps> = ({
         // @ts-ignore - TS might not know about this new element yet
         const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement();
 
-        // Cast to any to avoid TS errors with missing properties in current type definitions
+        // Cast to any to avoid TS errors
         (placeAutocomplete as any).placeholder = placeholder;
+
+        // Apply classes to match the original input design
+        placeAutocomplete.classList.add(
+          "w-full",
+          "border",
+          "border-gray-300",
+          "rounded-lg",
+          "shadow-sm",
+          "bg-white" // Force tailwind white background
+        );
 
         // Add event listener for place change
         (placeAutocomplete as any).addEventListener('gmp-placeselect', async ({ place }: any) => {
           await place.fetchFields({ fields: ['formattedAddress', 'location', 'displayName'] });
           const address = place.formattedAddress || place.displayName;
           onChange(address);
-
-          // Compatibility with parent's onPlaceChanged concept
-          // We can't really pass the 'autocomplete' object back in the same way, 
-          // but we can mimic the behavior if the parent relies on refs.
-          // However, RequestModal uses a ref to getPlace(). 
-          // We need to update RequestModal logic too, but first let's get the Input working.
         });
 
         containerRef.current.appendChild(placeAutocomplete);
@@ -69,7 +73,15 @@ const LocationInput: React.FC<LocationInputProps> = ({
   }, [isLoaded, placeholder]);
 
   return (
-    <div className="mb-4">
+    <div className="mb-4 location-input-wrapper">
+      <style jsx global>{`
+        /* Override Google Map Element Variables for "Light Mode" look */
+        gmp-place-autocomplete {
+          --gmp-px-color-surface: #ffffff;
+          --gmp-px-color-on-surface: #1f2937; /* gray-800 */
+          --gmp-px-color-on-surface-variant: #6b7280; /* gray-500 */
+        }
+      `}</style>
       <label className="block text-sm font-medium mb-2">{label}</label>
       {isLoaded ? (
         <div ref={containerRef} className="place-autocomplete-container">
