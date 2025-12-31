@@ -87,31 +87,12 @@ export default function RequestModal({
   }, [isLoaded, loadError]);
 
   // Google Maps Autocomplete handlers
-  const onPickupLoad = (autocomplete: google.maps.places.Autocomplete) => {
-    pickupAutocompleteRef.current = autocomplete;
-  };
+  // Note: With PlaceAutocompleteElement, logic is handled inside LocationInput
+  // We just need to ensure the state is updated correctly.
 
-  const onPickupPlaceChanged = () => {
-    if (pickupAutocompleteRef.current) {
-      const place = pickupAutocompleteRef.current.getPlace();
-      if (place?.formatted_address) {
-        setPickupLocation(place.formatted_address);
-      }
-    }
-  };
-
-  const onDropoffLoad = (autocomplete: google.maps.places.Autocomplete) => {
-    dropoffAutocompleteRef.current = autocomplete;
-  };
-
-  const onDropoffPlaceChanged = () => {
-    if (dropoffAutocompleteRef.current) {
-      const place = dropoffAutocompleteRef.current.getPlace();
-      if (place?.formatted_address) {
-        setDropoffLocation(place.formatted_address);
-      }
-    }
-  };
+  // These refs are no longer used with the new Element approach
+  // const onPickupLoad = ...
+  // const onPickupPlaceChanged = ...
 
   const handleRequestSchedule = async () => {
     if (!pickupLocation.trim() || !dropoffLocation.trim()) {
@@ -211,8 +192,6 @@ export default function RequestModal({
               label="Pickup Location *"
               value={pickupLocation}
               onChange={setPickupLocation}
-              onLoad={onPickupLoad}
-              onPlaceChanged={onPickupPlaceChanged}
               placeholder="Enter pickup location"
               isLoaded={isLoaded}
             />
@@ -221,8 +200,6 @@ export default function RequestModal({
               label="Drop-off Location *"
               value={dropoffLocation}
               onChange={setDropoffLocation}
-              onLoad={onDropoffLoad}
-              onPlaceChanged={onDropoffPlaceChanged}
               placeholder="Enter drop-off location"
               isLoaded={isLoaded}
             />
