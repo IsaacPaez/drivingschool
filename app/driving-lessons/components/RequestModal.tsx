@@ -56,7 +56,7 @@ export default function RequestModal({
       .catch((err) => console.error("Error loading phone:", err));
   }, []);
 
-  
+
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -66,13 +66,25 @@ export default function RequestModal({
   }, [isOpen]);
   const pickupAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const dropoffAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  
+
   // Load Google Maps API
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: LIBRARIES,
     preventGoogleFontsLoading: true,
   });
+
+  useEffect(() => {
+    console.log("📍 [RequestModal] Google Maps Status:", {
+      isLoaded,
+      hasError: !!loadError,
+      apiKeyPresent: !!GOOGLE_MAPS_API_KEY,
+    });
+
+    if (loadError) {
+      console.error("❌ [RequestModal] Google Maps Load Error:", loadError.message);
+    }
+  }, [isLoaded, loadError]);
 
   // Google Maps Autocomplete handlers
   const onPickupLoad = (autocomplete: google.maps.places.Autocomplete) => {
@@ -106,7 +118,7 @@ export default function RequestModal({
       alert("Please fill in both pickup and dropoff locations.");
       return;
     }
-    
+
     if (!termsAccepted) {
       alert('Please accept the terms and conditions to continue.');
       return;
@@ -130,7 +142,7 @@ export default function RequestModal({
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-bold mb-3 text-gray-800 text-center">Schedule Request</h2>
-        
+
         {selectedProduct && (
           <div className="bg-gray-50 p-2.5 rounded-lg mb-2.5 border border-gray-200">
             <h3 className="text-xs font-semibold text-gray-800 mb-1.5">Package Summary</h3>
@@ -173,7 +185,7 @@ export default function RequestModal({
                 <div className="text-xs text-gray-600">Add to cart and pay securely online</div>
               </div>
             </label>
-            
+
             <label className="flex items-center p-2 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
               <input
                 type="radio"
@@ -187,13 +199,13 @@ export default function RequestModal({
                 <div className="text-xs text-gray-600">Complete payment when you arrive</div>
               </div>
             </label>
-            
+
           </div>
         </div>
 
         <div className="mb-2.5">
           <h3 className="text-xs font-semibold text-gray-800 mb-1.5">Location Details</h3>
-          
+
           <div className="space-y-1.5">
             <LocationInput
               label="Pickup Location *"
@@ -204,7 +216,7 @@ export default function RequestModal({
               placeholder="Enter pickup location"
               isLoaded={isLoaded}
             />
-            
+
             <LocationInput
               label="Drop-off Location *"
               value={dropoffLocation}
@@ -251,13 +263,12 @@ export default function RequestModal({
             Cancel
           </button>
           <button
-            className={`px-4 py-1.5 rounded-lg font-semibold transition-colors text-xs min-w-[120px] ${
-              pickupLocation.trim() && dropoffLocation.trim() && termsAccepted && !isLoading
-                ? paymentMethod === 'online' 
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
+            className={`px-4 py-1.5 rounded-lg font-semibold transition-colors text-xs min-w-[120px] ${pickupLocation.trim() && dropoffLocation.trim() && termsAccepted && !isLoading
+              ? paymentMethod === 'online'
+                ? "bg-green-600 text-white hover:bg-green-700"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
             onClick={handleRequestSchedule}
             disabled={!pickupLocation.trim() || !dropoffLocation.trim() || !termsAccepted || isLoading}
           >
@@ -267,8 +278,8 @@ export default function RequestModal({
                 Processing...
               </div>
             ) : (
-              paymentMethod === 'online' 
-                ? 'Add to Cart & Checkout' 
+              paymentMethod === 'online'
+                ? 'Add to Cart & Checkout'
                 : 'Request Schedule'
             )}
           </button>
