@@ -19,26 +19,16 @@ const DrivingLessons = () => {
 
   const handleButtonClick = (lesson: Lesson) => {
     try {
-      const isBooking = lesson.buttonLabel?.toLowerCase().includes("book");
-
       // Save selected package to localStorage for preselection
       localStorage.setItem('selectedPackage', JSON.stringify({
         id: lesson._id,
         title: lesson.title
       }));
 
-      console.log(`Button clicked for: ${lesson.title}, Type: ${isBooking ? 'BOOK' : 'BUY'}`);
+      console.log(`Button clicked for: ${lesson.title}, redirecting to /driving-lessons`);
 
-      if (isBooking) {
-        // If it's "Book now!" - redirect to driving lessons page to schedule
-        console.log('Redirecting to /driving-lessons');
-        window.location.href = '/driving-lessons';
-      } else {
-        // If it's "Buy now" - add to cart and redirect to checkout
-        console.log('Adding to cart and redirecting to checkout');
-        // Add product to cart (you may need to implement this)
-        window.location.href = '/checkout';
-      }
+      // All driving lessons redirect to the booking page
+      window.location.href = '/driving-lessons';
     } catch (error) {
       console.error('Error handling button click:', error);
     }
@@ -69,7 +59,6 @@ const DrivingLessons = () => {
         <div className="px-2 sm:px-4 lg:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-4 xl:gap-5 justify-items-center">
             {lessons.map((lesson) => {
-              const isBooking = lesson.buttonLabel?.toLowerCase().includes("book");
               return (
                 <div
                   key={lesson._id}
@@ -115,7 +104,7 @@ const DrivingLessons = () => {
                     className="w-full bg-[#0056b3] text-white font-extrabold text-sm py-3 px-4 rounded-full shadow-md hover:bg-[#27ae60] hover:shadow-lg transition-all duration-200 active:scale-95 border-none flex-shrink-0 min-h-[48px] flex items-center justify-center"
                     onClick={() => handleButtonClick(lesson)}
                   >
-                    {lesson.buttonLabel || (isBooking ? "Book now!" : "Add to Cart")}
+                    {lesson.buttonLabel || "Book now!"}
                   </button>
                 </div>
               );
