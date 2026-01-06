@@ -104,6 +104,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   // Sync cart with database when user is available - BUT PRESERVE EXISTING CART
   const syncedRef = React.useRef(false);
   const lastUserIdRef = React.useRef<string | null>(null);
+  const lastOptimisticUpdateRef = React.useRef<number>(0); // Timestamp of last local update
 
   useEffect(() => {
     // Reset sync flag when user changes
@@ -147,6 +148,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
         console.log(
           "🛑 [CartContext] Cart already has items - SKIPPING database sync to preserve data"
         );
+        return;
+      }
+
+      // Check for recent optimistic updates
+      const timeSinceLastUpdate = Date.now() - lastOptimisticUpdateRef.current;
+      if (timeSinceLastUpdate < 2000) {
+        console.log("🛑 [CartContext] Recent optimistic update detected - skipping initial sync");
         return;
       }
 
@@ -265,6 +273,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
               data.cart &&
               Array.isArray(data.cart.items)
             ) {
+
+              // Check for recent optimistic updates before accepting SSE data
+              const timeSinceLastUpdate = Date.now() - lastOptimisticUpdateRef.current;
+              if (timeSinceLastUpdate < 2000 && data.cart.items.length < cart.length) {
+                console.log("🛑 [CartContext] Ignoring SSE update - stale data vs optimistic update");
+                return;
+              }
               setCart(data.cart.items);
             }
           } catch (error) {
@@ -409,6 +424,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       end: (item as any).end,
     });
     let newCart: CartItem[] = [];
+
+    // Mark optimistic update timestamp
+    lastOptimisticUpdateRef.current = Date.now();
+
     setCart((prevCart) => {
       if (prevCart.find((cartItem) => cartItem.id === item.id)) {
         console.log("🛒 [CartContext] Item already in cart, skipping");
@@ -420,21 +439,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       return newCart;
     });
 
-    // For driving lesson packages, don't save to DB here since the endpoint already does it
-    if (!item.selectedSlots) {
-      // Use a short timeout to allow state to update before saving
-      setTimeout(() => saveCartToDB(newCart), 50);
-    } else {
-      console.log(
-        "🛒 [CartContext] Driving lesson package - skipping DB save (already done by endpoint)"
-      );
-      // For driving lesson packages, force a reload from DB to ensure local state matches server state
-      // This fixes the issue where the cart UI might not update reactively
-      setTimeout(() => {
-        console.log("🔄 [CartContext] Force reloading cart from DB to ensure consistency...");
-        reloadCartFromDB();
-      }, 500);
-    }
+    // Unified logic: Always save to DB in background to ensure consistency
+    // This matches the working "Book-Now" implementation
+    setTimeout(() => saveCartToDB(newCart), 50);
   };
 
   const removeFromCart = async (id: string) => {
@@ -788,7 +795,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       const response = await fetch(`/api/cart/status?userId=${user._id}`);
       const data = await response.json();
 
+
+
       if (data.success) {
+        // Check for recent optimistic updates
+        const timeSinceLastUpdate = Date.now() - lastOptimisticUpdateRef.current;
+        if (timeSinceLastUpdate < 2000 && data.cartItems.length === 0 && cart.length > 0) {
+          console.warn("🛑 [CartContext] Ignoring empty DB cart - preserving optimistic update");
+          return;
+        }
+
         console.log(
           "🔄 [CartContext] Manual reload - found",
           data.cartItems.length,

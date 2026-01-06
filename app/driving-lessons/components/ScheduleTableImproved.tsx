@@ -673,7 +673,7 @@ export default function ScheduleTableImproved({
                         const multipleInstructors = slotsAtTime.length > 1;
 
                         // Slot available for booking (or pending but no longer present in user's cart -> treat as available immediately)
-                        const slotKey = `${slot.date} -${slot.start} -${slot.end} `;
+                        const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
                         const isUsersPendingHere = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
                         const isPendingByOtherUser = slot.status === 'pending' && slot.studentId && (!userId || slot.studentId.toString() !== userId);
                         const isPendingButNotInCart = isUsersPendingHere && !pendingSlotKeysInCart.has(slotKey) && slot.paymentMethod !== 'physical' && slot.paymentMethod !== 'local' && slot.paymentMethod !== 'online';
@@ -681,7 +681,8 @@ export default function ScheduleTableImproved({
                         // Don't show as available if it's pending by another user
                         if (isPendingByOtherUser) {
                           // This slot is pending by another user - skip it
-                        } else if (slot.status === 'available' || slot.status === 'free' || slot.status === 'cancelled' || isPendingButNotInCart) {
+                        } else if ((slot.status === 'available' || slot.status === 'free' || slot.status === 'cancelled' || isPendingButNotInCart) && !pendingSlotKeysInCart.has(slotKey)) {
+                          // ONLY show as available if it's NOT in the cart
                           const isSelected = isSlotSelected(slot);
 
                           if (multipleInstructors) {
@@ -740,13 +741,18 @@ export default function ScheduleTableImproved({
                           }
                         }
                         // Slot pending del usuario actual - mostrar si sigue en el carrito o si es 'physical' (pago en sitio)
-                        const isUsersPending = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
+                        // OPTIMISTIC UI FIX: Also consider available slots that are locally in the cart as "user pending"
+                        const isUsersPending = (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId) ||
+                          ((slot.status === 'available' || slot.status === 'free') && pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`));
+
                         const isInCart = pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`);
+                        // If it's effectively available due to being a stale pending slot, treat as available above. But here we handle actual pending/cart items.
+
                         const isLocalPayment = slot.paymentMethod === 'physical' || slot.paymentMethod === 'local';
 
                         // Only show as pending if: (1) it's in the cart, OR (2) it's a confirmed local/physical payment
                         if (isUsersPending && (isInCart || isLocalPayment)) {
-                          const isOnlinePayment = slot.paymentMethod === 'online';
+                          const isOnlinePayment = slot.paymentMethod === 'online' || isInCart; // Assume online if in cart but status not updated yet
 
                           return (
                             <td
