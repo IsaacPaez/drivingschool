@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log('🗑️ Removing driving lesson package from cart:', body);
 
-    const { userId, itemId, selectedSlots } = body;
+    const { userId, itemId, selectedSlots, slotDetails } = body;
 
     // Validation
     if (!userId || !itemId) {
@@ -30,22 +30,82 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 1: Free up slots in instructors collection (mark as available)
-    if (selectedSlots && selectedSlots.length > 0) {
-      console.log('🔄 Freeing up slots in instructors...');
-      
+    // Use slotDetails if available for targeted updates, fallback to selectedSlots
+    if (slotDetails && slotDetails.length > 0) {
+      console.log('🔄 Freeing up slots using slotDetails (targeted approach)...');
+      console.log(`📋 Processing ${slotDetails.length} slots with instructor information`);
+
+      const slotUpdatePromises = slotDetails.map(async (slotDetail: {
+        slotKey: string;
+        instructorId: string;
+        instructorName: string;
+        date: string;
+        start: string;
+        end: string;
+      }) => {
+        console.log(`🔄 Freeing slot ${slotDetail.slotKey} for instructor ${slotDetail.instructorName} (${slotDetail.instructorId})`);
+
+        // Target specific instructor by ID - this ensures we update the right instructor
+        const updateResult = await Instructor.updateOne(
+          {
+            _id: slotDetail.instructorId, // TARGET SPECIFIC INSTRUCTOR
+            'schedule_driving_lesson': {
+              $elemMatch: {
+                date: slotDetail.date,
+                start: slotDetail.start,
+                end: slotDetail.end,
+                status: 'pending', // ONLY free pending slots
+                studentId: userId,
+                paid: { $ne: true } // ONLY free unpaid slots
+              }
+            }
+          },
+          {
+            $set: {
+              'schedule_driving_lesson.$.status': 'available',
+              'schedule_driving_lesson.$.classType': 'driving lesson',
+              'schedule_driving_lesson.$.pickupLocation': '',
+              'schedule_driving_lesson.$.dropoffLocation': '',
+              'schedule_driving_lesson.$.selectedProduct': '',
+              'schedule_driving_lesson.$.studentId': null,
+              'schedule_driving_lesson.$.studentName': null,
+              'schedule_driving_lesson.$.paid': false
+            },
+            $unset: {
+              'schedule_driving_lesson.$.reservedAt': '',
+              'schedule_driving_lesson.$.paymentMethod': '',
+              'schedule_driving_lesson.$.booked': '',
+              'schedule_driving_lesson.$.orderId': '',
+              'schedule_driving_lesson.$.orderNumber': ''
+            }
+          }
+        );
+
+        console.log(`✅ Slot ${slotDetail.slotKey} freed:`, updateResult.modifiedCount > 0 ? 'SUCCESS' : 'NO CHANGES (already booked/paid)');
+        console.log(`📊 Update details: matchedCount: ${updateResult.matchedCount}, modifiedCount: ${updateResult.modifiedCount}`);
+        return updateResult;
+      });
+
+      await Promise.all(slotUpdatePromises);
+      console.log('✅ All slots freed using targeted instructor updates');
+    } else if (selectedSlots && selectedSlots.length > 0) {
+      // Fallback to old logic for backwards compatibility
+      console.log('🔄 Freeing up slots using selectedSlots (fallback approach)...');
+      console.log('⚠️ Consider passing slotDetails for better reliability');
+
       const slotUpdatePromises = selectedSlots.map(async (slotKey: string) => {
         // Fix the slot parsing - slots are in format "2025-09-25-14:30-16:30" (5 parts)
         const parts = slotKey.split('-');
         const date = `${parts[0]}-${parts[1]}-${parts[2]}`; // 2025-09-25
         const start = parts[3]; // 14:30
         const end = parts[4]; // 16:30
-        
+
         // Validate parsing
         if (!parts[3] || !parts[4]) {
           console.error(`❌ Invalid slot format: ${slotKey} - parts:`, parts);
           return null;
         }
-        
+
         console.log(`🔍 Parsed slot: date=${date}, start=${start}, end=${end}`);
         console.log(`🔍 Raw slotKey: "${slotKey}"`);
         console.log(`🔍 Split parts:`, parts);
