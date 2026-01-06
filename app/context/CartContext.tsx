@@ -14,6 +14,7 @@ interface CartItem {
   title: string;
   price: number;
   quantity: number;
+  category?: string;
   orderId?: string;
   orderNumber?: string;
   // For driving lesson packages
@@ -398,7 +399,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const addToCart = async (item: CartItem) => {
-    console.log("🛒 [CartContext] Adding item to cart:", item);
+    console.log("🛒 [CartContext] Adding item to cart:", {
+      id: item.id,
+      category: item.category,
+      classType: item.classType,
+      slotId: (item as any).slotId,
+      date: (item as any).date,
+      start: (item as any).start,
+      end: (item as any).end,
+    });
     let newCart: CartItem[] = [];
     setCart((prevCart) => {
       if (prevCart.find((cartItem) => cartItem.id === item.id)) {
@@ -419,6 +428,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       console.log(
         "🛒 [CartContext] Driving lesson package - skipping DB save (already done by endpoint)"
       );
+      // For driving lesson packages, force a reload from DB to ensure local state matches server state
+      // This fixes the issue where the cart UI might not update reactively
+      setTimeout(() => {
+        console.log("🔄 [CartContext] Force reloading cart from DB to ensure consistency...");
+        reloadCartFromDB();
+      }, 500);
     }
   };
 
@@ -427,6 +442,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
 
     // Find the item to remove first to check its type
     const itemToRemove = cart.find((item) => item.id === id);
+    console.log("🗑️ [CartContext] removeFromCart called", {
+      id,
+      item: itemToRemove,
+    });
 
     if (
       itemToRemove &&
@@ -475,6 +494,37 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
         console.error("❌ Error removing driving lesson package:", error);
         alert("Error removing package from cart");
       }
+    } else if (
+      itemToRemove &&
+      itemToRemove.category === "driving_lesson"
+    ) {
+      // Single driving lesson slot (not package) - free slot and remove from cart
+      console.log("🗑️ Removing driving lesson slot and freeing it...");
+      try {
+        const response = await fetch("/api/instructors/update-slot-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instructorId: itemToRemove.instructorId,
+            slotId: itemToRemove.slotId,
+            slotIds: itemToRemove.slotId ? [itemToRemove.slotId] : [],
+            status: "available",
+            classType: "driving_lesson",
+          }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("❌ Failed to free driving lesson slot:", errorData);
+        }
+      } catch (error) {
+        console.error("❌ Error freeing driving lesson slot:", error);
+      }
+
+      setCart((prevCart) => {
+        const updated = prevCart.filter((item) => item.id !== id);
+        setTimeout(() => saveCartToDB(updated), 50);
+        return updated;
+      });
     } else if (
       itemToRemove &&
       itemToRemove.classType === "driving test" &&

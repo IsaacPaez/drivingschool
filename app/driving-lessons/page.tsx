@@ -115,7 +115,7 @@ function DrivingLessonsContent() {
   // Estados para redención de slots cancelados - Removed unused variable
 
   const { user, setUser } = useAuth();
-  const { addToCart } = useCart();
+  const { addToCart, cart } = useCart();
   const userId = user?._id || "";
 
   // Estado para slots cancelados disponibles para redención
@@ -350,9 +350,7 @@ function DrivingLessonsContent() {
         );
         console.log("📡 [DRIVING LESSONS] Response status:", response.status);
 
-        if (response.ok) {
-          const data = await response.json();
-        } else {
+        if (!response.ok) {
           console.warn("⚠️ [DRIVING LESSONS] Failed to load cancelled slots");
         }
       } catch (error) {
@@ -406,6 +404,13 @@ function DrivingLessonsContent() {
     }
 
     try {
+      console.log("🚗 [DRIVING LESSONS] handleBookPackage called", {
+        paymentMethod,
+        userId,
+        selectedInstructorId: selectedInstructor._id,
+        slot: selectedSlot,
+        productId: selectedProduct._id,
+      });
       if (paymentMethod === "online") {
         // Add to cart for online payment
         const cartItemId = `${selectedSlot.date}-${selectedSlot.start}-${selectedSlot.end}-${selectedInstructor._id}`;
@@ -417,6 +422,7 @@ function DrivingLessonsContent() {
           quantity: 1,
           image: selectedProduct.media?.[0] || "/default-lesson.jpg",
           category: "driving_lesson",
+          slotId: selectedSlot._id, // store slot id to release on cart removal
           date: selectedSlot.date,
           start: selectedSlot.start,
           end: selectedSlot.end,
@@ -427,9 +433,11 @@ function DrivingLessonsContent() {
           description: selectedProduct.description,
         };
 
+        console.log("🛒 [DRIVING LESSONS] Adding lesson to cart", cartItem);
         addToCart(cartItem);
 
         // Update local state immediately to show slot as pending
+        console.log("⏳ [DRIVING LESSONS] Marking slot as pending locally (online)");
         setInstructors((prevInstructors) => {
           return prevInstructors.map((instructor) => {
             if (
@@ -468,9 +476,14 @@ function DrivingLessonsContent() {
           });
         });
 
-        // Force refresh SSE to update calendar immediately
+        // Force refresh SSE and sync selected instructor to keep calendar in lockstep
         if (forceRefresh && selectedInstructor) {
+          console.log("📡 [DRIVING LESSONS] Forcing SSE refresh for instructor", selectedInstructor._id);
           forceRefresh(selectedInstructor._id);
+        }
+        if (selectedInstructor) {
+          console.log("👨‍🏫 [DRIVING LESSONS] Syncing selectedInstructorForSchedule after addToCart");
+          setSelectedInstructorForSchedule(selectedInstructor);
         }
 
         setIsBookingModalOpen(false);
@@ -487,6 +500,7 @@ function DrivingLessonsContent() {
         );
 
         // Update local state immediately to show slot as pending
+        console.log("⏳ [DRIVING LESSONS] Marking slot as pending locally (pay at location)");
         setInstructors((prevInstructors) => {
           return prevInstructors.map((instructor) => {
             if (
@@ -528,7 +542,12 @@ function DrivingLessonsContent() {
 
         // Force refresh SSE to update calendar immediately
         if (forceRefresh && selectedInstructor) {
+          console.log("📡 [DRIVING LESSONS] Forcing SSE refresh for instructor (pay at location)", selectedInstructor._id);
           forceRefresh(selectedInstructor._id);
+        }
+        if (selectedInstructor) {
+          console.log("👨‍🏫 [DRIVING LESSONS] Syncing selectedInstructorForSchedule after pay-at-location");
+          setSelectedInstructorForSchedule(selectedInstructor);
         }
 
         setIsBookingModalOpen(false);
@@ -549,6 +568,61 @@ function DrivingLessonsContent() {
       setShowConfirmation(true);
     }
   };
+
+  // When cart changes, release pending slots (of this user) that were removed from cart
+  useEffect(() => {
+    console.log("🧮 [DRIVING LESSONS] Cart changed, reconciling pending lesson slots with cart", {
+      userId,
+      cartSize: cart.length,
+    });
+    if (!userId) return;
+    const cartPendingKeys = new Set<string>();
+    type CartLessonShape = {
+      category?: string;
+      date?: string;
+      start?: string;
+      end?: string;
+    };
+    cart.forEach((item) => {
+      const ci = item as CartLessonShape;
+      if (ci.category === "driving_lesson" && ci.date && ci.start && ci.end) {
+        cartPendingKeys.add(`${ci.date}-${ci.start}-${ci.end}`);
+      }
+    });
+
+    setInstructors((prev) =>
+      prev.map((instructor) => {
+        if (!instructor.schedule_driving_lesson) return instructor;
+        const updatedSchedule = instructor.schedule_driving_lesson.map(
+          (slot) => {
+            const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
+            const isUserPending =
+              slot.status === "pending" &&
+              slot.studentId &&
+              slot.studentId.toString() === userId;
+
+            if (isUserPending && !cartPendingKeys.has(slotKey)) {
+              console.log("✅ [DRIVING LESSONS] Releasing pending slot not in cart anymore", {
+                instructorId: instructor._id,
+                slotKey,
+              });
+              // Slot was removed from cart; free it up locally
+              return {
+                ...slot,
+                status: "available" as const,
+                studentId: undefined,
+                studentName: undefined,
+                reservedAt: undefined,
+                booked: undefined,
+              };
+            }
+            return slot;
+          }
+        );
+        return { ...instructor, schedule_driving_lesson: updatedSchedule };
+      })
+    );
+  }, [cart, userId]);
 
   const handleRequestSchedule = () => {
     if (!selectedProduct) {
