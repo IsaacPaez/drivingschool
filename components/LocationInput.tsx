@@ -4,8 +4,6 @@ interface LocationInputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  onLoad?: (autocomplete: any) => void; // Keeping compatible signature
-  onPlaceChanged?: () => void; // Keeping compatible signature
   placeholder: string;
   isLoaded: boolean;
 }
@@ -14,102 +12,124 @@ const LocationInput: React.FC<LocationInputProps> = ({
   label,
   value,
   onChange,
-  onLoad,
-  onPlaceChanged,
   placeholder,
   isLoaded,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const onChangeRef = useRef(onChange);
+  const initializedRef = useRef(false);
 
-  // Initialize Autocomplete manually to ensure we can try to use standard API
-  // However, since the ERROR says "Autocomplete is not available", strictly speaking we should use the new PlaceAutocompleteElement
-  // But PlaceAutocompleteElement generates its OWN UI (Web Component).
-  // If we want to use the existing Input UI, we can't easily.
-  // The error suggests: "Please use google.maps.places.PlaceAutocompleteElement instead".
-  // This means we have to render a container for it.
-
-  const containerRef = useRef<HTMLDivElement>(null);
-
+  // Keep the onChange ref updated
   useEffect(() => {
-    if (isLoaded && containerRef.current) {
-      if (!window.google || !window.google.maps || !window.google.maps.places) return;
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
-      // Check if PlaceAutocompleteElement exists (New API)
-      if (google.maps.places.PlaceAutocompleteElement) {
-        // Clear previous content
-        containerRef.current.innerHTML = '';
+  // Initialize Google Places Autocomplete on the native input once maps are loaded
+  useEffect(() => {
+    if (!isLoaded || !inputRef.current || autocompleteRef.current) return;
 
-        // Create the element
-        // @ts-ignore - TS might not know about this new element yet
-        const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement();
-
-        // Cast to any to avoid TS errors
-        (placeAutocomplete as any).placeholder = placeholder;
-
-        // Apply classes to match the original input design
-        placeAutocomplete.classList.add(
-          "w-full",
-          "border",
-          "border-gray-300",
-          "rounded-lg",
-          "shadow-sm",
-          "bg-white" // Force tailwind white background
-        );
-
-        // Add event listener for place change
-        (placeAutocomplete as any).addEventListener('gmp-placeselect', async ({ place }: any) => {
-          await place.fetchFields({ fields: ['formattedAddress', 'location', 'displayName'] });
-          const address = place.formattedAddress || place.displayName;
-          onChange(address);
-        });
-
-        containerRef.current.appendChild(placeAutocomplete);
-      } else {
-        // Fallback or error handling if the API script loaded but lacks the new class
-        console.error("PlaceAutocompleteElement not found. Ensure the correct libraries are loaded.");
+    try {
+      if (!(window as never as { google?: typeof google }).google?.maps?.places) {
+        return;
       }
+
+      const input = inputRef.current;
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        fields: ["formatted_address", "name", "geometry"],
+        types: ["geocode"],
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        const selectedValue =
+          place.formatted_address || place.name || input.value || "";
+
+        if (selectedValue) {
+          onChangeRef.current(selectedValue);
+        }
+      });
+
+      autocompleteRef.current = autocomplete;
+      initializedRef.current = true;
+    } catch (err) {
+      console.error("❌ [LOCATION INPUT] Error creating autocomplete", err);
+      initializedRef.current = false;
     }
-  }, [isLoaded, placeholder]);
+
+    return () => {
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        autocompleteRef.current = null;
+      }
+    };
+  }, [isLoaded]);
 
   return (
-    <div className="mb-4 location-input-wrapper">
+    <div className="mb-4">
+      <label className="block text-sm font-medium mb-2 text-gray-800">{label}</label>
+      <div className="relative">
+        <span className="absolute inset-y-0 left-3 flex items-center text-gray-500">
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z"
+            />
+          </svg>
+        </span>
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => onChangeRef.current(e.target.value)}
+          placeholder={placeholder}
+          className="block w-full rounded-lg border border-gray-400 bg-white px-3 py-3 pl-10 text-sm text-gray-900 placeholder-gray-500 shadow-sm focus:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200"
+        />
+      </div>
       <style jsx global>{`
-        /* Override Google Map Element Variables for "Light Mode" look */
-        gmp-place-autocomplete {
-          /* Force standard light mode */
-          color-scheme: light; 
-
-          /* Background colors */
-          --gmp-px-color-surface: #ffffff;
-          --gmp-px-color-surface-variant: #f3f4f6;
-          
-          /* Text colors - Forcing pure black/dark for visibility */
-          --gmp-px-color-on-surface: #000000;
-          --gmp-px-color-on-surface-variant: #374151;
-          
-          /* Border and focus */
-          --gmp-px-color-outline: #d1d5db;
-          --gmp-px-color-primary: #2563eb; /* Blue focus */
-          
-          /* Make it look more like a standard input */
-          border-radius: 0.5rem;
+        /* Style prediction dropdown items (legacy classes from Places API) */
+        .pac-container {
+          background-color: white !important;
+          border: 1px solid #d1d5db !important;
+          border-radius: 0.5rem !important;
+          margin-top: 4px !important;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+          z-index: 99999 !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif !important;
+        }
+        .pac-item {
+          background-color: white !important;
+          color: #000000 !important;
+          padding: 10px 12px !important;
+          border-top: 1px solid #f3f4f6 !important;
+          cursor: pointer !important;
+          font-size: 14px !important;
+          line-height: 1.5 !important;
+        }
+        .pac-item:first-child {
+          border-top: none !important;
+        }
+        .pac-item:hover,
+        .pac-item-selected,
+        .pac-item-selected:hover {
+          background-color: #f3f4f6 !important;
+        }
+        .pac-item-query {
+          color: #000000 !important;
+          font-weight: 600 !important;
+        }
+        .pac-matched {
+          color: #374151 !important;
+          font-weight: 600 !important;
         }
       `}</style>
-      <label className="block text-sm font-medium mb-2">{label}</label>
-      {isLoaded ? (
-        <div ref={containerRef} className="place-autocomplete-container">
-          {/* Web Component will be injected here */}
-        </div>
-      ) : (
-        <input
-          type="text"
-          value={value}
-          placeholder="Loading Google Maps..."
-          className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
-          disabled
-        />
-      )}
     </div>
   );
 };

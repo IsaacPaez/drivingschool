@@ -101,24 +101,26 @@ export default function ScheduleTableImproved({
   // Helper to decide availability, considering pending-but-not-in-cart as available
   const isEffectivelyAvailable = React.useCallback((lesson: ScheduleEntry): boolean => {
     if (!lesson) return false;
-    
-    // If it's truly available/free and not paid, it's available
-    if ((lesson.status === 'available' || lesson.status === 'free') && !lesson.paid) return true;
-    
+
+    // If it's truly available/free, it's available (ignore paid flag - if status is available, it's bookable)
+    if (lesson.status === 'available' || lesson.status === 'free') return true;
+
+    // Also treat 'cancelled' slots as available for re-booking
+    if (lesson.status === 'cancelled') return true;
+
     // If it's pending by another user, it's NOT available
     if (lesson.status === 'pending' && lesson.studentId && (!userId || lesson.studentId.toString() !== userId)) {
       return false;
     }
-    
-    const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
-    const isUsersPending = lesson.status === 'pending' && lesson.studentId && userId && lesson.studentId.toString() === userId;
-    
-    // If it's pending of this user but payment method is physical/local/online (pay at location), DO NOT treat as available
-    if (isUsersPending && (lesson.paymentMethod === 'physical' || lesson.paymentMethod === 'local' || lesson.paymentMethod === 'online')) return false;
-    
-    // Otherwise, if it's user's pending but no longer in cart, treat as available
-    if (isUsersPending && !pendingSlotKeysInCart.has(slotKey)) return true;
-    
+
+    // If it's pending by the current user, check if it's still in the cart
+    if (lesson.status === 'pending' && lesson.studentId && userId && lesson.studentId.toString() === userId) {
+      const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
+      const isInCart = pendingSlotKeysInCart.has(slotKey);
+      // If it's NOT in the cart anymore, treat it as available (user removed it)
+      return !isInCart;
+    }
+
     return false;
   }, [pendingSlotKeysInCart, userId]);
 
@@ -175,14 +177,14 @@ export default function ScheduleTableImproved({
       });
     }
   }, [userId, instructorsWithSSE]);
-  
+
   const [showMultipleInstructorsModal, setShowMultipleInstructorsModal] = useState(false);
   const [multipleInstructorsData, setMultipleInstructorsData] = useState<{
     instructors: { instructor: Instructor; lesson: ScheduleEntry }[];
     date: string;
     time: string;
   } | null>(null);
-  
+
   // Function to handle multiple instructors click
   const handleMultipleInstructorsClick = (
     instructors: { instructor: Instructor; lesson: ScheduleEntry }[],
@@ -192,10 +194,10 @@ export default function ScheduleTableImproved({
     setMultipleInstructorsData({ instructors, date, time });
     setShowMultipleInstructorsModal(true);
   };
-  
+
   // Helper functions
   const pad = (n: number) => n.toString().padStart(2, '0');
-  
+
   const formatDate = (date: Date) => {
     // Use UTC methods to avoid timezone issues
     const year = date.getUTCFullYear();
@@ -214,7 +216,7 @@ export default function ScheduleTableImproved({
   const allTimes: { start: string, end: string }[] = [];
   for (let h = 6; h < 20; h++) {
     allTimes.push({ start: `${pad(h)}:00`, end: `${pad(h)}:30` });
-    allTimes.push({ start: `${pad(h)}:30`, end: `${pad(h+1)}:00` });
+    allTimes.push({ start: `${pad(h)}:30`, end: `${pad(h + 1)}:00` });
   }
 
   // Helper function to toggle slot selection
@@ -223,22 +225,22 @@ export default function ScheduleTableImproved({
     if (isProcessingSlots) {
       return;
     }
-    
+
     // Verificar si el usuario está autenticado antes de permitir la selección
     if (!userId && onAuthRequired) {
       onAuthRequired();
       return;
     }
-    
+
     const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
     const newSelectedSlots = new Set(selectedSlots);
-    
+
     if (selectedSlots.has(slotKey)) {
       newSelectedSlots.delete(slotKey);
     } else {
       newSelectedSlots.add(slotKey);
     }
-    
+
     onSelectedSlotsChange(newSelectedSlots);
   };
 
@@ -291,12 +293,70 @@ export default function ScheduleTableImproved({
         const scheduleByDate: { [date: string]: ScheduleEntry[] } = {};
 
         instructor.schedule_driving_lesson
-          .filter(lesson => lesson.status !== 'cancelled') // NEVER include cancelled slots
+          // .filter(lesson => lesson.status !== 'cancelled') // Allow cancelled slots to be shown (so they can be re-booked)
           .forEach(lesson => {
-          if (!scheduleByDate[lesson.date]) {
-            scheduleByDate[lesson.date] = [];
+            if (!scheduleByDate[lesson.date]) {
+              scheduleByDate[lesson.date] = [];
+            }
+            scheduleByDate[lesson.date].push(lesson);
+          });
+
+        // Deduplicate slots: if multiple slots exist for the same date/time, keep only the best one
+        console.log('🔍 [DEDUP] Starting deduplication for instructor:', instructor.name);
+        Object.keys(scheduleByDate).forEach(date => {
+          const slotsByTime: { [timeKey: string]: ScheduleEntry[] } = {};
+
+          // Group by time
+          scheduleByDate[date].forEach(slot => {
+            const timeKey = `${slot.start}-${slot.end}`;
+            if (!slotsByTime[timeKey]) {
+              slotsByTime[timeKey] = [];
+            }
+            slotsByTime[timeKey].push(slot);
+          });
+
+          // For each time slot, keep only the best one
+          const deduplicatedSlots: ScheduleEntry[] = [];
+          Object.values(slotsByTime).forEach(slots => {
+            if (slots.length === 1) {
+              deduplicatedSlots.push(slots[0]);
+            } else {
+              // Multiple slots for same time - pick the best one using a scoring system
+              const getSlotPriority = (slot: ScheduleEntry): number => {
+                let score = 0;
+
+                // Status priority (higher is better)
+                if (slot.status === 'available' || slot.status === 'free') score += 1000;
+                else if (slot.status === 'booked' || slot.status === 'scheduled') score += 500;
+                else if (slot.status === 'pending') score += 100;
+                else if (slot.status === 'cancelled') score += 0; // Lowest priority
+
+                // Prefer non-paid slots
+                if (!slot.paid) score += 50;
+
+                // Prefer slots without student assignment (truly available)
+                if (!slot.studentId) score += 25;
+
+                return score;
+              };
+
+              const bestSlot = slots.reduce((best, current) => {
+                return getSlotPriority(current) > getSlotPriority(best) ? current : best;
+              });
+              deduplicatedSlots.push(bestSlot);
+            }
+          });
+
+          scheduleByDate[date] = deduplicatedSlots;
+
+          // Debug: Log deduplication for Dec 30
+          if (date === '2025-12-30') {
+            console.log('🔍 [DEDUP DEBUG] Dec 30 deduplication:', {
+              originalSlots: Object.values(slotsByTime).flat().length,
+              deduplicatedSlots: deduplicatedSlots.length,
+              slots: deduplicatedSlots.map(s => ({ start: s.start, end: s.end, status: s.status, paid: s.paid, studentId: s.studentId }))
+            });
           }
-          scheduleByDate[lesson.date].push(lesson);
         });
 
         const schedule = Object.entries(scheduleByDate).map(([date, slots]) => ({ date, slots }));
@@ -309,15 +369,18 @@ export default function ScheduleTableImproved({
 
     return grouped;
   };
-  
-  const groupedSchedule = createGroupedSchedule();
-  
+
+  const groupedSchedule = React.useMemo(() => {
+    console.log('🔍 [GROUPED SCHEDULE] Recalculating grouped schedule, instructors count:', instructors.length);
+    return createGroupedSchedule();
+  }, [instructors]);
+
   // Debug: Log instructor data
   React.useEffect(() => {
     console.log("🔍 Debug - Instructor data:");
     instructors.forEach(instructor => {
       const scheduleData = instructor.schedule_driving_lesson || [];
-      console.log(`  ${instructor.name} (${instructor._id}):`, scheduleData.length, 'slots');
+      console.log(`  ${instructor.name} (${instructor._id}): `, scheduleData.length, 'slots');
     });
   }, [instructors]);
 
@@ -381,7 +444,7 @@ export default function ScheduleTableImproved({
       </h2>
 
 
-      
+
 
 
       {/* Selected Package Info - Moved from PackageSelector */}
@@ -394,13 +457,13 @@ export default function ScheduleTableImproved({
               <p className="text-blue-700 text-sm"><strong>Price:</strong> ${selectedProduct.price}</p>
               {selectedProduct.duration && (
                 <p className="text-blue-700 text-sm"><strong>Duration:</strong> {selectedProduct.duration} hours</p>
-                  )}
-                </div>
+              )}
+            </div>
             <div>
               <p className="text-blue-700 text-sm"><strong>Description:</strong> {selectedProduct.description}</p>
-                </div>
-        </div>
-        
+            </div>
+          </div>
+
           {/* Hours Selection Status */}
           <div className="mt-3 p-3 bg-white rounded-lg border-2 border-blue-200 shadow-sm">
             <p className="text-gray-700 font-medium text-center mb-1 text-sm">
@@ -420,9 +483,9 @@ export default function ScheduleTableImproved({
               <p className="text-red-600 text-xs text-center">
                 You have selected too many hours. Please deselect {selectedHours - (selectedProduct.duration || 0)} hours.
               </p>
-        )}
-      </div>
-      
+            )}
+          </div>
+
           {/* Request Schedule Button */}
           <div className="mt-3">
             {selectedHours === (selectedProduct.duration || 0) && selectedHours > 0 && !isProcessingSlots ? (
@@ -442,8 +505,8 @@ export default function ScheduleTableImproved({
                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
                     Processing...
                   </div>
-                ) : selectedHours === 0 
-                  ? "Select hours from schedule to continue" 
+                ) : selectedHours === 0
+                  ? "Select hours from schedule to continue"
                   : `Select ${selectedProduct.duration || 0} hours to continue`
                 }
               </button>
@@ -471,7 +534,7 @@ export default function ScheduleTableImproved({
       {/* Schedule Table - Using Book-Now exact structure */}
       <div className="overflow-x-auto w-full mt-6 relative">
 
-        
+
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-gray-100 text-center">
@@ -509,33 +572,33 @@ export default function ScheduleTableImproved({
               return (
                 <tr key={index} className="text-center">
                   <td className="border border-gray-300 p-1 font-bold text-black min-w-[70px] w-[70px] text-xs">
-                    {`${block.start}-${block.end}`}
+                    {`${block.start} -${block.end} `}
                   </td>
                   {weekDates.map((date) => {
                     const dateString = formatDate(date);
-                    
+
                     // Debug: Log date formatting for first time block
                     if (block.start === '06:00') {
-                      console.log(`🗓️ Date formatting: ${date.toDateString()} -> ${dateString}`);
+                      console.log(`🗓️ Date formatting: ${date.toDateString()} -> ${dateString} `);
                     }
-                    
+
                     // Find all slots for all instructors at this time and date
                     let slotsAtTime: { instructor: Instructor; lesson: ScheduleEntry }[] = [];
                     let hasDrivingTestConflict = false;
-                    
+
                     Object.values(groupedSchedule).forEach(({ instructor, schedule }) => {
                       const daySchedule = schedule.find(s => s.date === dateString);
                       if (daySchedule && Array.isArray(daySchedule.slots)) {
                         // Debug: Log when slots are found
                         if (daySchedule.slots.length > 0 && block.start === '15:00') {
-                          console.log(`🎯 Found slots for ${dateString}:`, daySchedule.slots.map(s => `${s.start}-${s.end} ${s.status}`));
+                          console.log(`🎯 Found slots for ${dateString}: `, daySchedule.slots.map(s => `${s.start} -${s.end} ${s.status} `));
                         }
                         daySchedule.slots.forEach(slot => {
                           const slotStartMin = timeToMinutes(slot.start);
                           const slotEndMin = timeToMinutes(slot.end);
                           const blockStartMin = timeToMinutes(block.start);
                           const blockEndMin = timeToMinutes(block.end);
-                          
+
                           // Check if this block overlaps with this slot
                           if (blockStartMin < slotEndMin && blockEndMin > slotStartMin) {
                             // Check if this is a driving test (which should show as "-" in driving lessons view)
@@ -549,18 +612,23 @@ export default function ScheduleTableImproved({
                         });
                       }
                     });
-                    
-                    // Filter out slots that should be hidden (same logic as Book-Now)
+
+                    // Filter out slots that should be hidden
+                    // We want to SHOW:
+                    // - Available slots
+                    // - Booked/scheduled slots (so users know they're taken)
+                    // - User's own pending slots
+                    // We want to HIDE:
+                    // - Pending slots by OTHER users (they're not confirmed yet)
                     slotsAtTime = slotsAtTime.filter(({ lesson }) => {
-                      return !(
-                        lesson.status === 'cancelled' || 
-                        (lesson.studentId && 
-                         (lesson.status === 'booked' || lesson.status === 'scheduled') &&
-                         (!userId || lesson.studentId.toString() !== userId)) ||
-                        (lesson.status === 'pending' && lesson.studentId && (!userId || lesson.studentId.toString() !== userId))
-                      );
+                      // Hide pending slots by other users
+                      if (lesson.status === 'pending' && lesson.studentId && (!userId || lesson.studentId.toString() !== userId)) {
+                        return false;
+                      }
+                      // Show everything else (available, booked, scheduled, user's own pending)
+                      return true;
                     });
-                    
+
                     // Add back user's own bookings so they can see them (but NOT cancelled)
                     if (userId) {
                       instructorsWithSSE.forEach((instructor) => {
@@ -584,14 +652,14 @@ export default function ScheduleTableImproved({
                         });
                       });
                     }
-                    
+
                     // Handle multiple instructors in the same time block
                     if (slotsAtTime.length > 0) {
                       // Find the slot that starts at this exact block (for rowSpan)
-                      const slotStartingHere = slotsAtTime.find(({ lesson }) => 
+                      const slotStartingHere = slotsAtTime.find(({ lesson }) =>
                         isRowStartForSlot(dateString, lesson)
                       );
-                      
+
                       if (slotStartingHere) {
                         const { lesson: slot, instructor: slotInstructor } = slotStartingHere;
 
@@ -600,31 +668,32 @@ export default function ScheduleTableImproved({
                         const slotEndMin = timeToMinutes(slot.end);
                         const slotDurationMin = slotEndMin - slotStartMin;
                         const rowSpan = Math.ceil(slotDurationMin / 30);
-                        
+
                         // Check if there are multiple instructors in this time block
                         const multipleInstructors = slotsAtTime.length > 1;
-                        
+
                         // Slot available for booking (or pending but no longer present in user's cart -> treat as available immediately)
                         const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
                         const isUsersPendingHere = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
                         const isPendingByOtherUser = slot.status === 'pending' && slot.studentId && (!userId || slot.studentId.toString() !== userId);
                         const isPendingButNotInCart = isUsersPendingHere && !pendingSlotKeysInCart.has(slotKey) && slot.paymentMethod !== 'physical' && slot.paymentMethod !== 'local' && slot.paymentMethod !== 'online';
-                        
+
                         // Don't show as available if it's pending by another user
                         if (isPendingByOtherUser) {
                           // This slot is pending by another user - skip it
-                        } else if (((slot.status === 'available' || slot.status === 'free') && !slot.paid) || isPendingButNotInCart) {
+                        } else if ((slot.status === 'available' || slot.status === 'free' || slot.status === 'cancelled' || isPendingButNotInCart) && !pendingSlotKeysInCart.has(slotKey)) {
+                          // ONLY show as available if it's NOT in the cart
                           const isSelected = isSlotSelected(slot);
-                          
+
                           if (multipleInstructors) {
                             // Special design for multiple instructors - split the cell
                             return (
-                              <td 
-                                key={date.toDateString()} 
+                              <td
+                                key={date.toDateString()}
                                 rowSpan={rowSpan}
                                 className="border border-gray-300 py-1 font-bold cursor-pointer min-w-[80px] w-[80px] relative overflow-hidden"
-                                onClick={() => handleMultipleInstructorsClick(slotsAtTime, dateString, `${block.start}-${block.end}`)}
-                                title={`Multiple instructors available: ${slotsAtTime.map(s => s.instructor.name).join(', ')}`}
+                                onClick={() => handleMultipleInstructorsClick(slotsAtTime, dateString, `${block.start} -${block.end} `)}
+                                title={`Multiple instructors available: ${slotsAtTime.map(s => s.instructor.name).join(', ')} `}
                               >
                                 {/* Split design - top half and bottom half */}
                                 <div className="absolute inset-0 flex flex-col">
@@ -638,7 +707,7 @@ export default function ScheduleTableImproved({
                                   <div className="flex-1 bg-blue-200 hover:bg-blue-300 flex items-center justify-center border-t border-gray-300">
                                     <div className="text-xs text-center">
                                       <div className="font-bold">
-                                        {slotsAtTime.length > 5 ? `+${slotsAtTime.length - 1} more` : `+${slotsAtTime.length - 1} more`}
+                                        {slotsAtTime.length > 5 ? `+ ${slotsAtTime.length - 1} more` : ` + ${slotsAtTime.length - 1} more`}
                                       </div>
                                       <div className="text-xs">
                                         {slotsAtTime.length > 5 ? 'Multiple slots' : 'Click to see all'}
@@ -651,14 +720,13 @@ export default function ScheduleTableImproved({
                           } else {
                             // Single instructor - normal design
                             return (
-                              <td 
-                                key={date.toDateString()} 
+                              <td
+                                key={date.toDateString()}
                                 rowSpan={rowSpan}
-                                className={`border border-gray-300 py-1 font-bold cursor-pointer min-w-[80px] w-[80px] ${
-                                  isSelected 
-                                    ? 'bg-green-600 text-white hover:bg-green-700' 
-                                    : 'bg-green-200 text-black hover:bg-green-300'
-                                }`}
+                                className={`border border-gray-300 py-1 font-bold cursor-pointer min-w-[80px] w-[80px] ${isSelected
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : 'bg-green-200 text-black hover:bg-green-300'
+                                  }`}
                                 onClick={() => toggleSlotSelection(slot)}
                               >
                                 <div className="text-xs font-semibold">Driving Lesson</div>
@@ -673,19 +741,24 @@ export default function ScheduleTableImproved({
                           }
                         }
                         // Slot pending del usuario actual - mostrar si sigue en el carrito o si es 'physical' (pago en sitio)
-                        const isUsersPending = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
-                        if (isUsersPending && (pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`) || slot.paymentMethod === 'physical' || slot.paymentMethod === 'local' || slot.paymentMethod === 'online')) {
-                          const isLocalPayment = slot.paymentMethod === 'physical' || slot.paymentMethod === 'local';
-                          const isOnlinePayment = slot.paymentMethod === 'online';
-                          const isInCart = pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`);
-                          
+                        // OPTIMISTIC UI FIX: Also consider available slots that are locally in the cart as "user pending"
+                        const isUsersPending = (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId) ||
+                          ((slot.status === 'available' || slot.status === 'free') && pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`));
+
+                        const isInCart = pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`);
+                        // If it's effectively available due to being a stale pending slot, treat as available above. But here we handle actual pending/cart items.
+
+                        const isLocalPayment = slot.paymentMethod === 'physical' || slot.paymentMethod === 'local';
+
+                        // Only show as pending if: (1) it's in the cart, OR (2) it's a confirmed local/physical payment
+                        if (isUsersPending && (isInCart || isLocalPayment)) {
+                          const isOnlinePayment = slot.paymentMethod === 'online' || isInCart; // Assume online if in cart but status not updated yet
+
                           return (
-                            <td 
-                              key={date.toDateString()} 
+                            <td
+                              key={date.toDateString()}
                               rowSpan={rowSpan}
-                              className={`border border-gray-300 py-1 bg-orange-200 text-orange-800 font-bold min-w-[80px] w-[80px] ${
-                                isLocalPayment ? 'cursor-pointer hover:bg-orange-300' : ''
-                              }`}
+                              className={`border border-gray-300 py-1 bg-orange-200 text-orange-800 font-bold min-w-[80px] w-[80px] ${isLocalPayment ? 'cursor-pointer hover:bg-orange-300' : ''}`}
                               onClick={isLocalPayment ? () => handleCancelPendingSlot(slot) : undefined}
                               title={isLocalPayment ? 'Click to cancel this pending lesson' : undefined}
                             >
@@ -697,7 +770,7 @@ export default function ScheduleTableImproved({
                             </td>
                           );
                         }
-                        
+
                         // Slot booked del usuario actual
                         const isUsersBooked = (slot.status === 'scheduled' || slot.status === 'booked' || slot.paid) && slot.studentId && userId && slot.studentId.toString() === userId;
                         if (isUsersBooked) {
@@ -719,16 +792,16 @@ export default function ScheduleTableImproved({
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
                               <div className="text-xs">{slot.start} - {slot.end}</div>
-                              <div className="text-xs">Booked</div>
+                              <div className="text-xs">Your Booking</div>
                             </td>
                           );
                         }
-                        
+
                         // Slot pending de otro usuario - mostrar como no disponible
                         if (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() !== userId) {
                           return (
-                            <td 
-                              key={date.toDateString()} 
+                            <td
+                              key={date.toDateString()}
                               rowSpan={rowSpan}
                               className="border border-gray-300 py-1 bg-gray-300 text-gray-600 font-bold min-w-[80px] w-[80px]"
                             >
@@ -738,14 +811,15 @@ export default function ScheduleTableImproved({
                             </td>
                           );
                         }
-                        
+
                         // Slot booked de otro usuario - mostrar como no disponible
-                        if ((slot.status === 'scheduled' || slot.status === 'booked' || slot.paid) && slot.studentId && userId && slot.studentId.toString() !== userId) {
+                        // Show booked slots even if user is not logged in
+                        if ((slot.status === 'scheduled' || slot.status === 'booked' || slot.paid) && slot.studentId && (!userId || slot.studentId.toString() !== userId)) {
                           return (
-                            <td 
-                              key={date.toDateString()} 
+                            <td
+                              key={date.toDateString()}
                               rowSpan={rowSpan}
-                              className="border border-gray-300 py-1 bg-red-200 text-red-800 font-bold min-w-[80px] w-[80px]"
+                              className="border border-gray-300 py-1 bg-blue-200 text-blue-800 font-bold min-w-[80px] w-[80px]"
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
                               <div className="text-xs">{slot.start} - {slot.end}</div>
@@ -763,14 +837,14 @@ export default function ScheduleTableImproved({
                         return null;
                       }
                     }
-                    
+
                     // If there's a driving test conflict, show "-" (unavailable)
                     if (hasDrivingTestConflict) {
                       return (
                         <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-gray-500 min-w-[80px] w-[80px] text-center text-xs">-</td>
                       );
                     }
-                    
+
                     // Always show something - if no slot, show "-"
                     return (
                       <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px] text-center text-xs">-</td>
@@ -781,11 +855,11 @@ export default function ScheduleTableImproved({
             }).filter(row => row !== null)}
           </tbody>
         </table>
-        
+
 
       </div>
 
-      
+
       {/* Modal for multiple instructors */}
       <Modal
         isOpen={showMultipleInstructorsModal}
@@ -805,7 +879,7 @@ export default function ScheduleTableImproved({
               </p>
             )}
           </div>
-          
+
           <div className="max-h-96 overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {multipleInstructorsData?.instructors.map(({ instructor, lesson }) => (
               <div
@@ -818,7 +892,7 @@ export default function ScheduleTableImproved({
                     setShowMultipleInstructorsModal(false);
                     return;
                   }
-                  
+
                   const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
                   onSelectedSlotsChange(new Set([slotKey]));
                   setShowMultipleInstructorsModal(false);
@@ -849,14 +923,14 @@ export default function ScheduleTableImproved({
               </div>
             ))}
           </div>
-          
+
           {/* Show count if many instructors */}
           {multipleInstructorsData && multipleInstructorsData.instructors.length > 5 && (
             <div className="mt-3 text-center text-sm text-gray-500">
               Showing {multipleInstructorsData.instructors.length} available instructors
             </div>
           )}
-          
+
           <div className="mt-6 flex justify-end">
             <button
               onClick={() => setShowMultipleInstructorsModal(false)}

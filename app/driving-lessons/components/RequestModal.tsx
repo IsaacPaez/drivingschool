@@ -61,6 +61,9 @@ export default function RequestModal({
   useEffect(() => {
     if (isOpen) {
       setTermsAccepted(false);
+      setPickupLocation("");
+      setDropoffLocation("");
+      setPaymentMethod("online");
       console.log('🎯 [REQUEST MODAL] Modal opened');
     }
   }, [isOpen]);
@@ -189,6 +192,7 @@ export default function RequestModal({
 
           <div className="space-y-1.5">
             <LocationInput
+              key="pickup-location"
               label="Pickup Location *"
               value={pickupLocation}
               onChange={setPickupLocation}
@@ -197,6 +201,7 @@ export default function RequestModal({
             />
 
             <LocationInput
+              key="dropoff-location"
               label="Drop-off Location *"
               value={dropoffLocation}
               onChange={setDropoffLocation}
