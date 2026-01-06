@@ -893,7 +893,7 @@ export default function ScheduleTableImproved({
                     return;
                   }
 
-                  const slotKey = `${lesson.date} -${lesson.start} -${lesson.end} `;
+                  const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
                   onSelectedSlotsChange(new Set([slotKey]));
                   setShowMultipleInstructorsModal(false);
                 }}
