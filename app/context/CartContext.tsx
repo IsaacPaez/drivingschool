@@ -472,6 +472,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
               userId: user._id,
               itemId: id,
               selectedSlots: itemToRemove.selectedSlots,
+              slotDetails: itemToRemove.slotDetails, // Pass slotDetails for targeted updates
             }),
           }
         );
@@ -718,6 +719,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
                   userId: user._id,
                   itemId: item.id,
                   selectedSlots: item.selectedSlots,
+                  slotDetails: item.slotDetails, // Pass slotDetails for targeted updates
                 }),
               }).then(async (res) => {
                 if (!res.ok) {
