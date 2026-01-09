@@ -28,6 +28,13 @@ export interface IBackgroundImage {
   desktop: string;
 }
 
+export interface IFeatureSection {
+  title: string;
+  subtitle: string;
+  description: string;
+  image: string;
+}
+
 export interface IPageContent extends Document {
   pageType: "home" | "about" | "services" | "contact" | "custom";
   title: ITitleConfig;
@@ -35,6 +42,7 @@ export interface IPageContent extends Document {
   statistics: IStatistic[];
   ctaButtons: ICtaButton[];
   backgroundImage: IBackgroundImage;
+  featureSection?: IFeatureSection;
   isActive: boolean;
   order: number;
   createdAt: Date;
@@ -81,6 +89,16 @@ const BackgroundImageSchema = new Schema<IBackgroundImage>(
   { _id: false }
 );
 
+const FeatureSectionSchema = new Schema<IFeatureSection>(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 200 },
+    subtitle: { type: String, required: true, trim: true, maxlength: 100 },
+    description: { type: String, required: true, trim: true, maxlength: 2000 },
+    image: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const PageContentSchema: Schema = new Schema(
   {
     pageType: {
@@ -108,6 +126,7 @@ const PageContentSchema: Schema = new Schema(
       },
     },
     backgroundImage: { type: BackgroundImageSchema, required: true },
+    featureSection: { type: FeatureSectionSchema, required: false },
     isActive: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
   },
