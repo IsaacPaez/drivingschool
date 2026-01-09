@@ -1,0 +1,123 @@
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+// Interfaces
+export interface IStatistic {
+  value: number;
+  label: string;
+  suffix: string;
+}
+
+export interface ICtaButton {
+  text: string;
+  link: string;
+  actionType: "link" | "modal";
+  modalType?: "service-selector" | "custom";
+  order: number;
+}
+
+export interface ITitleConfig {
+  part1: string;
+  part2: string;
+  gradientFrom: string;
+  gradientVia: string;
+  gradientTo: string;
+}
+
+export interface IBackgroundImage {
+  mobile: string;
+  desktop: string;
+}
+
+export interface IPageContent extends Document {
+  pageType: "home" | "about" | "services" | "contact" | "custom";
+  title: ITitleConfig;
+  description: string;
+  statistics: IStatistic[];
+  ctaButtons: ICtaButton[];
+  backgroundImage: IBackgroundImage;
+  isActive: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Schemas
+const StatisticSchema = new Schema<IStatistic>(
+  {
+    value: { type: Number, required: true, min: 0 },
+    label: { type: String, required: true, trim: true, maxlength: 50 },
+    suffix: { type: String, default: "+", maxlength: 5 },
+  },
+  { _id: false }
+);
+
+const CtaButtonSchema = new Schema<ICtaButton>(
+  {
+    text: { type: String, required: true, trim: true, maxlength: 100 },
+    link: { type: String, required: true, trim: true },
+    actionType: { type: String, enum: ["link", "modal"], default: "link" },
+    modalType: { type: String, enum: ["service-selector", "custom"], required: false },
+    order: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const TitleConfigSchema = new Schema<ITitleConfig>(
+  {
+    part1: { type: String, required: true, trim: true, maxlength: 200 },
+    part2: { type: String, required: true, trim: true, maxlength: 200 },
+    gradientFrom: { type: String, default: "#4CAF50" },
+    gradientVia: { type: String, default: "#43e97b" },
+    gradientTo: { type: String, default: "#38f9d7" },
+  },
+  { _id: false }
+);
+
+const BackgroundImageSchema = new Schema<IBackgroundImage>(
+  {
+    mobile: { type: String, required: true },
+    desktop: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const PageContentSchema: Schema = new Schema(
+  {
+    pageType: {
+      type: String,
+      enum: ["home", "about", "services", "contact", "custom"],
+      required: true,
+      index: true,
+    },
+    title: { type: TitleConfigSchema, required: true },
+    description: { type: String, required: true, trim: true, maxlength: 1000 },
+    statistics: {
+      type: [StatisticSchema],
+      default: [],
+      validate: {
+        validator: (arr: IStatistic[]) => arr.length <= 10,
+        message: "Maximum 10 statistics allowed",
+      },
+    },
+    ctaButtons: {
+      type: [CtaButtonSchema],
+      default: [],
+      validate: {
+        validator: (arr: ICtaButton[]) => arr.length <= 5,
+        message: "Maximum 5 CTA buttons allowed",
+      },
+    },
+    backgroundImage: { type: BackgroundImageSchema, required: true },
+    isActive: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+
+PageContentSchema.index({ pageType: 1, isActive: 1, order: 1 });
+
+const PageContent: Model<IPageContent> =
+  mongoose.models.PageContent ||
+  mongoose.model<IPageContent>("PageContent", PageContentSchema);
+
+export default PageContent;

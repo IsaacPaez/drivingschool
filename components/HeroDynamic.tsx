@@ -7,13 +7,26 @@ import Image from "next/image";
 import AnimatedCounter from "./AnimatedCounter";
 import { usePageContent } from "@/hooks/usePageContent";
 
-const Hero = () => {
+/**
+ * Hero Component con contenido dinámico
+ * 
+ * Este componente obtiene el contenido desde el dashboard y lo muestra.
+ * Si no hay contenido disponible, usa valores hardcodeados como fallback.
+ * 
+ * Para usar esta versión:
+ * 1. Renombrar Hero.tsx a Hero.old.tsx
+ * 2. Renombrar este archivo de HeroDynamic.tsx a Hero.tsx
+ * 3. Asegurarse de que NEXT_PUBLIC_DASHBOARD_API_URL esté configurado en .env
+ */
+const HeroDynamic = () => {
   const [modalOpen, setModalOpen] = useState(false);
   
   // Obtener contenido dinámico del dashboard
-  const { content, loading } = usePageContent({ pageType: "home" });
+  const { content, loading } = usePageContent({
+    pageType: "home",
+  });
 
-  // Valores por defecto (fallback) si no hay contenido dinámico
+  // Valores por defecto (fallback)
   const defaultContent = {
     title: {
       part1: "Learn To Drive",
@@ -71,12 +84,15 @@ const Hero = () => {
         className="object-cover object-center hidden sm:block"
       />
 
-      {/* Fondo degradado oscuro para resaltar el texto */}
+      {/* Fondo degradado oscuro */}
       <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/30 to-transparent z-10" />
 
       {/* Contenido principal */}
-      <div className="relative max-w-6xl mx-auto flex flex-col items-start text-left w-full z-20 py-4 sm:py-6 md:py-8 lg:py-10" style={{maxWidth: '1500px'}}>
-        {/* Hero Text Mejorado */}
+      <div
+        className="relative max-w-6xl mx-auto flex flex-col items-start text-left w-full z-20 py-4 sm:py-6 md:py-8 lg:py-10"
+        style={{ maxWidth: "1500px" }}
+      >
+        {/* Hero Text */}
         <div className="w-full max-w-xl mb-6 sm:mb-8 mt-4 sm:mt-8 md:mt-12 lg:mt-16">
           <div className="px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 rounded-xl shadow-2xl animate-fade-in-up">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-4 sm:mb-6 drop-shadow-2xl transition-all duration-500">
@@ -95,7 +111,8 @@ const Hero = () => {
             </p>
           </div>
         </div>
-        {/* 📌 Contenedor de estadísticas */}
+
+        {/* Estadísticas */}
         <div className="bg-white/30 backdrop-blur-sm shadow-lg rounded-lg px-4 sm:px-6 md:px-8 py-3 sm:py-4 mb-6 sm:mb-8 md:mb-12 w-full max-w-xl">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-center">
             {displayContent.statistics.map((stat, index) => (
@@ -118,7 +135,8 @@ const Hero = () => {
             ))}
           </div>
         </div>
-        {/* 📌 Botones CTA */}
+
+        {/* Botones CTA */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-xl mb-8 sm:mb-12 md:mb-16">
           {sortedButtons.map((button, index) => {
             if (button.actionType === "modal") {
@@ -146,11 +164,19 @@ const Hero = () => {
             );
           })}
         </div>
-        {/* Modal - BookNowModal muestra las 3 opciones de servicio */}
+
+        {/* Modal */}
         <BookNowModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
       </div>
+
+      {/* Indicador de carga (opcional) */}
+      {loading && (
+        <div className="absolute top-4 right-4 z-50 bg-blue-500 text-white px-3 py-1 rounded-full text-xs">
+          Loading...
+        </div>
+      )}
     </section>
   );
 };
 
-export default Hero;
+export default HeroDynamic;

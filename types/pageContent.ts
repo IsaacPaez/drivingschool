@@ -1,0 +1,43 @@
+// Tipos para el contenido de páginas desde el dashboard
+export interface Statistic {
+  value: number;
+  label: string;
+  suffix: string;
+}
+
+export interface CtaButton {
+  text: string;
+  link: string;
+  actionType: "link" | "modal";
+  modalType?: "service-selector" | "custom";
+  order: number;
+}
+
+export interface TitleConfig {
+  part1: string;
+  part2: string;
+  gradientFrom: string;
+  gradientVia: string;
+  gradientTo: string;
+}
+
+export interface BackgroundImage {
+  mobile: string;
+  desktop: string;
+}
+
+export type PageType = "home" | "about" | "services" | "contact" | "custom";
+
+export interface PageContent {
+  _id: string;
+  pageType: PageType;
+  title: TitleConfig;
+  description: string;
+  statistics: Statistic[];
+  ctaButtons: CtaButton[];
+  backgroundImage: BackgroundImage;
+  isActive: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
