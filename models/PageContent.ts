@@ -23,6 +23,13 @@ export interface ITitleConfig {
   gradientTo: string;
 }
 
+export interface IBenefitsTitleConfig {
+  text: string;
+  gradientFrom: string;
+  gradientVia: string;
+  gradientTo: string;
+}
+
 export interface IBackgroundImage {
   mobile: string;
   desktop: string;
@@ -35,6 +42,19 @@ export interface IFeatureSection {
   image: string;
 }
 
+export interface IBenefitItem {
+  image: string;
+  title: string;
+  description: string;
+  link?: string;
+  order: number;
+}
+
+export interface IBenefitsSection {
+  title: IBenefitsTitleConfig;
+  items: IBenefitItem[];
+}
+
 export interface IPageContent extends Document {
   pageType: "home" | "about" | "services" | "contact" | "custom";
   title: ITitleConfig;
@@ -43,6 +63,7 @@ export interface IPageContent extends Document {
   ctaButtons: ICtaButton[];
   backgroundImage: IBackgroundImage;
   featureSection?: IFeatureSection;
+  benefitsSection?: IBenefitsSection;
   isActive: boolean;
   order: number;
   createdAt: Date;
@@ -81,6 +102,16 @@ const TitleConfigSchema = new Schema<ITitleConfig>(
   { _id: false }
 );
 
+const BenefitsTitleConfigSchema = new Schema<IBenefitsTitleConfig>(
+  {
+    text: { type: String, required: true, trim: true, maxlength: 200 },
+    gradientFrom: { type: String, default: "#27ae60" },
+    gradientVia: { type: String, default: "#000000" },
+    gradientTo: { type: String, default: "#0056b3" },
+  },
+  { _id: false }
+);
+
 const BackgroundImageSchema = new Schema<IBackgroundImage>(
   {
     mobile: { type: String, required: true },
@@ -95,6 +126,32 @@ const FeatureSectionSchema = new Schema<IFeatureSection>(
     subtitle: { type: String, required: true, trim: true, maxlength: 100 },
     description: { type: String, required: true, trim: true, maxlength: 2000 },
     image: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const BenefitItemSchema = new Schema<IBenefitItem>(
+  {
+    image: { type: String, required: true },
+    title: { type: String, required: true, trim: true, maxlength: 100 },
+    description: { type: String, required: true, trim: true, maxlength: 500 },
+    link: { type: String, required: false, trim: true },
+    order: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const BenefitsSectionSchema = new Schema<IBenefitsSection>(
+  {
+    title: { type: BenefitsTitleConfigSchema, required: true },
+    items: {
+      type: [BenefitItemSchema],
+      default: [],
+      validate: {
+        validator: (arr: IBenefitItem[]) => arr.length <= 10,
+        message: "Maximum 10 benefit items allowed",
+      },
+    },
   },
   { _id: false }
 );
@@ -127,6 +184,7 @@ const PageContentSchema: Schema = new Schema(
     },
     backgroundImage: { type: BackgroundImageSchema, required: true },
     featureSection: { type: FeatureSectionSchema, required: false },
+    benefitsSection: { type: BenefitsSectionSchema, required: false },
     isActive: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
   },
@@ -135,8 +193,12 @@ const PageContentSchema: Schema = new Schema(
 
 PageContentSchema.index({ pageType: 1, isActive: 1, order: 1 });
 
+// Eliminar el modelo si ya existe para forzar la recreación con el nuevo schema
+if (mongoose.models.PageContent) {
+  delete mongoose.models.PageContent;
+}
+
 const PageContent: Model<IPageContent> =
-  mongoose.models.PageContent ||
   mongoose.model<IPageContent>("PageContent", PageContentSchema);
 
 export default PageContent;

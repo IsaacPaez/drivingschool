@@ -21,6 +21,13 @@ export interface TitleConfig {
   gradientTo: string;
 }
 
+export interface BenefitsTitleConfig {
+  text: string;
+  gradientFrom: string;
+  gradientVia: string;
+  gradientTo: string;
+}
+
 export interface BackgroundImage {
   mobile: string;
   desktop: string;
@@ -31,6 +38,19 @@ export interface FeatureSection {
   subtitle: string;
   description: string;
   image: string;
+}
+
+export interface BenefitItem {
+  image: string;
+  title: string;
+  description: string;
+  link?: string;
+  order: number;
+}
+
+export interface BenefitsSection {
+  title: BenefitsTitleConfig;
+  items: BenefitItem[];
 }
 
 export type PageType = "home" | "about" | "services" | "contact" | "custom";
@@ -44,6 +64,7 @@ export interface PageContent {
   ctaButtons: CtaButton[];
   backgroundImage: BackgroundImage;
   featureSection?: FeatureSection;
+  benefitsSection?: BenefitsSection;
   isActive: boolean;
   order: number;
   createdAt: string;
