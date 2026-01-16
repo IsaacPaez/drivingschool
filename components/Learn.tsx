@@ -6,54 +6,100 @@ import { Pagination, Autoplay, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
+import { usePageContent } from "@/hooks/usePageContent";
+import Link from "next/link";
 
 const Learn = () => {
-  const features = [
-    {
-      image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583538/rcz2hje8xk4w3vatlc9f.jpg",
-      title: "Experienced Instructors",
-      description:
-        "Our instructors are certified and have over 25 years of teaching experience in Palm Beach County. They stay up-to-date with the latest driving techniques.",
+  // Obtener contenido dinámico del dashboard
+  const { content } = usePageContent({ pageType: "home" });
+
+  // Valores por defecto (fallback)
+  const defaultBenefitsSection = {
+    title: {
+      text: "WHY LEARN WITH US?",
+      gradientFrom: "#27ae60",
+      gradientVia: "#000000",
+      gradientTo: "#0056b3",
     },
-    {
-      image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583587/ml4qh1qd9yeqw6jm51xs.jpg",
-      title: "Affordable Prices",
-      description:
-        "We offer competitive rates for our driving lessons, and our multi-lesson driving test offer discounts. Save up to $330!",
-    },
-    {
-      image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583615/gi7kw8zmkwyobglrinc2.jpg",
-      title: "Easy Bookings",
-      description:
-        "Booking and payment are quick and stress-free with our online booking system. Choose your instructor, date, and service, and you're ready to go!",
-    },
-    {
-      image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583339/fuecggpioplxcelatams.jpg",
-      title: "Certified Traffic Courses",
-      description:
-        "We offer accredited Florida Traffic Courses, including the required First-Time Driver course and various Ticket and Driving Improvement Courses.",
-    },
-    {
-      image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583429/lmvmde9qakdjskyspl89.jpg",
-      title: "Personalized Driving Lessons",
-      description:
-        "We tailor lessons for beginners, teenagers, and experienced drivers. Each lesson is customized for the student's experience.",
-    },
-    {
-      image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583461/nwcxb2pol2i4fkhijo6o.jpg",
-      title: "Online Learning Options",
-      description:
-        "We offer flexible learning options, including online Traffic Courses and DVD versions of our 4hr Basic Driving Improvement Course.",
-    },
-  ];
+    items: [
+      {
+        image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583538/rcz2hje8xk4w3vatlc9f.jpg",
+        title: "Experienced Instructors",
+        description:
+          "Our instructors are certified and have over 25 years of teaching experience in Palm Beach County. They stay up-to-date with the latest driving techniques.",
+        link: "",
+        order: 0,
+      },
+      {
+        image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583587/ml4qh1qd9yeqw6jm51xs.jpg",
+        title: "Affordable Prices",
+        description:
+          "We offer competitive rates for our driving lessons, and our multi-lesson driving test offer discounts. Save up to $330!",
+        link: "",
+        order: 1,
+      },
+      {
+        image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583615/gi7kw8zmkwyobglrinc2.jpg",
+        title: "Easy Bookings",
+        description:
+          "Booking and payment are quick and stress-free with our online booking system. Choose your instructor, date, and service, and you're ready to go!",
+        link: "",
+        order: 2,
+      },
+      {
+        image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583339/fuecggpioplxcelatams.jpg",
+        title: "Certified Traffic Courses",
+        description:
+          "We offer accredited Florida Traffic Courses, including the required First-Time Driver course and various Ticket and Driving Improvement Courses.",
+        link: "",
+        order: 3,
+      },
+      {
+        image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583429/lmvmde9qakdjskyspl89.jpg",
+        title: "Personalized Driving Lessons",
+        description:
+          "We tailor lessons for beginners, teenagers, and experienced drivers. Each lesson is customized for the student's experience.",
+        link: "",
+        order: 4,
+      },
+      {
+        image: "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761583461/nwcxb2pol2i4fkhijo6o.jpg",
+        title: "Online Learning Options",
+        description:
+          "We offer flexible learning options, including online Traffic Courses and DVD versions of our 4hr Basic Driving Improvement Course.",
+        link: "",
+        order: 5,
+      },
+    ],
+  };
+
+  // Usar contenido dinámico si está disponible, sino usar default
+  const benefitsSection = content?.benefitsSection || defaultBenefitsSection;
+
+  // Debug: mostrar qué contenido se está usando
+  console.log("Learn.tsx - benefitsSection:", benefitsSection);
+  console.log("Learn.tsx - content completo:", content);
+
+  // Ordenar items por orden
+  const sortedItems = [...benefitsSection.items].sort((a, b) => a.order - b.order);
 
   return (
     <section className="bg-white pt-8 pb-4">
       {/* Título con margen superior para mejor separación */}
-      <h2 className="text-5xl text-center font-extrabold text-[#000000] leading-tight mb-4">
-        <span className="text-[#27ae60]">WHY </span> LEARN WITH{" "}
-        <span className="text-[#0056b3]">US?</span>
-      </h2>
+      <div className="text-center mb-4">
+        <h2 
+          className="text-5xl font-extrabold leading-tight inline-block"
+          style={{
+            backgroundImage: `linear-gradient(to right, ${benefitsSection.title.gradientFrom}, ${benefitsSection.title.gradientVia}, ${benefitsSection.title.gradientTo})`,
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            color: "transparent",
+          }}
+        >
+          {benefitsSection.title.text}
+        </h2>
+      </div>
 
       {/* Swiper Carrusel */}
       <div className="max-w-6xl mx-auto px-4 relative flex flex-col items-center" style={{maxWidth: '1500px'}}>
@@ -76,25 +122,37 @@ const Learn = () => {
             loop
             className="w-full"
           >
-            {features.map((feature, index) => (
-              <SwiperSlide key={index}>
+            {sortedItems.map((benefit, index) => {
+              const content = (
                 <div className="relative rounded-lg overflow-hidden shadow-xl group transition-transform transform hover:scale-105">
                   {/* Imagen de fondo */}
                   <div
                     className="w-full h-56 sm:h-64 md:h-72 lg:h-80 bg-cover bg-center"
                     style={{
-                      backgroundImage: `url(${feature.image})`,
+                      backgroundImage: `url(${benefit.image})`,
                     }}
                   ></div>
 
                   {/* Superposición negra con animación de opacidad */}
                   <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col justify-center items-center text-center text-white p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <h3 className="text-lg font-bold">{feature.title}</h3>
-                    <p className="text-sm mt-2">{feature.description}</p>
+                    <h3 className="text-lg font-bold">{benefit.title}</h3>
+                    <p className="text-sm mt-2">{benefit.description}</p>
                   </div>
                 </div>
-              </SwiperSlide>
-            ))}
+              );
+
+              return (
+                <SwiperSlide key={index}>
+                  {benefit.link ? (
+                    <Link href={benefit.link} className="block">
+                      {content}
+                    </Link>
+                  ) : (
+                    content
+                  )}
+                </SwiperSlide>
+              );
+            })}
           </Swiper>
 
           {/* Flechas minimalistas SIEMPRE visibles y más cerca del carrusel, ahora con SVG centrado */}
