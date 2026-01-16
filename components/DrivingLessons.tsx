@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { usePageContent } from "@/hooks/usePageContent";
 
 interface Lesson {
   _id: string;
@@ -16,6 +17,20 @@ interface Lesson {
 
 const DrivingLessons = () => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  
+  // Obtener contenido dinámico del dashboard
+  const { content } = usePageContent({ pageType: "home" });
+
+  // Valores por defecto para el título
+  const defaultTitle = {
+    text: "OUR DRIVING LESSONS",
+    gradientFrom: "#27ae60",
+    gradientVia: "#000000",
+    gradientTo: "#0056b3",
+  };
+
+  // Usar contenido dinámico si está disponible, sino usar default
+  const titleConfig = content?.drivingLessonsTitle || defaultTitle;
 
   const handleButtonClick = (lesson: Lesson) => {
     try {
@@ -51,11 +66,20 @@ const DrivingLessons = () => {
   return (
     <section className="bg-white py-6 px-4">
       <div className="max-w-6xl mx-auto" style={{maxWidth: '1500px'}}>
-        <h2 className="text-4xl sm:text-5xl font-extrabold text-center text-[#000000] leading-tight mb-10 py-2">
-          <span className="text-[#27ae60]">OUR</span>{" "}
-          <span className="text-[#000000]">DRIVING</span>{" "}
-          <span className="text-[#0056b3]">LESSONS</span>
-        </h2>
+        <div className="text-center mb-10 py-2">
+          <h2 
+            className="text-4xl sm:text-5xl font-extrabold leading-tight inline-block"
+            style={{
+              backgroundImage: `linear-gradient(to right, ${titleConfig.gradientFrom}, ${titleConfig.gradientVia}, ${titleConfig.gradientTo})`,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            {titleConfig.text}
+          </h2>
+        </div>
         <div className="px-2 sm:px-4 lg:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-4 xl:gap-5 justify-items-center">
             {lessons.map((lesson) => {
