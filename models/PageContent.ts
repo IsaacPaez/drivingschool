@@ -30,6 +30,13 @@ export interface IBenefitsTitleConfig {
   gradientTo: string;
 }
 
+export interface IDrivingLessonsTitleConfig {
+  text: string;
+  gradientFrom: string;
+  gradientVia: string;
+  gradientTo: string;
+}
+
 export interface IBackgroundImage {
   mobile: string;
   desktop: string;
@@ -64,6 +71,7 @@ export interface IPageContent extends Document {
   backgroundImage: IBackgroundImage;
   featureSection?: IFeatureSection;
   benefitsSection?: IBenefitsSection;
+  drivingLessonsTitle?: IDrivingLessonsTitleConfig;
   isActive: boolean;
   order: number;
   createdAt: Date;
@@ -103,6 +111,16 @@ const TitleConfigSchema = new Schema<ITitleConfig>(
 );
 
 const BenefitsTitleConfigSchema = new Schema<IBenefitsTitleConfig>(
+  {
+    text: { type: String, required: true, trim: true, maxlength: 200 },
+    gradientFrom: { type: String, default: "#27ae60" },
+    gradientVia: { type: String, default: "#000000" },
+    gradientTo: { type: String, default: "#0056b3" },
+  },
+  { _id: false }
+);
+
+const DrivingLessonsTitleConfigSchema = new Schema<IDrivingLessonsTitleConfig>(
   {
     text: { type: String, required: true, trim: true, maxlength: 200 },
     gradientFrom: { type: String, default: "#27ae60" },
@@ -185,6 +203,7 @@ const PageContentSchema: Schema = new Schema(
     backgroundImage: { type: BackgroundImageSchema, required: true },
     featureSection: { type: FeatureSectionSchema, required: false },
     benefitsSection: { type: BenefitsSectionSchema, required: false },
+    drivingLessonsTitle: { type: DrivingLessonsTitleConfigSchema, required: false },
     isActive: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
   },

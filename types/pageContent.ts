@@ -28,6 +28,13 @@ export interface BenefitsTitleConfig {
   gradientTo: string;
 }
 
+export interface DrivingLessonsTitleConfig {
+  text: string;
+  gradientFrom: string;
+  gradientVia: string;
+  gradientTo: string;
+}
+
 export interface BackgroundImage {
   mobile: string;
   desktop: string;
@@ -65,6 +72,7 @@ export interface PageContent {
   backgroundImage: BackgroundImage;
   featureSection?: FeatureSection;
   benefitsSection?: BenefitsSection;
+  drivingLessonsTitle?: DrivingLessonsTitleConfig;
   isActive: boolean;
   order: number;
   createdAt: string;
