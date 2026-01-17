@@ -55,6 +55,11 @@ export interface ITrafficCoursesSection {
   cards: ITrafficCourseCard[];
 }
 
+export interface IAreasWeServeConfig {
+  title: string;
+  description: string;
+}
+
 export interface IBackgroundImage {
   mobile: string;
   desktop: string;
@@ -173,6 +178,14 @@ const TrafficCoursesSectionSchema = new Schema<ITrafficCoursesSection>(
   { _id: false }
 );
 
+const AreasWeServeConfigSchema = new Schema<IAreasWeServeConfig>(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 200 },
+    description: { type: String, required: true, trim: true, maxlength: 500 },
+  },
+  { _id: false }
+);
+
 const BackgroundImageSchema = new Schema<IBackgroundImage>(
   {
     mobile: { type: String, required: true },
@@ -248,6 +261,7 @@ const PageContentSchema: Schema = new Schema(
     benefitsSection: { type: BenefitsSectionSchema, required: false },
     drivingLessonsTitle: { type: DrivingLessonsTitleConfigSchema, required: false },
     trafficCoursesSection: { type: TrafficCoursesSectionSchema, required: false },
+    areasWeServe: { type: AreasWeServeConfigSchema, required: false },
     isActive: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
   },
