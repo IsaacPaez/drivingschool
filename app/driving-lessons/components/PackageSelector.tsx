@@ -65,25 +65,34 @@ export default function PackageSelector({
 }: PackageSelectorProps) {
   return (
     <div className="w-full lg:w-1/3 flex flex-col items-center mt-8 sm:mt-12">
-      
-      {/* Calendar Title */}
-      <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-[#10B981]">
-        Select Date
-      </h2>
-      
-      {/* Calendar */}
-      <div className="mb-4 w-full flex justify-center">
-        <Calendar
-          onChange={onDateChange}
-          value={selectedDate}
-          locale="en-US"
-          className="border rounded-lg shadow-md w-full max-w-xs p-2"
-          minDate={new Date()}
-        />
+
+      {/* Available Driving Packages - First on mobile only */}
+      <div className="w-full mb-6 lg:hidden">
+        <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
+          Available Driving Packages
+        </h3>
+        <div className="w-full px-4">
+          <select
+            value={selectedProduct?._id || ""}
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              const product = products.find(p => p._id === selectedId);
+              onProductSelect(product || null);
+            }}
+            className="w-full p-3 border-2 border-gray-300 rounded-lg shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-black font-medium"
+          >
+            <option value="">Select a driving package...</option>
+            {products.map((product) => (
+              <option key={product._id} value={product._id}>
+                {product.title} - ${product.price} ({product.duration || 0} hrs)
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Instructors */}
-      <div className="w-full mb-6">
+      {/* Instructors - Second on mobile */}
+      <div className="w-full mb-6 lg:hidden">
         <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
           Instructors
         </h3>
@@ -100,8 +109,8 @@ export default function PackageSelector({
               <div
                 key={instructor._id}
                 className={`border-2 rounded-lg p-3 text-center bg-white shadow-lg cursor-pointer transition-all duration-200 ease-in-out hover:shadow-xl hover:scale-105 flex-shrink-0 w-[110px] ${
-                  isSelected 
-                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                  isSelected
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
                     : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                 }`}
                 onClick={() => onInstructorSelect(isSelected ? null : instructor)}
@@ -126,7 +135,96 @@ export default function PackageSelector({
           })
           )}
         </div>
-        
+
+        {/* Show count when many instructors */}
+        {instructors.length > 2 && (
+          <div className="text-center mt-3">
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {instructors.length} instructors available
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Calendar - Third on mobile (last) */}
+      <div className="w-full flex flex-col items-center mb-6 lg:hidden">
+        <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-[#10B981]">
+          Select Date
+        </h2>
+        <div className="mb-4 w-full flex justify-center">
+          <Calendar
+            onChange={onDateChange}
+            value={selectedDate}
+            locale="en-US"
+            className="border rounded-lg shadow-md w-full max-w-xs p-2"
+            minDate={new Date()}
+          />
+        </div>
+      </div>
+
+      {/* ===== DESKTOP LAYOUT (lg and up) ===== */}
+
+      {/* Calendar - First on desktop */}
+      <div className="hidden lg:flex w-full flex-col items-center mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 text-[#10B981]">
+          Select Date
+        </h2>
+        <div className="mb-4 w-full flex justify-center">
+          <Calendar
+            onChange={onDateChange}
+            value={selectedDate}
+            locale="en-US"
+            className="border rounded-lg shadow-md w-full max-w-xs p-2"
+            minDate={new Date()}
+          />
+        </div>
+      </div>
+
+      {/* Instructors - Second on desktop */}
+      <div className="hidden lg:block w-full mb-6">
+        <h3 className="text-lg sm:text-xl font-semibold text-center mb-4 text-black">
+          Instructors
+        </h3>
+        <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 justify-center">
+          {instructors.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-gray-500 text-sm">No instructors available for driving lessons</p>
+            </div>
+          ) : (
+            instructors.map((instructor) => {
+            const isSelected = selectedInstructorForSchedule?._id === instructor._id;
+
+            return (
+              <div
+                key={instructor._id}
+                className={`border-2 rounded-lg p-3 text-center bg-white shadow-lg cursor-pointer transition-all duration-200 ease-in-out hover:shadow-xl hover:scale-105 flex-shrink-0 w-[110px] ${
+                  isSelected
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                }`}
+                onClick={() => onInstructorSelect(isSelected ? null : instructor)}
+              >
+                <div className="relative mb-2">
+                  <Image
+                    src={instructor.photo || '/default-instructor.png'}
+                    alt={instructor.name}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full mx-auto object-cover border border-white shadow-md"
+                  />
+                  {isSelected && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  )}
+                </div>
+                <h4 className="font-semibold text-sm text-gray-800 truncate capitalize">{instructor.name}</h4>
+              </div>
+            );
+          })
+          )}
+        </div>
+
         {/* Show count when many instructors */}
         {instructors.length > 2 && (
           <div className="text-center mt-3">
