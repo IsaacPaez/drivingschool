@@ -38,7 +38,7 @@ const Body = () => {
 
         {/* Imagen completamente responsive con animación */}
         <motion.div
-          className="w-full max-w-xl lg:max-w-2xl xl:max-w-3xl"
+          className="w-full lg:w-1/2 lg:flex-shrink-0"
           initial={{ opacity: 0, x: 120 }}
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -50,7 +50,6 @@ const Body = () => {
             width={900}
             height={400}
             className="w-full h-[260px] sm:h-[320px] md:h-[340px] lg:h-[360px] xl:h-[400px] object-cover rounded-lg shadow-md transition-all duration-500"
-            style={{ width: "auto", height: "auto" }}
           />
         </motion.div>
       </div>
