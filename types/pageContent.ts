@@ -53,6 +53,11 @@ export interface TrafficCoursesSection {
   cards: TrafficCourseCard[];
 }
 
+export interface AreasWeServeConfig {
+  title: string;
+  description: string;
+}
+
 export interface BackgroundImage {
   mobile: string;
   desktop: string;
@@ -92,6 +97,7 @@ export interface PageContent {
   benefitsSection?: BenefitsSection;
   drivingLessonsTitle?: DrivingLessonsTitleConfig;
   trafficCoursesSection?: TrafficCoursesSection;
+  areasWeServe?: AreasWeServeConfig;
   isActive: boolean;
   order: number;
   createdAt: string;

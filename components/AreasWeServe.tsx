@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import LoadingSpinner from './common/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import LocationMap from "@/app/locations/LocationMap";
+import { usePageContent } from "@/hooks/usePageContent";
 
 // Definir interfaces
 interface Area {
@@ -16,10 +17,19 @@ interface Area {
 }
 
 const AreasWeServe = () => {
+  const { content, loading: contentLoading } = usePageContent({ pageType: "home" });
   const [areas, setAreas] = useState<Area[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const router = useRouter();
   const itemsPerPage = 4;
+
+  // Default values
+  const defaultTitle = "Areas We Serve";
+  const defaultDescription = "We are dedicated to providing world-class driving school services throughout Palm Beach County and surrounding areas.";
+
+  // Use data from Page Content or fall back to defaults
+  const sectionTitle = content?.areasWeServe?.title || defaultTitle;
+  const sectionDescription = content?.areasWeServe?.description || defaultDescription;
 
   useEffect(() => {
     const fetchAreas = async () => {
@@ -54,8 +64,8 @@ const AreasWeServe = () => {
     <section className="bg-white py-20 w-full min-h-[70vh]">
       <div className="max-w-7xl mx-auto flex flex-col items-center gap-12 px-4 lg:px-8" style={{ maxWidth: '1600px' }}>
         <div className="w-full flex flex-col items-center text-center">
-          <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Areas We Serve</h2>
-          <p className="text-lg text-gray-700 mb-10 max-w-2xl">We are dedicated to providing world-class driving school services throughout Palm Beach County and surrounding areas.</p>
+          <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">{sectionTitle}</h2>
+          <p className="text-lg text-gray-700 mb-10 max-w-2xl">{sectionDescription}</p>
         </div>
 
         <div className="w-full flex flex-col lg:flex-row items-start gap-12">
