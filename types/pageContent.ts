@@ -35,6 +35,24 @@ export interface DrivingLessonsTitleConfig {
   gradientTo: string;
 }
 
+export interface TrafficCourseCard {
+  title: string;
+  items: string[];
+  ctaText: string;
+  ctaLink: string;
+  order: number;
+}
+
+export interface TrafficCoursesSection {
+  title: {
+    text: string;
+    gradientFrom: string;
+    gradientTo: string;
+  };
+  backgroundImage: string;
+  cards: TrafficCourseCard[];
+}
+
 export interface BackgroundImage {
   mobile: string;
   desktop: string;
@@ -73,6 +91,7 @@ export interface PageContent {
   featureSection?: FeatureSection;
   benefitsSection?: BenefitsSection;
   drivingLessonsTitle?: DrivingLessonsTitleConfig;
+  trafficCoursesSection?: TrafficCoursesSection;
   isActive: boolean;
   order: number;
   createdAt: string;
