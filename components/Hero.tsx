@@ -11,7 +11,7 @@ const Hero = () => {
   const [modalOpen, setModalOpen] = useState(false);
   
   // Obtener contenido dinámico del dashboard
-  const { content, loading } = usePageContent({ pageType: "home" });
+  const { content} = usePageContent({ pageType: "home" });
 
   // Valores por defecto (fallback) si no hay contenido dinámico
   const defaultContent = {
