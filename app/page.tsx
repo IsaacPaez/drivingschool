@@ -1,6 +1,7 @@
 "use client";
 import Hero from "@/components/Hero";
 import Body from "@/components/Body";
+import CorporatePrograms from "@/components/CorporatePrograms";
 import Learn from "@/components/Learn";
 import DrivingLessons from "@/components/DrivingLessons";
 import TrafficCourses from "@/components/TrafficCourses";
@@ -31,6 +32,7 @@ export default function Home() {
       <div>
         <Hero />
         <Body />
+        <CorporatePrograms />
         <Learn />
         <DrivingLessons />
         <TrafficCourses />

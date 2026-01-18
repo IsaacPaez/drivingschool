@@ -70,6 +70,16 @@ export interface FeatureSection {
   image: string;
 }
 
+export interface CorporateProgramsSection {
+  title: string;
+  subtitle: string;
+  description: string;
+  ctaMessage: string;
+  ctaText: string;
+  ctaLink: string;
+  image: string;
+}
+
 export interface BenefitItem {
   image: string;
   title: string;
@@ -97,6 +107,7 @@ export interface PageContent {
   benefitsSection?: BenefitsSection;
   drivingLessonsTitle?: DrivingLessonsTitleConfig;
   trafficCoursesSection?: TrafficCoursesSection;
+  corporateProgramsSection?: CorporateProgramsSection;
   areasWeServe?: AreasWeServeConfig;
   isActive: boolean;
   order: number;

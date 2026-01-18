@@ -101,9 +101,9 @@ const Header = () => {
   }, [pathname, showTeacherLoading]);
 
   return (
-    <header className={`fixed top-0 left-0 w-full z-50 px-4 ${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'}`}>
+    <header className={`fixed top-0 left-0 w-full z-50 px-10 sm:px-12 lg:px-6 ${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'}`}>
       {/* Top Row with Phone and Login */}
-      <div className={`${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'} flex lg:justify-center gap-4 items-center py-2 text-sm font-sans relative`}>
+      <div className={`${isTeacherSection ? 'bg-gradient-to-br from-[#e8f6ef] via-[#f0f6ff] to-[#eafaf1]' : 'bg-transparent'} flex justify-end lg:justify-center gap-4 items-center py-2 text-sm font-sans relative`}>
         <Link
           href="/contact"
           className={`hidden lg:flex ${isHome ? (isScrolled ? "text-[#0056b3]" : "text-white") : "text-[#0056b3]"} font-semibold underline cursor-pointer`}
@@ -116,8 +116,8 @@ const Header = () => {
             color={` ${isHome ? (isScrolled ? "blue" : "white") : "black"}`}
           />
         </div>
-        {/* Botones Login y Sign In FIJOS en la esquina superior derecha */}
-        <div className="fixed right-10 top-0 2xl:top-2 flex items-end z-50 mt-0">
+        {/* Botones Login y Sign In */}
+        <div className="flex items-center z-50">
           {user ? (
             <div className="relative flex flex-col items-center">
               <button
@@ -148,15 +148,15 @@ const Header = () => {
             </div>
           ) : (
             !hideAuthButtons && (
-              <div className="flex gap-4">
+              <div className="flex gap-2 sm:gap-4">
                 <button
-                  className="bg-[#0056b3] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+                  className="bg-[#0056b3] text-white text-xs sm:text-sm font-semibold px-3 py-1 sm:px-6 sm:py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
                   onClick={() => setShowLogin(true)}
                 >
                   Login
                 </button>
                 <button
-                  className="bg-[#f39c12] text-white font-semibold px-6 py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
+                  className="bg-[#f39c12] text-white text-xs sm:text-sm font-semibold px-3 py-1 sm:px-6 sm:py-2 rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#e67e22] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1"
                   onClick={() => setShowRegister(true)}
                 >
                   Sign Up
@@ -168,7 +168,7 @@ const Header = () => {
       </div>
 
       {/* Bottom Row with Logo and Navigation */}
-      <div className="relative max-w-7xl mx-auto px-6 py-2 flex items-center justify-between rounded-full bg-white/30 backdrop-blur-lg shadow-lg mt-0 2xl:mt-3">
+      <div className="relative max-w-[1600px] mx-4 sm:mx-6 lg:mx-auto px-6 py-2 flex items-center justify-between rounded-full bg-white/30 backdrop-blur-lg shadow-lg mt-0 2xl:mt-3">
         {/* Logo */}
         <div className="flex-shrink-0">
           <Link href="/">

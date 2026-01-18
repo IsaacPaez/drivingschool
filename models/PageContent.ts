@@ -72,6 +72,16 @@ export interface IFeatureSection {
   image: string;
 }
 
+export interface ICorporateProgramsSection {
+  title: string;
+  subtitle: string;
+  description: string;
+  ctaMessage: string;
+  ctaText: string;
+  ctaLink: string;
+  image: string;
+}
+
 export interface IBenefitItem {
   image: string;
   title: string;
@@ -96,6 +106,7 @@ export interface IPageContent extends Document {
   benefitsSection?: IBenefitsSection;
   drivingLessonsTitle?: IDrivingLessonsTitleConfig;
   trafficCoursesSection?: ITrafficCoursesSection;
+  corporateProgramsSection?: ICorporateProgramsSection;
   isActive: boolean;
   order: number;
   createdAt: Date;
@@ -204,6 +215,19 @@ const FeatureSectionSchema = new Schema<IFeatureSection>(
   { _id: false }
 );
 
+const CorporateProgramsSectionSchema = new Schema<ICorporateProgramsSection>(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 200 },
+    subtitle: { type: String, required: true, trim: true, maxlength: 200 },
+    description: { type: String, required: true, trim: true, maxlength: 2000 },
+    ctaMessage: { type: String, required: true, trim: true, maxlength: 200 },
+    ctaText: { type: String, required: true, trim: true, maxlength: 50 },
+    ctaLink: { type: String, required: true, trim: true, maxlength: 500 },
+    image: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const BenefitItemSchema = new Schema<IBenefitItem>(
   {
     image: { type: String, required: true },
@@ -261,6 +285,7 @@ const PageContentSchema: Schema = new Schema(
     benefitsSection: { type: BenefitsSectionSchema, required: false },
     drivingLessonsTitle: { type: DrivingLessonsTitleConfigSchema, required: false },
     trafficCoursesSection: { type: TrafficCoursesSectionSchema, required: false },
+    corporateProgramsSection: { type: CorporateProgramsSectionSchema, required: false },
     areasWeServe: { type: AreasWeServeConfigSchema, required: false },
     isActive: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
