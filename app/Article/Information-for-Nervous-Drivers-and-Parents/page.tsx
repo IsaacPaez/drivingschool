@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 
 function Title({ green, black, blue, className = "" }) {
   return (
-    <h1 className={clsx("text-4xl md:text-6xl font-extrabold mb-6 text-center leading-tight", className)}>
+    <h1 className={clsx("text-3xl md:text-5xl font-extrabold mb-6 text-center leading-relaxed", className)}>
       <span className="text-green-600">{green} </span>
       <span className="text-black">{black} </span>
       <span className="text-blue-600">{blue}</span>
@@ -33,7 +33,7 @@ function Page() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <motion.div className="mb-10" {...fadeInUp(0)}>
+        <motion.div className="mb-10 py-4" {...fadeInUp(0)}>
           <Title green="Complete Guide" black="for Nervous Drivers" blue="and Concerned Parents" />
           <div className="flex items-center justify-center gap-2 mb-6">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
