@@ -6,6 +6,7 @@ import { Poppins } from "next/font/google";
 import CorporatePrograms from "./CorporatePrograms";
 import Link from "next/link";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
+import useLessonsContent from "@/app/hooks/useLessonsContent";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
 import { motion } from "framer-motion";
 import clsx from "clsx";
@@ -19,6 +20,18 @@ const poppins = Poppins({
 
 const LessonsPage = () => {
   const lessons = useDrivingLessons();
+  const { content, loading, error } = useLessonsContent();
+
+  // Helper function to get button color classes
+  const getButtonColorClasses = (color: string) => {
+    const colorMap: Record<string, { bg: string; hover: string }> = {
+      blue: { bg: "bg-[#0056b3]", hover: "hover:bg-[#27ae60]" },
+      green: { bg: "bg-[#27ae60]", hover: "hover:bg-[#0056b3]" },
+      red: { bg: "bg-red-600", hover: "hover:bg-red-700" },
+      yellow: { bg: "bg-yellow-500", hover: "hover:bg-yellow-600" },
+    };
+    return colorMap[color] || colorMap.blue;
+  };
 
   return (
     <section className={clsx(poppins.variable, "bg-[#f5f5f5] py-20 px-4 relative")}> 
@@ -48,127 +61,102 @@ const LessonsPage = () => {
               </div>
               {/* Título con paleta profesional */}
               <h2 className="text-5xl md:text-6xl font-extrabold leading-tight">
-                <span className="text-[#0056b3]">LEARN</span>{" "}
-                <span className="text-black">ROAD SKILLS</span>{" "}
-                <span className="text-[#27ae60]">FOR LIFE</span>
+                <span className="text-[#0056b3]">{content?.title.part1 || "LEARN"}</span>{" "}
+                <span className="text-black">{content?.title.part2 || "ROAD SKILLS"}</span>{" "}
+                <span className="text-[#27ae60]">{content?.title.part3 || "FOR LIFE"}</span>
               </h2>
-              <p className="text-lg text-black leading-relaxed">
-                With over 25 years of experience, we go beyond preparing
-                students for the DMV test. Our training covers real-world
-                traffic scenarios, defensive driving, and high-speed highways
-                like I-95.
-              </p>
-              <p className="text-lg text-black leading-relaxed">
-                We provide personalized lessons tailored for each student,
-                ensuring they gain confidence behind the wheel while learning
-                essential safety and defensive driving techniques.
-              </p>
+              {content?.description ? (
+                <p className="text-lg text-black leading-relaxed whitespace-pre-line">
+                  {content.description}
+                </p>
+              ) : (
+                <>
+                  <p className="text-lg text-black leading-relaxed">
+                    With over 25 years of experience, we go beyond preparing
+                    students for the DMV test. Our training covers real-world
+                    traffic scenarios, defensive driving, and high-speed highways
+                    like I-95.
+                  </p>
+                  <p className="text-lg text-black leading-relaxed">
+                    We provide personalized lessons tailored for each student,
+                    ensuring they gain confidence behind the wheel while learning
+                    essential safety and defensive driving techniques.
+                  </p>
+                </>
+              )}
               {/* Cartas informativas simétricas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                {/* Carta para Nervous Driver */}
-                <motion.div
-                  className="bg-white rounded-xl shadow-lg border-2 border-[#0056b3]/20 p-6 hover:shadow-xl hover:border-[#0056b3]/40 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                >
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="w-12 h-12 bg-[#0056b3] rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-6 h-6 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-bold text-[#0056b3]">
-                      Nervous Driver or Parent?
-                    </h3>
-                  </div>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed flex-grow">
-                    Get specialized guidance and tips for nervous drivers and concerned parents.
-                  </p>
-                  <Link
-                    href="/Article/Information-for-Nervous-Drivers-and-Parents"
-                    className="inline-flex items-center bg-[#0056b3] text-white font-semibold px-4 py-2 rounded-full hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 hover:bg-[#27ae60] mt-auto"
-                  >
-                    Read More
-                    <svg
-                      className="w-4 h-4 ml-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </Link>
-                </motion.div>
+              {content?.cards && content.cards.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  {content.cards.map((card, index) => {
+                    const buttonColors = getButtonColorClasses(card.buttonColor);
+                    const iconColor = card.buttonColor === "green" ? "bg-[#27ae60]" : "bg-[#0056b3]";
+                    const hoverBorder = card.buttonColor === "green" ? "hover:border-[#27ae60]/40" : "hover:border-[#0056b3]/40";
 
-                {/* Carta para FAQ */}
-                <motion.div
-                  className="bg-white rounded-xl shadow-lg border-2 border-[#27ae60]/20 p-6 hover:shadow-xl hover:border-[#27ae60]/40 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                >
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="w-12 h-12 bg-[#27ae60] rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-6 h-6 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    return (
+                      <motion.div
+                        key={index}
+                        className={`bg-white rounded-xl shadow-lg border-2 ${card.buttonColor === "green" ? "border-[#27ae60]/20" : "border-[#0056b3]/20"} p-6 hover:shadow-xl ${hoverBorder} transition-all duration-300 hover:-translate-y-1 flex flex-col h-full`}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-bold text-[#27ae60]">
-                      Want to know more?
-                    </h3>
-                  </div>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed flex-grow">
-                    Find answers to frequently asked questions about our driving lessons and services.
-                  </p>
-                  <Link
-                    href="/FAQ"
-                    className="inline-flex items-center bg-[#27ae60] text-white font-semibold px-4 py-2 rounded-full hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 hover:bg-[#0056b3] mt-auto"
-                  >
-                    Read our FAQ
-                    <svg
-                      className="w-4 h-4 ml-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </Link>
-                </motion.div>
-              </div>
+                        <div className="flex items-center space-x-4 mb-4">
+                          <div className={`w-12 h-12 ${iconColor} rounded-full flex items-center justify-center`}>
+                            <svg
+                              className="w-6 h-6 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              {card.buttonColor === "green" ? (
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              ) : (
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              )}
+                            </svg>
+                          </div>
+                          <h3 className={`text-lg font-bold ${card.buttonColor === "green" ? "text-[#27ae60]" : "text-[#0056b3]"}`}>
+                            {card.title}
+                          </h3>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-4 leading-relaxed flex-grow">
+                          {card.description}
+                        </p>
+                        <Link
+                          href={card.buttonLink}
+                          className={`inline-flex items-center ${buttonColors.bg} text-white font-semibold px-4 py-2 rounded-full hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ${buttonColors.hover} mt-auto`}
+                        >
+                          {card.buttonText}
+                          <svg
+                            className="w-4 h-4 ml-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </motion.div>
           {/* Imagen con animación */}
@@ -178,7 +166,7 @@ const LessonsPage = () => {
               style={{ width: 480, height: 685, maxWidth: '100%' }}
             >
               <Image
-                src="https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761584376/cdrrr2qzprxa4mbo2nw8.jpg"
+                src={content?.mainImage || "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761584376/cdrrr2qzprxa4mbo2nw8.jpg"}
                 alt="Traffic in Palm Beach"
                 width={480}
                 height={685}
