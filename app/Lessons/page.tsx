@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import { Poppins } from "next/font/google";
-import CorporatePrograms from "./CorporatePrograms";
 import Link from "next/link";
 import useDrivingLessons from "@/app/hooks/useDrivingLessons";
 import useLessonsContent from "@/app/hooks/useLessonsContent";
@@ -20,7 +19,7 @@ const poppins = Poppins({
 
 const LessonsPage = () => {
   const lessons = useDrivingLessons();
-  const { content, loading, error } = useLessonsContent();
+  const { content } = useLessonsContent();
 
   // Helper function to get button color classes
   const getButtonColorClasses = (color: string) => {
@@ -248,13 +247,6 @@ const LessonsPage = () => {
             })}
           </div>
         </motion.div>
-        {/* Sección de Driving Test */}
-        {/* <DrivingTestSection /> */}
-
-      {/* Sección de Corporate Programs */}
-      <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, delay: 0.3 }}>
-        <CorporatePrograms />
-      </motion.div>
       {/* CIERRE CORRECTO DEL motion.div PRINCIPAL */}
       </motion.div>
     </section>
