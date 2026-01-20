@@ -108,7 +108,7 @@ const DrivingTestSection = () => {
               </div>
             </Link>
           </div>
-          <h3 className="text-2xl font-bold text-black">
+          <h3 className="text-2xl font-bold text-gray-900">
             {content?.subtitle || "We give the Road Test !!"}
           </h3>
 
