@@ -24,8 +24,8 @@ export async function GET() {
     console.log('🔍 Fetching all products');
 
     const products = await Product.find()
-      .select('title description price buttonLabel tag duration media')
-      .sort({ title: 1 })
+      .select('title description price buttonLabel tag duration media order')
+      .sort({ order: 1, title: 1 })
       .lean();
 
     console.log('📦 Products found:', products.length);
