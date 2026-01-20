@@ -4,9 +4,11 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { useOnlineCoursesContent } from "../hooks/useOnlineCoursesContent";
 
 const OnlineCoursesPage: React.FC = () => {
   const router = useRouter();
+  const { content, loading: contentLoading } = useOnlineCoursesContent();
 
   interface Course {
     _id: string;
@@ -41,14 +43,14 @@ const OnlineCoursesPage: React.FC = () => {
   return (
     <section className="bg-gray-50 pt-[200px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* 📌 TÍTULO */}
+        {/* 📌 TÍTULO - Dynamic from CMS */}
         <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-6 tracking-wide">
-          Online Driving Courses
+          {contentLoading ? "Loading..." : (content?.title || "Online Driving Courses")}
         </h1>
 
-        {/* 📌 DESCRIPCIÓN */}
+        {/* 📌 DESCRIPCIÓN - Dynamic from CMS */}
         <p className="text-center text-gray-600 text-lg max-w-3xl mx-auto mb-12 leading-relaxed">
-          Learn at your own pace with our online traffic courses. Study from home and complete your course anytime, anywhere.
+          {contentLoading ? "" : (content?.description || "Learn at your own pace with our online traffic courses. Study from home and complete your course anytime, anywhere.")}
         </p>
 
         {/* 📌 MOSTRAR CARGANDO */}
