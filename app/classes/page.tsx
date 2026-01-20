@@ -4,9 +4,11 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import useClassesContent from "@/app/hooks/useClassesContent";
 
 const ClassesPage: React.FC = () => {
   const router = useRouter();
+  const { content, loading: cmsLoading } = useClassesContent();
 
   interface Class {
     _id: string;
@@ -46,14 +48,14 @@ const ClassesPage: React.FC = () => {
   return (
     <section className="bg-gray-50 pt-[200px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* 📌 TÍTULO */}
+        {/* 📌 TÍTULO - Dinámico desde CMS */}
         <h1 className="text-4xl font-extrabold text-gray-900 text-center mb-6 tracking-wide">
-          Driving Classes
+          {content?.title || "Driving Classes"}
         </h1>
 
-        {/* 📌 DESCRIPCIÓN */}
+        {/* 📌 DESCRIPCIÓN - Dinámico desde CMS */}
         <p className="text-center text-gray-600 text-lg max-w-3xl mx-auto mb-12 leading-relaxed">
-          Choose from our variety of driving classes. Learn from certified instructors and improve your driving skills.
+          {content?.description || "Choose from our variety of driving classes. Learn from certified instructors and improve your driving skills."}
         </p>
 
         {/* 📌 MOSTRAR CARGANDO */}
