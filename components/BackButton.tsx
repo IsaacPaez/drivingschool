@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 
 interface BackButtonProps {
   className?: string;
@@ -10,21 +11,23 @@ const BackButton: React.FC<BackButtonProps> = ({
   className = "",
   label = "Back",
 }) => {
+  const router = useRouter();
+
   const onBack = () => {
     if (typeof window === "undefined") return;
 
-    // Intentar cerrar la ventana/pestaña
-    // Esto funciona si la ventana fue abierta con window.open() o como popup
-    window.close();
+    // Verificar si hay historial previo en el mismo sitio
+    // Si el historial tiene solo 1 entrada o menos, ir a Home
+    if (window.history.length <= 1) {
+      router.push("/");
+      return;
+    }
 
-    // Si window.close() no funciona (la pestaña no se cierra),
-    // usar history.back() como fallback
-    setTimeout(() => {
-      // Si la ventana no se cerró, navegar hacia atrás
-      if (!window.closed) {
-        window.history.back();
-      }
-    }, 100);
+    // Guardar flag en sessionStorage para hacer scroll al inicio en la página destino
+    sessionStorage.setItem("scrollToTop", "true");
+
+    // Navegar a la página anterior
+    window.history.back();
   };
 
   return (

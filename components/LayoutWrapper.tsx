@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SkipToContent from "@/components/accessibility/SkipToContent";
@@ -11,6 +12,17 @@ interface LayoutWrapperProps {
 
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
+
+  // Efecto para scroll al inicio cuando se navega con el botón Back
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const shouldScroll = sessionStorage.getItem("scrollToTop");
+      if (shouldScroll === "true") {
+        sessionStorage.removeItem("scrollToTop");
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+    }
+  }, [pathname]);
   const isPaymentSuccess = pathname?.includes("/payment-success") || false;
   const isSuccessCheckout = pathname?.includes("/success-checkout") || false;
   const isErrorCheckout = pathname?.includes("/error-checkout") || false;

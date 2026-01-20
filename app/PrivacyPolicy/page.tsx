@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import BackButton from "../../components/BackButton";
 import { useHeaderOffset } from "../../hooks/useHeaderOffset";
 
 const Policypage = () => {
-  const [isMobile, setIsMobile] = useState(false);
   const top = useHeaderOffset(96, 16);
 
   useEffect(() => {
@@ -15,58 +14,27 @@ const Policypage = () => {
     ) {
       window.history.scrollRestoration = "manual";
     }
-
-    // Detectar mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   return (
     <>
-      <style jsx>{`
-        .mobile-back-button {
-          position: fixed !important;
-          bottom: 24px !important;
-          left: 24px !important;
-          z-index: 9999 !important;
-          display: block !important;
-        }
-
-        .desktop-back-button {
-          display: none !important;
-        }
-
-        @media (min-width: 768px) {
-          .mobile-back-button {
-            display: none !important;
-          }
-
-          .desktop-back-button {
-            display: block !important;
-          }
-        }
-      `}</style>
-
       <div className="min-h-screen bg-gray-100 relative">
-        {/* Botón Back para mobile - Fuera del flujo principal */}
-        <div className="mobile-back-button">
+        {/* Botón Back para mobile - Fixed en esquina inferior izquierda */}
+        <div className="fixed bottom-6 left-6 z-[9999] md:hidden">
           <BackButton className="px-3 py-2 text-base rounded-md shadow-lg" />
         </div>
 
+        {/* Botón Back para desktop - Fixed debajo del header */}
+        <div
+          className="hidden md:block fixed left-8 lg:left-12 xl:left-[calc((100vw-80rem)/2+1rem)] z-40"
+          style={{ top: `${top}px` }}
+        >
+          <BackButton className="px-4 py-2 text-base rounded-md shadow-md" />
+        </div>
+
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start gap-4 md:gap-6 pt-40 px-4 pb-20">
-          {/* Botón Back para desktop - Sticky */}
-          <div
-            className="desktop-back-button sticky self-start shrink-0 z-40"
-            style={{ top: `${top}px` }}
-          >
-            <BackButton className="px-4 py-2 text-base rounded-md" />
-          </div>
+          {/* Spacer para el botón en desktop */}
+          <div className="hidden md:block w-24 shrink-0" />
 
           {/* Documento de Privacy Policy */}
           <div className="bg-white shadow-md rounded-lg p-8 w-full max-w-5xl border border-gray-300 text-black mb-20 md:mb-8">
