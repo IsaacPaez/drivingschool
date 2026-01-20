@@ -114,7 +114,7 @@ export async function POST(req: Request) {
         lastName: data.lastName,
         email: data.email.trim().toLowerCase(),
         phoneNumber: data.phoneNumber,
-        secondaryPhoneNumber: data.secondaryPhoneNumber,
+        secondaryPhoneNumber: data.secondaryPhoneNumber || "",
         ssnLast4: data.ssnLast4 || "0000",
         hasLicense: data.hasLicense,
         licenseNumber: data.licenseNumber || "",

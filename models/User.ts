@@ -50,7 +50,7 @@ export interface IUser extends Document {
   lastName: string;
   email: string;
   phoneNumber: string;
-  secondaryPhoneNumber: string;
+  secondaryPhoneNumber?: string;
   ssnLast4?: string;
   hasLicense: boolean;
   licenseNumber?: string;
@@ -92,7 +92,7 @@ const UserSchema = new Schema<IUser>({
   lastName: { type: String, required: true },
   email: { type: String, required: true },
   phoneNumber: { type: String, required: true },
-  secondaryPhoneNumber: { type: String, required: true },
+  secondaryPhoneNumber: { type: String, required: false, default: "" },
   ssnLast4: { type: String, required: false, default: "0000" },
   hasLicense: { type: Boolean, required: true },
   licenseNumber: { type: String, required: false, default: "" },
@@ -209,5 +209,10 @@ UserSchema.virtual('name').get(function() {
 UserSchema.set('toJSON', { virtuals: true });
 UserSchema.set('toObject', { virtuals: true });
 
-const User = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+// Delete the model from cache to ensure fresh schema
+if (mongoose.models.User) {
+  delete mongoose.models.User;
+}
+
+const User = mongoose.model<IUser>("User", UserSchema);
 export default User; 
