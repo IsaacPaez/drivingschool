@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import LocationMap from "./LocationMap";
 import { useRouter } from 'next/navigation';
 import BookNowModal from "@/components/BookNowModal";
+import { usePageContent } from "@/hooks/usePageContent";
 
 interface Instructor {
   _id: string;
@@ -23,6 +24,7 @@ interface Zone {
 }
 
 const LocationPage: React.FC = () => {
+  const { content, loading: contentLoading } = usePageContent({ pageType: "home" });
   const [location, setLocation] = useState<Zone | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
   const [showZones, setShowZones] = useState(false);
@@ -30,6 +32,14 @@ const LocationPage: React.FC = () => {
   const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState("(561) 969-0150");
   const [showBookNowModal, setShowBookNowModal] = useState(false);
+
+  // Default values
+  const defaultTitle = "Areas We Serve";
+  const defaultDescription = "While our main office is located in West Palm Beach, we provide driving lessons throughout the following areas. Our certified instructors will meet you at convenient locations within these zones.";
+
+  // Use data from Page Content or fall back to defaults
+  const sectionTitle = content?.areasWeServe?.title || defaultTitle;
+  const sectionDescription = content?.areasWeServe?.description || defaultDescription;
 
   // Cargar número de teléfono desde la base de datos
   useEffect(() => {
@@ -193,12 +203,10 @@ const LocationPage: React.FC = () => {
               {/* Información de áreas de servicio */}
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  Areas We Serve
+                  {sectionTitle}
                 </h3>
                 <p className="text-gray-600 max-w-3xl mx-auto">
-                  While our main office is located in West Palm Beach, we provide driving lessons
-                  throughout the following areas. Our certified instructors will meet
-                  you at convenient locations within these zones.
+                  {sectionDescription}
                 </p>
               </div>
 
