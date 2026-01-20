@@ -50,7 +50,7 @@ export interface IUser extends Document {
   lastName: string;
   email: string;
   phoneNumber: string;
-  secondaryPhoneNumber: string;
+  secondaryPhoneNumber?: string;
   ssnLast4?: string;
   hasLicense: boolean;
   licenseNumber?: string;
@@ -92,7 +92,7 @@ const UserSchema = new Schema<IUser>({
   lastName: { type: String, required: true },
   email: { type: String, required: true },
   phoneNumber: { type: String, required: true },
-  secondaryPhoneNumber: { type: String, required: true },
+  secondaryPhoneNumber: { type: String, required: false, default: "" },
   ssnLast4: { type: String, required: false, default: "0000" },
   hasLicense: { type: Boolean, required: true },
   licenseNumber: { type: String, required: false, default: "" },
