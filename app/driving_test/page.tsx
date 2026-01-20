@@ -6,6 +6,7 @@ import { Poppins } from "next/font/google";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import AuthenticatedButton from "@/components/AuthenticatedButton";
+import { useDrivingTestContent } from "../hooks/useDrivingTestContent";
 
 // Fuente moderna y elegante
 const poppins = Poppins({
@@ -32,6 +33,7 @@ interface CollectionItem {
 
 const DrivingTestSection = () => {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
+  const { content, loading: contentLoading } = useDrivingTestContent();
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -59,8 +61,16 @@ const DrivingTestSection = () => {
         variants={fadeIn}
         viewport={{ once: true }}
       >
-        <span className="text-[#27ae60]">DRIVING</span>{" "}
-        <span className="text-black">TEST</span>
+        {contentLoading ? (
+          "Loading..."
+        ) : content?.title ? (
+          <span className="text-[#27ae60]">{content.title}</span>
+        ) : (
+          <>
+            <span className="text-[#27ae60]">DRIVING</span>{" "}
+            <span className="text-black">TEST</span>
+          </>
+        )}
       </motion.h2>
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
@@ -74,7 +84,7 @@ const DrivingTestSection = () => {
           <div className="relative flex justify-center items-end">
             <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 group hover:brightness-105">
               <Image
-                src="https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761584688/esawuypoy3jxaiwov6bj.jpg"
+                src={content?.image || "https://res.cloudinary.com/dzi2p0pqa/image/upload/v1761584688/esawuypoy3jxaiwov6bj.jpg"}
                 alt="Driving Test"
                 width={430}
                 height={320}
@@ -92,48 +102,63 @@ const DrivingTestSection = () => {
           viewport={{ once: true }}
         >
           <div className="hidden md:block text-left">
-            <Link href="/Book-Now" passHref>
+            <Link href={content?.cta?.link || "/Book-Now"} passHref>
               <div className="bg-[#0056b3] text-white font-semibold px-6 py-2 w-fit self-start rounded-full shadow-lg shadow-gray-700 hover:shadow-black hover:bg-[#27ae60] hover:-translate-y-1 transition transform duration-300 ease-out cursor-pointer active:translate-y-1">
-                Book Driving Test
+                {content?.cta?.text || "Book Driving Test"}
               </div>
             </Link>
           </div>
           <h3 className="text-2xl font-bold text-black">
-            We give the Road Test !!
+            {content?.subtitle || "We give the Road Test !!"}
           </h3>
 
           <p className="text-ms text-black text-xm leading-relaxed">
-            Affordable Driving Traffic School is a Third Party Agency authorized
-            by the Florida Department of Highway Safety and Motor Vehicles to
-            issue the Road Test. There is no need to wait weeks to book an
-            appointment at the DMV for testing. We have availability within a
-            week to take your test with us.
+            {content?.description || "Affordable Driving Traffic School is a Third Party Agency authorized by the Florida Department of Highway Safety and Motor Vehicles to issue the Road Test. There is no need to wait weeks to book an appointment at the DMV for testing. We have availability within a week to take your test with us."}
           </p>
 
-          <div className="bg-white p-6 rounded-xl shadow-md w-full">
-            <h3 className="text-xl font-semibold text-[#27ae60]">
-              This Service Includes:
-            </h3>
-            <ul className="list-disc list-inside text-black mt-3 space-y-2">
-              <li>Vehicle for the Road Test</li>
-              <li>Assistance with DMV test booking process</li>
-            </ul>
-          </div>
+          {/* Dynamic Info Boxes from CMS */}
+          {content?.infoBoxes && content.infoBoxes.length > 0 ? (
+            content.infoBoxes.map((box, index) => (
+              <div key={index} className="bg-white p-6 rounded-xl shadow-md w-full">
+                <h3 className={`text-xl font-semibold ${index === 0 ? 'text-[#27ae60]' : index === 1 ? 'text-[#0056b3]' : 'text-[#ff6b6b]'}`}>
+                  {box.title}
+                </h3>
+                <ul className="list-disc list-inside text-black mt-3 space-y-2">
+                  {box.points.map((point, pointIndex) => (
+                    <li key={pointIndex}>{point}</li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          ) : (
+            <>
+              {/* Fallback content */}
+              <div className="bg-white p-6 rounded-xl shadow-md w-full">
+                <h3 className="text-xl font-semibold text-[#27ae60]">
+                  This Service Includes:
+                </h3>
+                <ul className="list-disc list-inside text-black mt-3 space-y-2">
+                  <li>Vehicle for the Road Test</li>
+                  <li>Assistance with DMV test booking process</li>
+                </ul>
+              </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-md w-full">
-            <h3 className="text-xl font-semibold text-[#0056b3]">
-              You must bring:
-            </h3>
-            <ul className="list-disc list-inside text-black mt-3 space-y-2">
-              <li>Learner&apos;s permit</li>
-              <li>
-                Required documentation (if under 18 year old, parent consent
-                form)
-              </li>
-              <li>Immigration documents (if applicable)</li>
-              <li>Glasses or contact lenses if required</li>
-            </ul>
-          </div>
+              <div className="bg-white p-6 rounded-xl shadow-md w-full">
+                <h3 className="text-xl font-semibold text-[#0056b3]">
+                  You must bring:
+                </h3>
+                <ul className="list-disc list-inside text-black mt-3 space-y-2">
+                  <li>Learner&apos;s permit</li>
+                  <li>
+                    Required documentation (if under 18 year old, parent consent
+                    form)
+                  </li>
+                  <li>Immigration documents (if applicable)</li>
+                  <li>Glasses or contact lenses if required</li>
+                </ul>
+              </div>
+            </>
+          )}
         </motion.div>
       </div>
 
