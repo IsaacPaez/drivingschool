@@ -491,17 +491,40 @@ function RegisterOnlineContent() {
     const today = new Date();
     const base = new Date(today);
     base.setDate(today.getDate() + weekOffset * 7);
-    
-    // Get the start of that week (Sunday)
+
+    // Get the start of that week - calculate days to Monday
     const startOfWeek = new Date(base);
-    startOfWeek.setDate(base.getDate() - base.getDay());
+    const dayOfWeek = base.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    // Calculate days to Monday: if Sunday (0), go forward 1 day; otherwise go back to Monday
+    const daysToMonday = dayOfWeek === 0 ? 1 : -(dayOfWeek - 1);
+    startOfWeek.setDate(base.getDate() + daysToMonday);
     startOfWeek.setHours(0, 0, 0, 0);
-    
-    return Array.from({ length: 7 }, (_, i) => {
+
+    // Return 6 days (Monday to Saturday, excluding Sunday)
+    return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
       return d;
     });
+  };
+
+  // Helper function to check if a time slot has already passed
+  const isSlotInPast = (dateString: string, slotStart: string): boolean => {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    // If the date is before today, it's in the past
+    if (dateString < todayStr) return true;
+
+    // If the date is after today, it's not in the past
+    if (dateString > todayStr) return false;
+
+    // If it's today, check if the time has passed
+    const [slotHours, slotMinutes] = slotStart.split(":").map(Number);
+    const slotTimeInMinutes = slotHours * 60 + slotMinutes;
+    const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+
+    return slotTimeInMinutes <= currentTimeInMinutes;
   };
 
   const getClassTypeDisplay = (type: string): string => {
@@ -647,22 +670,31 @@ function RegisterOnlineContent() {
           <thead>
             <tr className="bg-white text-center">
               <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">Time</th>
-              {weekDates.map((date) => (
-                <th
-                  key={date.toDateString()}
-                  className="border border-gray-300 p-1 text-black min-w-[80px] w-[80px]"
-                >
-                  <span className="block font-bold text-black text-xs">
-                    {date.toLocaleDateString("en-US", { weekday: "short" })}
-                  </span>
-                  <span className="block text-black text-xs">
-                    {date.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                </th>
-              ))}
+              {weekDates.map((date) => {
+                // Check if this date is in the past (before today)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const checkDate = new Date(date);
+                checkDate.setHours(0, 0, 0, 0);
+                const isPastDate = checkDate < today;
+
+                return (
+                  <th
+                    key={date.toDateString()}
+                    className={`border border-gray-300 p-1 min-w-[80px] w-[80px] ${isPastDate ? "bg-gray-200" : ""}`}
+                  >
+                    <span className={`block font-bold text-xs ${isPastDate ? "text-gray-400" : "text-black"}`}>
+                      {date.toLocaleDateString("en-US", { weekday: "short" })}
+                    </span>
+                    <span className={`block text-xs ${isPastDate ? "text-gray-400" : "text-black"}`}>
+                      {date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -838,6 +870,26 @@ function RegisterOnlineContent() {
                       
                       // Class is available for enrollment
                       if (isAvailable) {
+                        // Check if this class has already passed
+                        const calendarDateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                        const classHasPassed = isSlotInPast(calendarDateStr, overlappingClass.hour);
+
+                        // If class has passed, show as unavailable
+                        if (classHasPassed) {
+                          return (
+                            <td
+                              key={date.toDateString()}
+                              className="border border-gray-300 p-1 min-w-[80px] w-[80px] bg-gray-200 text-gray-500 cursor-not-allowed"
+                              rowSpan={rowSpan}
+                            >
+                              <div className="text-xs">Passed</div>
+                              <div className="text-xs font-bold">
+                                {overlappingClass.classInfo?.title || getClassTypeDisplay(overlappingClass.type)}
+                              </div>
+                            </td>
+                          );
+                        }
+
                         return (
                           <td
                             key={date.toDateString()}
@@ -924,10 +976,12 @@ function RegisterOnlineContent() {
                     }
                   } else {
                     // No class in this time slot
+                    const calendarDateString = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    const emptySlotPassed = isSlotInPast(calendarDateString, timeBlock.start);
                     return (
                       <td
                         key={date.toDateString()}
-                        className="border border-gray-300 py-1 bg-white text-black min-w-[80px] w-[80px]"
+                        className={`border border-gray-300 py-1 min-w-[80px] w-[80px] ${emptySlotPassed ? "bg-gray-200 text-gray-400" : "bg-white text-black"}`}
                       >
                         -
                       </td>

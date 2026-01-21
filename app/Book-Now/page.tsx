@@ -55,7 +55,7 @@ interface Schedule {
 }
 
 export default function BookNowPage() {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
 
   const [selectedInstructorId, setSelectedInstructorId] = useState<
     string | null
@@ -236,29 +236,13 @@ export default function BookNowPage() {
     }
   }, [sseSchedule, selectedInstructorId, instructors, isReady]);
 
+  // Initialize selectedDate to today when instructor is selected
   useEffect(() => {
-    if (
-      selectedInstructor &&
-      selectedInstructor.schedule &&
-      selectedInstructor.schedule.length > 0
-    ) {
-      const pad = (n: number) => n.toString().padStart(2, "0");
-      const availableDates = selectedInstructor.schedule.map((s) => s.date);
-      const selectedDateStr = selectedDate
-        ? `${selectedDate.getFullYear()}-${pad(
-            selectedDate.getMonth() + 1
-          )}-${pad(selectedDate.getDate())}`
-        : null;
-      const firstAvailableDate = selectedInstructor.schedule[0].date;
-      if (!selectedDateStr || !availableDates.includes(selectedDateStr)) {
-        // Solo actualiza si la fecha es diferente
-        if (!selectedDateStr || selectedDateStr !== firstAvailableDate) {
-          setSelectedDate(new Date(firstAvailableDate));
-        }
-      }
+    if (selectedInstructorId && !selectedDate) {
+      // If no date is selected, set to today
+      setSelectedDate(new Date());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedInstructor]);
+  }, [selectedInstructorId, selectedDate]);
 
 
   const handleDateChange = (value: Date | Date[] | null) => {
@@ -274,14 +258,19 @@ export default function BookNowPage() {
     // Use the provided date as the reference point
     const referenceDate = new Date(baseDate);
 
-    // Calculate the start of the week for the reference date (Sunday = 0)
+    // Calculate the start of the week for the reference date
     const startOfWeek = new Date(referenceDate);
-    startOfWeek.setDate(referenceDate.getDate() - referenceDate.getDay());
+    const dayOfWeek = referenceDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    // Calculate days to Monday: if Sunday (0), go forward 1 day; otherwise go back to Monday
+    const daysToMonday = dayOfWeek === 0 ? 1 : -(dayOfWeek - 1);
+    startOfWeek.setDate(referenceDate.getDate() + daysToMonday);
 
     // Apply weekOffset to navigate weeks
     startOfWeek.setDate(startOfWeek.getDate() + weekOffset * 7);
 
-    return Array.from({ length: 7 }, (_, i) => {
+    // Return 6 days (Monday to Saturday, excluding Sunday)
+    return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
       return d;
@@ -289,6 +278,25 @@ export default function BookNowPage() {
   };
 
   const pad = (n: number) => n.toString().padStart(2, "0");
+
+  // Helper function to check if a time slot has already passed
+  const isSlotInPast = (dateString: string, slotStart: string): boolean => {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    // If the date is before today, it's in the past
+    if (dateString < today) return true;
+
+    // If the date is after today, it's not in the past
+    if (dateString > today) return false;
+
+    // If it's today, check if the time has passed
+    const [slotHours, slotMinutes] = slotStart.split(":").map(Number);
+    const slotTimeInMinutes = slotHours * 60 + slotMinutes;
+    const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+
+    return slotTimeInMinutes <= currentTimeInMinutes;
+  };
 
   const renderScheduleTable = () => {
     if (!selectedInstructor || !selectedInstructor.schedule) {
@@ -389,15 +397,22 @@ export default function BookNowPage() {
                   "Fri",
                   "Sat",
                 ];
+                // Check if this date is in the past (before today)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const checkDate = new Date(date);
+                checkDate.setHours(0, 0, 0, 0);
+                const isPastDate = checkDate < today;
+
                 return (
                   <th
                     key={date.toDateString()}
-                    className="border border-gray-300 p-1 text-black min-w-[80px] w-[80px]"
+                    className={`border border-gray-300 p-1 min-w-[80px] w-[80px] ${isPastDate ? "bg-gray-200" : ""}`}
                   >
-                    <span className="block font-bold text-black text-xs">
+                    <span className={`block font-bold text-xs ${isPastDate ? "text-gray-400" : "text-black"}`}>
                       {dayNames[date.getDay()]}
                     </span>
-                    <span className="block text-black text-xs">
+                    <span className={`block text-xs ${isPastDate ? "text-gray-400" : "text-black"}`}>
                       {date.toLocaleDateString("en-US", { month: "short" })}{" "}
                       {date.getDate()}
                     </span>
@@ -528,6 +543,23 @@ export default function BookNowPage() {
                             slot._id
                           );
 
+                          // Check if this slot has already passed (for today's date)
+                          const slotPassed = isSlotInPast(dateString, slot.start);
+
+                          // If slot has passed, show as unavailable
+                          if (slotPassed) {
+                            return (
+                              <td
+                                key={date.toDateString()}
+                                rowSpan={rowSpan}
+                                className="border border-gray-300 py-1 bg-gray-200 text-gray-500 font-bold min-w-[80px] w-[80px] cursor-not-allowed"
+                              >
+                                <div className="text-xs">Passed</div>
+                                <div className="text-xs">-</div>
+                              </td>
+                            );
+                          }
+
                           return (
                             <td
                               key={date.toDateString()}
@@ -646,10 +678,11 @@ export default function BookNowPage() {
                         // If we reach here and there's a slot but none of the above conditions match,
                         // treat it as empty and show "-"
                         // This handles slots that exist but don't match any booking conditions
+                        const emptySlotPassed1 = isSlotInPast(dateString, block.start);
                         return (
                           <td
                             key={date.toDateString()}
-                            className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px]"
+                            className={`border border-gray-300 py-1 min-w-[80px] w-[80px] ${emptySlotPassed1 ? "bg-gray-200 text-gray-400" : "bg-gray-50 text-black"}`}
                           >
                             -
                           </td>
@@ -664,10 +697,11 @@ export default function BookNowPage() {
                       }
 
                       // SIEMPRE mostrar algo - si no hay slot, mostrar '-'
+                      const emptySlotPassed2 = isSlotInPast(dateString, block.start);
                       return (
                         <td
                           key={date.toDateString()}
-                          className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px]"
+                          className={`border border-gray-300 py-1 min-w-[80px] w-[80px] ${emptySlotPassed2 ? "bg-gray-200 text-gray-400" : "bg-gray-50 text-black"}`}
                         >
                           -
                         </td>
