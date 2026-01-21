@@ -239,7 +239,8 @@ export default function ScheduleTableImproved({
   }
 
   // Helper function to toggle slot selection
-  const toggleSlotSelection = (lesson: ScheduleEntry): void => {
+  // Now includes instructorId in the key to distinguish between instructors
+  const toggleSlotSelection = (lesson: ScheduleEntry, instructorId: string): void => {
     // No permitir selección si se están procesando slots
     if (isProcessingSlots) {
       return;
@@ -251,7 +252,8 @@ export default function ScheduleTableImproved({
       return;
     }
 
-    const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
+    // Include instructorId in the key to distinguish between instructors
+    const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}-${instructorId}`;
     const newSelectedSlots = new Set(selectedSlots);
 
     if (selectedSlots.has(slotKey)) {
@@ -263,9 +265,9 @@ export default function ScheduleTableImproved({
     onSelectedSlotsChange(newSelectedSlots);
   };
 
-  // Check if a slot is selected
-  const isSlotSelected = (lesson: ScheduleEntry): boolean => {
-    const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
+  // Check if a slot is selected (now includes instructorId)
+  const isSlotSelected = (lesson: ScheduleEntry, instructorId: string): boolean => {
+    const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}-${instructorId}`;
     return selectedSlots.has(slotKey);
   };
 
@@ -273,15 +275,38 @@ export default function ScheduleTableImproved({
   const calculateSelectedHours = React.useCallback((): number => {
     let totalMinutes = 0;
     selectedSlots.forEach(slotKey => {
-      // Search across all instructors for the lesson
-      for (const instructor of instructorsWithSSE) {
+      // Parse the slotKey to extract date, start, end, and optionally instructorId
+      // New format: "2025-01-22-08:00-10:00-instructorId"
+      // Old format: "2025-01-22-08:00-10:00"
+      const parts = slotKey.split('-');
+      const lastPart = parts[parts.length - 1];
+      const hasInstructorId = /^[a-f0-9]{24}$/i.test(lastPart);
+
+      let slotDate: string, slotStart: string, slotEnd: string, slotInstructorId: string | null = null;
+
+      if (hasInstructorId && parts.length >= 6) {
+        slotDate = `${parts[0]}-${parts[1]}-${parts[2]}`;
+        slotStart = parts[3];
+        slotEnd = parts[4];
+        slotInstructorId = parts[5];
+      } else {
+        slotDate = `${parts[0]}-${parts[1]}-${parts[2]}`;
+        slotStart = parts[3];
+        slotEnd = parts[4];
+      }
+
+      // Search for the specific instructor if we have the ID, otherwise search all
+      const instructorsToSearch = slotInstructorId
+        ? instructorsWithSSE.filter(i => i._id === slotInstructorId)
+        : instructorsWithSSE;
+
+      for (const instructor of instructorsToSearch) {
         let lesson: ScheduleEntry | null = null;
 
         if (instructor.schedule_driving_lesson) {
-          const foundLesson = instructor.schedule_driving_lesson.find(l => {
-            const lessonKey = `${l.date}-${l.start}-${l.end}`;
-            return lessonKey === slotKey && isEffectivelyAvailable(l);
-          });
+          const foundLesson = instructor.schedule_driving_lesson.find(l =>
+            l.date === slotDate && l.start === slotStart && l.end === slotEnd && isEffectivelyAvailable(l)
+          );
           lesson = foundLesson || null;
         }
 
@@ -699,17 +724,20 @@ export default function ScheduleTableImproved({
                         const multipleInstructors = slotsAtTime.length > 1;
 
                         // Slot available for booking (or pending but no longer present in user's cart -> treat as available immediately)
-                        const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
+                        // Support both old format (without instructorId) and new format (with instructorId) for backwards compatibility
+                        const slotKeyOld = `${slot.date}-${slot.start}-${slot.end}`;
+                        const slotKeyNew = `${slot.date}-${slot.start}-${slot.end}-${slotInstructor._id}`;
+                        const isInCartAnyFormat = pendingSlotKeysInCart.has(slotKeyOld) || pendingSlotKeysInCart.has(slotKeyNew);
                         const isUsersPendingHere = slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId;
                         const isPendingByOtherUser = slot.status === 'pending' && slot.studentId && (!userId || slot.studentId.toString() !== userId);
-                        const isPendingButNotInCart = isUsersPendingHere && !pendingSlotKeysInCart.has(slotKey) && slot.paymentMethod !== 'physical' && slot.paymentMethod !== 'local' && slot.paymentMethod !== 'online';
+                        const isPendingButNotInCart = isUsersPendingHere && !isInCartAnyFormat && slot.paymentMethod !== 'physical' && slot.paymentMethod !== 'local' && slot.paymentMethod !== 'online';
 
                         // Don't show as available if it's pending by another user
                         if (isPendingByOtherUser) {
                           // This slot is pending by another user - skip it
-                        } else if ((slot.status === 'available' || slot.status === 'free' || slot.status === 'cancelled' || isPendingButNotInCart) && !pendingSlotKeysInCart.has(slotKey)) {
+                        } else if ((slot.status === 'available' || slot.status === 'free' || slot.status === 'cancelled' || isPendingButNotInCart) && !isInCartAnyFormat) {
                           // ONLY show as available if it's NOT in the cart
-                          const isSelected = isSlotSelected(slot);
+                          const isSelected = isSlotSelected(slot, slotInstructor._id);
 
                           // Check if this slot has already passed (for today's date)
                           const slotPassed = isSlotInPast(dateString, slot.start);
@@ -771,7 +799,7 @@ export default function ScheduleTableImproved({
                                   ? 'bg-green-600 text-white hover:bg-green-700'
                                   : 'bg-green-200 text-black hover:bg-green-300'
                                   }`}
-                                onClick={() => toggleSlotSelection(slot)}
+                                onClick={() => toggleSlotSelection(slot, slotInstructor._id)}
                               >
                                 <div className="text-xs font-semibold">Driving Lesson</div>
                                 <div className="text-xs">
@@ -786,10 +814,11 @@ export default function ScheduleTableImproved({
                         }
                         // Slot pending del usuario actual - mostrar si sigue en el carrito o si es 'physical' (pago en sitio)
                         // OPTIMISTIC UI FIX: Also consider available slots that are locally in the cart as "user pending"
+                        // Support both old format and new format with instructorId for backwards compatibility
                         const isUsersPending = (slot.status === 'pending' && slot.studentId && userId && slot.studentId.toString() === userId) ||
-                          ((slot.status === 'available' || slot.status === 'free') && pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`));
+                          ((slot.status === 'available' || slot.status === 'free') && isInCartAnyFormat);
 
-                        const isInCart = pendingSlotKeysInCart.has(`${slot.date}-${slot.start}-${slot.end}`);
+                        const isInCart = isInCartAnyFormat;
                         // If it's effectively available due to being a stale pending slot, treat as available above. But here we handle actual pending/cart items.
 
                         const isLocalPayment = slot.paymentMethod === 'physical' || slot.paymentMethod === 'local';
@@ -940,7 +969,8 @@ export default function ScheduleTableImproved({
                     return;
                   }
 
-                  const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}`;
+                  // Include instructorId in the key to distinguish between instructors
+                  const slotKey = `${lesson.date}-${lesson.start}-${lesson.end}-${instructor._id}`;
                   onSelectedSlotsChange(new Set([slotKey]));
                   setShowMultipleInstructorsModal(false);
                 }}

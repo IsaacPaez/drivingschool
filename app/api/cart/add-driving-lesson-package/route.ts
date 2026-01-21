@@ -51,37 +51,73 @@ export async function POST(req: NextRequest) {
     }> = [];
     
     const slotUpdatePromises = selectedSlots.map(async (slotKey: string) => {
-      // Fix the slot parsing - slots are in format "2025-09-25-14:30-16:30" (5 parts)
+      // Parse slot format - supports both:
+      // New format: "2025-09-25-14:30-16:30-instructorId" (6 parts with instructorId)
+      // Old format: "2025-09-25-14:30-16:30" (5 parts without instructorId)
       const parts = slotKey.split('-');
-      const date = `${parts[0]}-${parts[1]}-${parts[2]}`; // 2025-09-25
-      const start = parts[3]; // 14:30
-      const end = parts[4]; // 16:30
-      
+
+      let date: string, start: string, end: string, specificInstructorId: string | null = null;
+
+      // Check if the last part looks like a MongoDB ObjectId (24 hex characters)
+      const lastPart = parts[parts.length - 1];
+      const hasInstructorId = /^[a-f0-9]{24}$/i.test(lastPart);
+
+      if (hasInstructorId && parts.length >= 6) {
+        // New format with instructorId
+        date = `${parts[0]}-${parts[1]}-${parts[2]}`; // 2025-09-25
+        start = parts[3]; // 14:30
+        end = parts[4]; // 16:30
+        specificInstructorId = parts[5]; // instructorId
+      } else {
+        // Old format without instructorId
+        date = `${parts[0]}-${parts[1]}-${parts[2]}`; // 2025-09-25
+        start = parts[3]; // 14:30
+        end = parts[4]; // 16:30
+      }
+
       // Validate parsing
-      if (!parts[3] || !parts[4]) {
+      if (!start || !end) {
         console.error(`❌ Invalid slot format: ${slotKey} - parts:`, parts);
         return null;
       }
-      
-      console.log(`🔍 Parsed slot: date=${date}, start=${start}, end=${end}`);
+
+      console.log(`🔍 Parsed slot: date=${date}, start=${start}, end=${end}, instructorId=${specificInstructorId || 'not specified'}`);
       console.log(`🔍 Raw slotKey: "${slotKey}"`);
       console.log(`🔍 Split parts:`, parts);
       console.log(`🔍 Processing slot: ${slotKey} -> date: ${date}, start: ${start}, end: ${end}`);
-     
+
       // Find which instructor has this slot in the database (available or pending)
-      const instructor = await Instructor.findOne({
-        'schedule_driving_lesson': {
-          $elemMatch: {
-            date: date,
-            start: start,
-            end: end,
-            status: { $in: ['available', 'pending'] }
+      // If we have a specific instructorId, use it; otherwise find any instructor with this slot
+      let instructor;
+      if (specificInstructorId) {
+        // Find the SPECIFIC instructor that was selected
+        instructor = await Instructor.findOne({
+          _id: specificInstructorId,
+          'schedule_driving_lesson': {
+            $elemMatch: {
+              date: date,
+              start: start,
+              end: end,
+              status: { $in: ['available', 'pending'] }
+            }
           }
-        }
-      });
+        });
+      } else {
+        // Fallback: Find any instructor with this slot (old behavior)
+        instructor = await Instructor.findOne({
+          'schedule_driving_lesson': {
+            $elemMatch: {
+              date: date,
+              start: start,
+              end: end,
+              status: { $in: ['available', 'pending'] }
+            }
+          }
+        });
+      }
 
       if (!instructor) {
-        console.warn(`❌ No instructor found for slot: ${slotKey}`);
+        console.warn(`❌ No instructor found for slot: ${slotKey} (specificInstructorId: ${specificInstructorId})`);
         return null;
       }
 

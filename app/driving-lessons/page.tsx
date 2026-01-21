@@ -595,16 +595,22 @@ function DrivingLessonsContent() {
         if (!instructor.schedule_driving_lesson) return instructor;
         const updatedSchedule = instructor.schedule_driving_lesson.map(
           (slot) => {
-            const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
+            // Check both old format and new format with instructorId
+            const slotKeyOld = `${slot.date}-${slot.start}-${slot.end}`;
+            const slotKeyNew = `${slot.date}-${slot.start}-${slot.end}-${instructor._id}`;
             const isUserPending =
               slot.status === "pending" &&
               slot.studentId &&
               slot.studentId.toString() === userId;
 
-            if (isUserPending && !cartPendingKeys.has(slotKey)) {
+            // Check if slot is in cart using either format
+            const isInCart = cartPendingKeys.has(slotKeyOld) || cartPendingKeys.has(slotKeyNew);
+
+            if (isUserPending && !isInCart) {
               console.log("✅ [DRIVING LESSONS] Releasing pending slot not in cart anymore", {
                 instructorId: instructor._id,
-                slotKey,
+                slotKeyOld,
+                slotKeyNew,
               });
               // Slot was removed from cart; free it up locally
               return {
@@ -673,7 +679,8 @@ function DrivingLessonsContent() {
           ) {
             const updatedSchedule = instructor.schedule_driving_lesson.map(
               (slot) => {
-                const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
+                // Use new format with instructorId to match selectedSlots
+                const slotKey = `${slot.date}-${slot.start}-${slot.end}-${instructor._id}`;
                 if (selectedSlots.has(slotKey) && slot.status === "available") {
                   return {
                     ...slot,
@@ -794,7 +801,8 @@ function DrivingLessonsContent() {
                 ) {
                   const revertedSchedule =
                     instructor.schedule_driving_lesson.map((slot) => {
-                      const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
+                      // Use new format with instructorId
+                      const slotKey = `${slot.date}-${slot.start}-${slot.end}-${instructor._id}`;
                       if (
                         selectedSlots.has(slotKey) &&
                         slot.status === "pending" &&
@@ -857,7 +865,8 @@ function DrivingLessonsContent() {
             ) {
               const revertedSchedule = instructor.schedule_driving_lesson.map(
                 (slot) => {
-                  const slotKey = `${slot.date}-${slot.start}-${slot.end}`;
+                  // Use new format with instructorId
+                  const slotKey = `${slot.date}-${slot.start}-${slot.end}-${instructor._id}`;
                   if (
                     selectedSlots.has(slotKey) &&
                     slot.status === "pending" &&

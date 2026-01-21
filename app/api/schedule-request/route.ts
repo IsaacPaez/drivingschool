@@ -60,37 +60,72 @@ export async function POST(request: NextRequest) {
     }> = [];
     
     for (const slotKey of selectedSlots) {
-      // Parse slot format: '2025-07-21-09:00-11:00'
-      const match = slotKey.match(/^(\d{4}-\d{2}-\d{2})-(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
-      if (!match) {
+      // Parse slot format: '2025-07-21-09:00-11:00-instructorId' (new format with instructorId)
+      // Also support old format: '2025-07-21-09:00-11:00' for backwards compatibility
+      const matchWithInstructor = slotKey.match(/^(\d{4}-\d{2}-\d{2})-(\d{1,2}:\d{2})-(\d{1,2}:\d{2})-([a-f0-9]{24})$/i);
+      const matchOldFormat = slotKey.match(/^(\d{4}-\d{2}-\d{2})-(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+
+      let parsedDate: string, parsedStart: string, parsedEnd: string, specificInstructorId: string | null = null;
+
+      if (matchWithInstructor) {
+        // New format with instructorId
+        [, parsedDate, parsedStart, parsedEnd, specificInstructorId] = matchWithInstructor;
+        console.log('🔍 Looking for slot (new format with instructorId):', {
+          originalSlotKey: slotKey,
+          date: parsedDate,
+          start: parsedStart,
+          end: parsedEnd,
+          instructorId: specificInstructorId
+        });
+      } else if (matchOldFormat) {
+        // Old format without instructorId (backwards compatibility)
+        [, parsedDate, parsedStart, parsedEnd] = matchOldFormat;
+        console.log('🔍 Looking for slot (old format):', {
+          originalSlotKey: slotKey,
+          date: parsedDate,
+          start: parsedStart,
+          end: parsedEnd
+        });
+      } else {
         console.error('❌ Invalid slot format:', slotKey);
         continue;
       }
-      
-      const [, parsedDate, parsedStart, parsedEnd] = match;
-      console.log('🔍 Looking for slot:', {
-        originalSlotKey: slotKey,
-        date: parsedDate,
-        start: parsedStart,
-        end: parsedEnd
-      });
-      
+
       // Find instructor with this specific slot in schedule_driving_lesson
-      const instructor = await Instructor.findOne({
-        'schedule_driving_lesson': {
-          $elemMatch: {
-            date: parsedDate,
-            start: parsedStart,
-            end: parsedEnd,
-            status: 'available'
+      // If we have a specific instructorId, use it; otherwise find any instructor with this slot
+      let instructor;
+      if (specificInstructorId) {
+        // Find the SPECIFIC instructor that was selected
+        instructor = await Instructor.findOne({
+          _id: specificInstructorId,
+          'schedule_driving_lesson': {
+            $elemMatch: {
+              date: parsedDate,
+              start: parsedStart,
+              end: parsedEnd,
+              status: 'available'
+            }
           }
-        }
-      });
+        });
+      } else {
+        // Fallback: Find any instructor with this slot (old behavior)
+        instructor = await Instructor.findOne({
+          'schedule_driving_lesson': {
+            $elemMatch: {
+              date: parsedDate,
+              start: parsedStart,
+              end: parsedEnd,
+              status: 'available'
+            }
+          }
+        });
+      }
 
       if (instructor) {
         console.log('✅ Found instructor for slot:', {
           instructorName: instructor.name,
-          instructorId: instructor._id.toString()
+          instructorId: instructor._id.toString(),
+          specificInstructorRequested: specificInstructorId
         });
         instructorsToUpdate.push({
           instructorId: instructor._id.toString(),
@@ -104,6 +139,7 @@ export async function POST(request: NextRequest) {
           date: parsedDate,
           start: parsedStart,
           end: parsedEnd,
+          specificInstructorId: specificInstructorId,
           slotKey: slotKey
         });
       }
