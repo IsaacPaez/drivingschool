@@ -87,7 +87,7 @@ const LocationPage: React.FC = () => {
 
 
   return (
-    <section className="bg-gray-100 pt-[150px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
+    <section className="bg-gray-100 pt-[180px] pb-20 px-4 sm:px-6 md:px-12 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {loading ? (
           <p className="text-center text-gray-500 text-lg">Loading location...</p>
@@ -202,7 +202,7 @@ const LocationPage: React.FC = () => {
 
               {/* Información de áreas de servicio */}
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 pt-8">
                   {sectionTitle}
                 </h3>
                 <p className="text-gray-600 max-w-3xl mx-auto">

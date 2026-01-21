@@ -73,6 +73,14 @@ body {
   transform: rotateY(180deg);
 }
 
+/* Section Title Spacing - Prevent header overlap */
+section h1,
+section h2.section-title,
+.section-title {
+  scroll-margin-top: 100px; /* Space for fixed header */
+  padding-top: 1rem; /* Additional spacing */
+}
+
 /* Animation for fade in */
 @keyframes fade-in {
   from {

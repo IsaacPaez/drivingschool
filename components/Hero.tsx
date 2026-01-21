@@ -48,7 +48,7 @@ const Hero = () => {
   const sortedButtons = [...displayContent.ctaButtons].sort((a, b) => a.order - b.order);
 
   return (
-    <section className="relative min-h-[100vh] flex items-center justify-start px-4 sm:px-6 md:px-12 pt-20 sm:pt-16 md:pt-8 lg:pt-0 overflow-hidden">
+    <section className="relative min-h-[100vh] flex items-center justify-start px-4 sm:px-6 md:px-12 pt-32 sm:pt-28 md:pt-24 lg:pt-20 overflow-hidden">
       {/* Imagen de fondo para móvil */}
       <Image
         src={displayContent.backgroundImage.mobile}
