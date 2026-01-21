@@ -119,6 +119,7 @@ const LessonsContent = () => {
                         price: lesson.price,
                       }}
                       label={lesson.buttonLabel || "Add to Cart"}
+                      redirectTo={lesson.redirectUrl}
                       className="w-full bg-[#27ae60] text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-black hover:bg-[#0056b3] hover:-translate-y-1 transition duration-300"
                     />
                   </div>

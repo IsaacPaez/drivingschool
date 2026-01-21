@@ -11,6 +11,7 @@ interface Lesson {
   tag?: string;
   duration?: number; // Agregamos duración para mostrar horas
   media?: string[];
+  redirectUrl?: string; // URL de redirección opcional
 }
 
 const useDrivingLessons = () => {

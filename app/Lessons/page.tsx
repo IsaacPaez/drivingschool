@@ -239,6 +239,7 @@ const LessonsPage = () => {
                         duration: lesson.duration, // Pasar duración
                       }}
                       label={lesson.buttonLabel || "Add to Cart"}
+                      redirectTo={lesson.redirectUrl} // Pasar redirectUrl
                       className="w-full bg-[#27ae60] text-white font-semibold text-sm px-4 py-2 rounded-full shadow-lg hover:bg-[#0056b3] hover:-translate-y-1 transition-all duration-300"
                     />
                   </div>
