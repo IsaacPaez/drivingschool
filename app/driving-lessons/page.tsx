@@ -1129,6 +1129,7 @@ function DrivingLessonsContent() {
           setShowLogin(false);
           setPendingSlot(null);
         }}
+        initialMode="register"
         onLoginSuccess={handleLoginSuccess}
       />
 
