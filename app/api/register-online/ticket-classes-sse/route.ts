@@ -57,35 +57,29 @@ export async function GET(req: NextRequest) {
       // Build query to find ticket classes
       const query: Record<string, unknown> = {};
       
-      // Filter by classId if specified (priority over everything else)
+      // Filter by classId if specified
       if (classId && mongoose.Types.ObjectId.isValid(classId)) {
         query.classId = classId;
-        // Note: instructorId filtering removed as ticket classes no longer have instructorId field
-      } else if (instructorId && instructorId !== 'ALL') {
-        // For instructor filtering, we need to get instructor's classes first
-        // Since ticket classes don't have instructorId, we'll get all classes for the classType
-        if (classType && classType !== 'ALL') {
-          // Convert frontend format to database format
-          let dbClassType = classType.toLowerCase();
-          if (classType === 'A.D.I') dbClassType = 'adi';
-          if (classType === 'B.D.I') dbClassType = 'bdi';
-          if (classType === 'D.A.T.E') dbClassType = 'date';
-          
-          query.type = dbClassType;
-        }
-      } else if (instructorId === 'ALL') {
-        // Get all ticket classes when instructor is 'ALL'
-        // Apply classType filter if specified
-        if (classType && classType !== 'ALL') {
-          let dbClassType = classType.toLowerCase();
-          if (classType === 'A.D.I') dbClassType = 'adi';
-          if (classType === 'B.D.I') dbClassType = 'bdi';
-          if (classType === 'D.A.T.E') dbClassType = 'date';
-          
-          query.type = dbClassType;
-        }
-      } else {
-        // If no valid filters, return empty array
+      }
+
+      // Filter by instructorId if specified and not 'ALL'
+      if (instructorId && instructorId !== 'ALL' && mongoose.Types.ObjectId.isValid(instructorId)) {
+        query.instructorId = instructorId;
+      }
+
+      // Apply classType filter if specified
+      if (classType && classType !== 'ALL') {
+        // Convert frontend format to database format
+        let dbClassType = classType.toLowerCase();
+        if (classType === 'A.D.I') dbClassType = 'adi';
+        if (classType === 'B.D.I') dbClassType = 'bdi';
+        if (classType === 'D.A.T.E') dbClassType = 'date';
+
+        query.type = dbClassType;
+      }
+
+      // If no valid filters at all (no classId, no instructorId, no classType), return empty
+      if (Object.keys(query).length === 0 && instructorId !== 'ALL') {
         return [];
       }
 
@@ -96,7 +90,21 @@ export async function GET(req: NextRequest) {
         ticketClasses.map(async (tc: Record<string, unknown>) => {
           // Get class info using classId
           const classInfo = await Classes.findById(tc.classId).lean() as Record<string, unknown>;
-          
+
+          // Get instructor info if instructorId exists
+          let instructorData: { _id: unknown; name: string; email: string; photo: string } | null = null;
+          if (tc.instructorId) {
+            const instructor = await Instructor.findById(tc.instructorId).lean() as Record<string, unknown>;
+            if (instructor) {
+              instructorData = {
+                _id: instructor._id,
+                name: instructor.name as string,
+                email: instructor.email as string,
+                photo: instructor.photo as string
+              };
+            }
+          }
+
           // Set default status to available since we can't check instructor schedule anymore
           let status = 'available';
           
@@ -164,7 +172,7 @@ export async function GET(req: NextRequest) {
               title: classInfo.title as string,
               overview: classInfo.overview as string
             } : null,
-            instructorInfo: null // Instructor info no longer available since instructorId was removed from ticket classes
+            instructorInfo: instructorData // Populated from ticketClass.instructorId
           };
         })
       );
