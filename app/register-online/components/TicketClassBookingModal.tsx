@@ -27,6 +27,7 @@ interface TicketClassBookingModalProps {
     classInfo?: {
       _id: string;
       title: string;
+      reasons?: string[];
     };
     instructorInfo?: {
       _id: string;
@@ -38,8 +39,9 @@ interface TicketClassBookingModalProps {
   setPaymentMethod: (method: 'online' | 'instructor') => void;
   isOnlinePaymentLoading: boolean;
   isProcessingBooking: boolean;
-  onConfirm: () => void;
+  onConfirm: (reason?: string) => void;
   userId: string | null;
+  classReasons?: string[];
 }
 
 export default function TicketClassBookingModal({
@@ -52,9 +54,28 @@ export default function TicketClassBookingModal({
   isOnlinePaymentLoading,
   isProcessingBooking,
   onConfirm,
-  userId
+  userId,
+  classReasons = []
 }: TicketClassBookingModalProps) {
   const [location, setLocation] = useState<Location | null>(null);
+  const [selectedReason, setSelectedReason] = useState<string>("");
+
+  // Reset selected reason when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedReason("");
+    }
+  }, [isOpen]);
+
+  const hasReasons = classReasons && classReasons.length > 0;
+  const isReasonRequired = hasReasons && !selectedReason;
+
+  const handleConfirm = () => {
+    if (hasReasons && !selectedReason) {
+      return; // Don't proceed if reason is required but not selected
+    }
+    onConfirm(selectedReason || undefined);
+  };
 
   // Load location when modal opens
   useEffect(() => {
@@ -125,6 +146,32 @@ export default function TicketClassBookingModal({
           </div>
         </div>
 
+        {/* Enrollment Reason Selection - Only show if reasons are configured */}
+        {hasReasons && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">
+              Enrollment Reason <span className="text-red-500">*</span>
+            </h3>
+            <select
+              value={selectedReason}
+              onChange={(e) => setSelectedReason(e.target.value)}
+              className={`w-full p-3 border-2 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-black font-medium ${
+                !selectedReason ? 'border-red-300' : 'border-gray-300'
+              }`}
+            >
+              <option value="">Select a reason...</option>
+              {classReasons.map((reason, index) => (
+                <option key={index} value={reason}>
+                  {reason}
+                </option>
+              ))}
+            </select>
+            {!selectedReason && (
+              <p className="text-red-500 text-sm mt-1">Please select a reason for enrollment</p>
+            )}
+          </div>
+        )}
+
         {/* Payment Method Selection */}
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-2">Select Payment Method</h3>
@@ -168,14 +215,14 @@ export default function TicketClassBookingModal({
           
           <button
             className={`px-6 py-2 rounded font-medium transition-all ${
-              isOnlinePaymentLoading || isProcessingBooking
+              isOnlinePaymentLoading || isProcessingBooking || isReasonRequired
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : paymentMethod === 'online'
                 ? 'bg-green-500 hover:bg-green-600 text-white'
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
             }`}
-            onClick={onConfirm}
-            disabled={isOnlinePaymentLoading || isProcessingBooking}
+            onClick={handleConfirm}
+            disabled={isOnlinePaymentLoading || isProcessingBooking || isReasonRequired}
           >
             {isOnlinePaymentLoading ? (
               <span className="flex items-center">

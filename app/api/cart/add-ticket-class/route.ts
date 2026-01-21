@@ -4,6 +4,18 @@ import User from "@/models/User";
 import TicketClass from "@/models/TicketClass";
 import mongoose from "mongoose";
 
+interface StudentRequest {
+  studentId: mongoose.Types.ObjectId;
+  requestDate: Date;
+  status: string;
+  paymentMethod: string;
+  reason?: string;
+}
+
+interface CartItem {
+  ticketClassId?: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -17,18 +29,9 @@ export async function POST(req: NextRequest) {
       instructorId,
       instructorName,
       amount,
-      title
+      title,
+      reason
     } = await req.json();
-
-    console.log('🛒 Adding ticket class to cart:', {
-      userId,
-      ticketClassId,
-      date,
-      start,
-      end,
-      amount,
-      title
-    });
 
     // Validar datos requeridos
     if (!userId || !ticketClassId || !date || !start || !end) {
@@ -55,32 +58,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('✅ Found ticket class - BASIC INFO:', {
-      id: ticketClass._id,
-      type: ticketClass.type,
-      date: ticketClass.date,
-      hour: ticketClass.hour,
-      endhour: ticketClass.endhour,
-      spots: ticketClass.spots,
-      cupos: ticketClass.cupos,
-      status: ticketClass.status,
-      studentsCount: ticketClass.students?.length || 0,
-      requestsCount: ticketClass.studentRequests?.length || 0
-    });
-    
-    console.log('📅 Comparing dates and times:', {
-      requested: { date, start, end },
-      ticketClass: { 
-        date: ticketClass.date, 
-        hour: ticketClass.hour, 
-        endhour: ticketClass.endhour  // ← Nombre correcto
-      }
-    });
-
-    // Por ahora, simplificar - solo verificar que la ticket class existe
-    // Las validaciones detalladas las haremos después de ver todos los campos
-    console.log('✅ Ticket class found, proceeding to add to cart...');
-
     // Buscar el usuario
     const user = await User.findById(userId);
     if (!user) {
@@ -92,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     // Verificar si ya está en studentRequests
     const isAlreadyRequested = ticketClass.studentRequests?.some(
-      (request: any) => request.studentId.toString() === userId
+      (request: StudentRequest) => request.studentId.toString() === userId
     );
 
     if (isAlreadyRequested) {
@@ -104,13 +81,13 @@ export async function POST(req: NextRequest) {
 
     // Crear el item del carrito
     const cartItem = {
-      id: `ticket_${ticketClassId}_${Date.now()}`, // ID único para el carrito
+      id: `ticket_${ticketClassId}_${Date.now()}`,
       title: title || ticketClass.type || "Traffic Law & Substance Abuse Class",
       price: amount || 50,
       quantity: 1,
       classType: 'ticket',
       ticketClassId: ticketClassId,
-      slotId: ticketClassId, // Para ticket class, slotId es el mismo ticketClassId
+      slotId: ticketClassId,
       date: date,
       start: start,
       end: end,
@@ -120,7 +97,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Verificar si ya existe en el carrito
-    const existingCartItem = user.cart?.find((item: any) => 
+    const existingCartItem = user.cart?.find((item: CartItem) =>
       item.ticketClassId?.toString() === ticketClassId
     );
 
@@ -131,22 +108,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Agregar student request a la ticket class (equivalente a poner slot en "pending")
-    // Usar updateOne para evitar problemas de validación del modelo
+    // Agregar student request a la ticket class
     try {
       const newStudentRequest = {
         studentId: new mongoose.Types.ObjectId(userId),
         requestDate: new Date(),
         status: 'pending',
-        paymentMethod: 'online' // Cuando se agrega al carrito, siempre es pago online
+        paymentMethod: 'online',
+        reason: reason || undefined
       };
 
-      console.log('💾 Adding student request to ticket class using updateOne...');
       const updateResult = await TicketClass.updateOne(
         { _id: ticketClassId },
-        { 
-          $push: { 
-            studentRequests: newStudentRequest 
+        {
+          $push: {
+            studentRequests: newStudentRequest
           },
           $set: {
             updatedAt: new Date()
@@ -157,29 +133,25 @@ export async function POST(req: NextRequest) {
       if (updateResult.modifiedCount === 0) {
         throw new Error('Failed to update ticket class - no documents modified');
       }
-
-      console.log('✅ Added student request to ticket class via updateOne');
     } catch (updateError) {
-      console.error('❌ Error updating ticket class:', updateError);
+      console.error('Error updating ticket class:', updateError);
       return NextResponse.json(
-        { error: "Failed to add student request to ticket class", details: updateError.message },
+        { error: "Failed to add student request to ticket class", details: (updateError as Error).message },
         { status: 500 }
       );
     }
 
-    // Agregar al carrito del usuario usando findByIdAndUpdate
+    // Agregar al carrito del usuario
     try {
-      console.log('💾 Saving user cart...');
       await User.findByIdAndUpdate(
         userId,
         { $push: { cart: cartItem } },
         { runValidators: false }
       );
-      console.log('✅ Ticket class added to user cart successfully');
     } catch (userSaveError) {
-      console.error('❌ Error saving user cart:', userSaveError);
+      console.error('Error saving user cart:', userSaveError);
       return NextResponse.json(
-        { error: "Failed to add to user cart", details: userSaveError.message },
+        { error: "Failed to add to user cart", details: (userSaveError as Error).message },
         { status: 500 }
       );
     }
@@ -191,9 +163,9 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error adding ticket class to cart:', error);
+    console.error('Error adding ticket class to cart:', error);
     return NextResponse.json(
-      { error: "Internal server error", details: error.message },
+      { error: "Internal server error", details: (error as Error).message },
       { status: 500 }
     );
   }

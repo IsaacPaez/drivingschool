@@ -182,11 +182,16 @@ export const CalendarModalContent: React.FC<CalendarModalContentProps> = ({
                 ) : (
                   <ul className="divide-y divide-[#b2f2d7]">
                     {studentsInfo.map((s, idx) => {
-                      const student = s as { _id?: string; firstName?: string; lastName?: string; email?: string };
+                      const student = s as { _id?: string; firstName?: string; lastName?: string; email?: string; reason?: string };
                       return (
                         <li key={student._id || idx} className="py-1 flex flex-col sm:flex-row sm:items-center gap-1">
                           <span className="font-bold text-[#0056b3]">{student.firstName} {student.lastName}</span>
                           <span className="text-gray-600 text-sm">{student.email}</span>
+                          {student.reason && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                              {student.reason}
+                            </span>
+                          )}
                         </li>
                       );
                     })}
