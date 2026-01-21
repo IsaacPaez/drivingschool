@@ -70,7 +70,7 @@ const FAQPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 pt-40 pb-20">
-      <h1 className="text-4xl font-extrabold text-center mb-2">
+      <h1 className="text-4xl font-extrabold text-center mb-2 pt-8">
         <span className="text-blue-600">Frequently</span>{" "}
         <span className="text-black">Asked</span>{" "}
         <span className="text-green-600">Questions</span>

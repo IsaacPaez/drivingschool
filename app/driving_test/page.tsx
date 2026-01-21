@@ -55,7 +55,7 @@ const DrivingTestSection = () => {
       className={`${poppins.variable} bg-gray-100 py-20 px-10 mt-16`}
     >
       <motion.h2
-        className="text-5xl font-extrabold text-center mb-16 leading-tight"
+        className="text-5xl font-extrabold text-center mb-16 leading-tight pt-12"
         initial="hidden"
         whileInView="visible"
         variants={fadeIn}
@@ -108,7 +108,7 @@ const DrivingTestSection = () => {
               </div>
             </Link>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">
+          <h3 className="text-2xl font-bold text-black">
             {content?.subtitle || "We give the Road Test !!"}
           </h3>
 
