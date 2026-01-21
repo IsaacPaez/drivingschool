@@ -12,6 +12,7 @@ const ClassSchema = new mongoose.Schema(
     contact: { type: String },
     buttonLabel: { type: String },
     image: { type: String },
+    reasons: { type: [String], default: [] },
   },
   { collection: "drivingclasses", timestamps: true }
 );

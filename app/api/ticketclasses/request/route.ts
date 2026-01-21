@@ -4,20 +4,34 @@ import TicketClass from "@/models/TicketClass";
 import User from "@/models/User";
 import mongoose from "mongoose";
 
+interface StudentEntry {
+  studentId?: mongoose.Types.ObjectId | string;
+}
+
+interface StudentRequest {
+  studentId: mongoose.Types.ObjectId;
+  status: string;
+}
+
+interface CancelledClass {
+  redeemed?: boolean;
+}
+
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
     const body = await req.json();
 
-    const { 
-      studentId, 
-      ticketClassId, 
-      classId, 
-      date, 
-      start, 
-      end, 
-      paymentMethod 
+    const {
+      studentId,
+      ticketClassId,
+      classId,
+      date,
+      start,
+      end,
+      paymentMethod,
+      reason
     } = body;
 
     // Validation
@@ -39,9 +53,9 @@ export async function POST(req: NextRequest) {
 
     // Check if student is already enrolled
     const isAlreadyEnrolled = ticketClass.students.some(
-      (student: any) => 
+      (student: string | StudentEntry) =>
         (typeof student === 'string' && student === studentId) ||
-        (typeof student === 'object' && student.studentId === studentId)
+        (typeof student === 'object' && student.studentId?.toString() === studentId)
     );
 
     if (isAlreadyEnrolled) {
@@ -53,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     // Check if student already has a pending request
     const hasPendingRequest = ticketClass.studentRequests?.some(
-      (request: any) => request.studentId === studentId && request.status === 'pending'
+      (request: StudentRequest) => request.studentId?.toString() === studentId && request.status === 'pending'
     );
 
     if (hasPendingRequest) {
@@ -83,7 +97,7 @@ export async function POST(req: NextRequest) {
 
       // Find first unredeemed class
       const unredeemedIndex = user.ticketclass_cancelled.findIndex(
-        (tc: any) => !tc.redeemed
+        (tc: CancelledClass) => !tc.redeemed
       );
 
       if (unredeemedIndex === -1) {
@@ -99,11 +113,18 @@ export async function POST(req: NextRequest) {
 
       // Check if student was previously cancelled from THIS SAME slot
       const wasCancelled = ticketClass.students_cancelled?.some(
-        (id: any) => id.toString() === studentId
+        (id: mongoose.Types.ObjectId | string) => id.toString() === studentId
       );
 
       // Add directly to students (not studentRequests)
-      const enrolledStudent = {
+      const enrolledStudent: {
+        studentId: mongoose.Types.ObjectId;
+        enrolledAt: Date;
+        status: string;
+        paymentId: string;
+        orderId: string;
+        reason?: string;
+      } = {
         studentId: new mongoose.Types.ObjectId(studentId),
         enrolledAt: new Date(),
         status: 'confirmed',
@@ -111,8 +132,17 @@ export async function POST(req: NextRequest) {
         orderId: 'redeemed'
       };
 
+      // Add reason if provided
+      if (reason) {
+        enrolledStudent.reason = reason;
+      }
+
       // Combine both operations in a SINGLE update to avoid race condition with SSE
-      const updateOperation: any = {
+      const updateOperation: {
+        $push: { students: typeof enrolledStudent };
+        $set: { updatedAt: Date };
+        $pull?: { students_cancelled: string };
+      } = {
         $push: {
           students: enrolledStudent
         },
@@ -152,10 +182,11 @@ export async function POST(req: NextRequest) {
 
     // For non-redemption: Create student request
     const studentRequest = {
-      studentId: studentId,
+      studentId: new mongoose.Types.ObjectId(studentId),
       requestDate: new Date(),
       status: 'pending',
       paymentMethod: paymentMethod === 'instructor' ? 'local' : 'online',
+      reason: reason || undefined,
       classDetails: {
         classId: classId,
         date: date,
@@ -186,13 +217,14 @@ export async function POST(req: NextRequest) {
       ticketClassId: ticketClassId,
       studentId: studentId,
       requestId: studentRequest.requestDate.getTime().toString(),
-      status: 'pending'
+      status: 'pending',
+      reason: studentRequest.reason
     });
 
   } catch (error) {
-    console.error("❌ Error creating ticket class request:", error);
+    console.error("Error creating ticket class request:", error);
     return NextResponse.json(
-      { error: "Failed to create request", details: error.message },
+      { error: "Failed to create request", details: (error as Error).message },
       { status: 500 }
     );
   }

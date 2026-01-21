@@ -63,28 +63,44 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Find the reason from studentRequest before removing (if exists)
+    let enrollmentReason: string | undefined;
+    if (ticketClass.studentRequests && Array.isArray(ticketClass.studentRequests)) {
+      const existingRequest = ticketClass.studentRequests.find((request: any) =>
+        request.studentId.toString() === studentId
+      );
+      if (existingRequest?.reason) {
+        enrollmentReason = existingRequest.reason;
+      }
+    }
+
     // Remove from studentRequests
     if (ticketClass.studentRequests && Array.isArray(ticketClass.studentRequests)) {
       const initialRequestsLength = ticketClass.studentRequests.length;
-      
-      ticketClass.studentRequests = ticketClass.studentRequests.filter((request: any) => 
+
+      ticketClass.studentRequests = ticketClass.studentRequests.filter((request: any) =>
         request.studentId.toString() !== studentId
       );
 
       const finalRequestsLength = ticketClass.studentRequests.length;
       const removedRequestsCount = initialRequestsLength - finalRequestsLength;
-      
+
       console.log(`🗑️ Removed ${removedRequestsCount} student request(s)`);
     }
 
     // Add to students array
-    const newStudent = {
+    const newStudent: any = {
       studentId: new mongoose.Types.ObjectId(studentId),
       enrollmentDate: new Date(),
       status: 'enrolled',
       orderId: orderId ? new mongoose.Types.ObjectId(orderId) : undefined,
       orderNumber: orderNumber || undefined
     };
+
+    // Include reason if it was in the studentRequest
+    if (enrollmentReason) {
+      newStudent.reason = enrollmentReason;
+    }
 
     if (!ticketClass.students) {
       ticketClass.students = [];

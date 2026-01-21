@@ -224,12 +224,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         if(ticketClass.students && Array.isArray(ticketClass.students)) {
           const students = await Promise.all(ticketClass.students.map(async (s: unknown) => {
             let id = '';
+            let reason: string | undefined;
             if (typeof s === 'string') id = s;
-            else if (typeof s === 'object' && s !== null && 'studentId' in s) id = (s as { studentId: string }).studentId;
+            else if (typeof s === 'object' && s !== null && 'studentId' in s) {
+              id = (s as { studentId: string }).studentId;
+              reason = (s as { reason?: string }).reason;
+            }
             else return null;
             const res = await fetch(`/api/users?id=${id}`);
             const user = await res.json();
-            return user && !user.error ? user : null;
+            if (user && !user.error) {
+              return { ...user, reason }; // Preservar el reason junto con los datos del usuario
+            }
+            return null;
           }));
           setStudentsInfo(students.filter(Boolean));
         }

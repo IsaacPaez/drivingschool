@@ -22,6 +22,13 @@ export interface ITicketClass extends Document {
     requestDate: Date;
     status: 'pending' | 'accepted' | 'rejected';
     paymentMethod?: 'online' | 'local';
+    reason?: string;
+    classDetails?: {
+      classId?: string;
+      date?: string;
+      start?: string;
+      end?: string;
+    };
   }[];
   cupos?: number;
   spots?: number;
@@ -55,7 +62,9 @@ const TicketClassSchema = new Schema<ITicketClass>(
         studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         requestDate: { type: Date, default: Date.now },
         status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
-        paymentMethod: { type: String, enum: ['online', 'local'], required: false }
+        paymentMethod: { type: String, enum: ['online', 'local'], required: false },
+        reason: { type: String, required: false },
+        classDetails: { type: mongoose.Schema.Types.Mixed, required: false }
       }
     ],
     cupos: { type: Number, required: false },

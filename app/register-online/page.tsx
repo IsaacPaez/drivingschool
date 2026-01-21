@@ -106,7 +106,8 @@ function RegisterOnlineContent() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedClassPrice, setSelectedClassPrice] = useState<number | null>(null);
   const [isModalReady, setIsModalReady] = useState(false);
-  
+  const [classReasons, setClassReasons] = useState<string[]>([]);
+
   // Estados para manejo de autenticación y slots pendientes
   const [pendingSlot, setPendingSlot] = useState<{
     ticketClass: TicketClass;
@@ -179,7 +180,7 @@ function RegisterOnlineContent() {
   };
   
   // Función para manejar la confirmación de reserva
-  const handleConfirm = async () => {
+  const handleConfirm = async (reason?: string) => {
     if (!userId || !selectedTicketClass) {
       if (!userId) {
         setShowLogin(true);
@@ -223,7 +224,8 @@ function RegisterOnlineContent() {
             instructorId: selectedTicketClass.instructorInfo?._id,
             instructorName: selectedTicketClass.instructorInfo?.name,
             amount: classPrice,
-            title: classInfo.title
+            title: classInfo.title,
+            reason: reason // Razón de inscripción seleccionada por el usuario
           }),
         });
         
@@ -267,7 +269,8 @@ function RegisterOnlineContent() {
           date: selectedTicketClass.date,
           start: selectedTicketClass.hour,
           end: selectedTicketClass.endHour,
-          paymentMethod: 'instructor' // Para pago local
+          paymentMethod: 'instructor', // Para pago local
+          reason: reason // Razón de inscripción seleccionada por el usuario
         }),
       });
       
@@ -520,7 +523,8 @@ function RegisterOnlineContent() {
     try {
       setIsModalReady(false);
       setSelectedTicketClass(ticketClass);
-      
+      setClassReasons([]); // Reset reasons
+
       // If there's a locationId, load the location first
       if (ticketClass.locationId) {
         const response = await fetch(`/api/locations/${ticketClass.locationId}`);
@@ -533,7 +537,22 @@ function RegisterOnlineContent() {
           });
         }
       }
-      
+
+      // Load class reasons if classInfo exists
+      if (ticketClass.classInfo?._id) {
+        try {
+          const classResponse = await fetch(`/api/drivingclasses/${ticketClass.classInfo._id}`);
+          if (classResponse.ok) {
+            const classData = await classResponse.json();
+            if (classData.reasons && Array.isArray(classData.reasons) && classData.reasons.length > 0) {
+              setClassReasons(classData.reasons);
+            }
+          }
+        } catch (reasonsError) {
+          // Continue without reasons - they're optional
+        }
+      }
+
       setIsModalReady(true);
       setIsBookingModalOpen(true);
     } catch (error) {
@@ -1425,6 +1444,7 @@ function RegisterOnlineContent() {
         onClose={() => {
           setIsBookingModalOpen(false);
           setSelectedClassPrice(null);
+          setClassReasons([]);
         }}
         selectedTicketClass={selectedTicketClass}
         classPrice={selectedClassPrice}
@@ -1434,6 +1454,7 @@ function RegisterOnlineContent() {
         isProcessingBooking={isProcessingBooking}
         onConfirm={handleConfirm}
         userId={userId}
+        classReasons={classReasons}
       />
       
       {/* Modal de contacto para pago local */}

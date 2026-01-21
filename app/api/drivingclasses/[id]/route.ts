@@ -35,6 +35,14 @@ export async function GET(
       );
     }
 
+    // Debug: Log the reasons field
+    console.log('📚 DrivingClass fetched:', {
+      id: drivingClass._id,
+      title: drivingClass.title,
+      reasons: drivingClass.reasons,
+      hasReasons: !!(drivingClass.reasons && drivingClass.reasons.length > 0)
+    });
+
     return NextResponse.json(drivingClass);
   } catch (error) {
     console.error("Error fetching driving class:", error);
