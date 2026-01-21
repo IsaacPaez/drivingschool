@@ -29,6 +29,7 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
   type,
   actionData,
   label,
+  redirectTo,
   className = "",
 }) => {
   const router = useRouter();
@@ -38,6 +39,21 @@ const AuthenticatedButton: React.FC<AuthenticatedButtonProps> = ({
 
   const handleClick = async () => {
     if (loading || added) return; // Fixed: removed cartLoading reference
+    
+    // Si hay redirectTo, usarlo directamente sin importar el tipo
+    if (redirectTo) {
+      console.log('🔗 Custom redirect URL detected:', redirectTo);
+      
+      // Si es una URL externa (http:// o https://)
+      if (redirectTo.startsWith('http://') || redirectTo.startsWith('https://')) {
+        window.location.href = redirectTo;
+        return;
+      }
+      
+      // Si es una ruta interna
+      router.push(redirectTo);
+      return;
+    }
     
     switch (type) {
       case "buy":

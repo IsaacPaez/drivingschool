@@ -13,6 +13,7 @@ interface Lesson {
   media?: string[];
   tag?: string;
   type: "buy" | "book";
+  redirectUrl?: string;
 }
 
 const DrivingLessons = () => {
@@ -34,7 +35,22 @@ const DrivingLessons = () => {
 
   const handleButtonClick = (lesson: Lesson) => {
     try {
-      // Save selected package to localStorage for preselection
+      // Si hay redirectUrl, usarlo primero
+      if (lesson.redirectUrl) {
+        console.log(`Custom redirect URL detected: ${lesson.redirectUrl}`);
+        
+        // Si es una URL externa
+        if (lesson.redirectUrl.startsWith('http://') || lesson.redirectUrl.startsWith('https://')) {
+          window.location.href = lesson.redirectUrl;
+          return;
+        }
+        
+        // Si es una ruta interna
+        window.location.href = lesson.redirectUrl;
+        return;
+      }
+      
+      // Comportamiento por defecto: guardar en localStorage y redirigir a /driving-lessons
       localStorage.setItem('selectedPackage', JSON.stringify({
         id: lesson._id,
         title: lesson.title
