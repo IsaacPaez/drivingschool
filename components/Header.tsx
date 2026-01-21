@@ -318,7 +318,7 @@ const Header = () => {
       <LoginModal
         open={showLogin}
         onClose={() => setShowLogin(false)}
-        initialMode="register"
+        initialMode="login"
         onLoginSuccess={(user) => {
           clearCart();
           localStorage.removeItem("cart");
