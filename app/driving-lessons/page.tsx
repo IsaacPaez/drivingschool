@@ -918,9 +918,13 @@ function DrivingLessonsContent() {
 
       const startOfWeek = new Date(base.getTime());
       const dayOfWeek = startOfWeek.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
-      startOfWeek.setUTCDate(startOfWeek.getUTCDate() - dayOfWeek);
 
-      return Array.from({ length: 7 }, (_, i) => {
+      // Calculate days to Monday: if Sunday (0), go forward 1 day; otherwise go back to Monday
+      const daysToMonday = dayOfWeek === 0 ? 1 : -(dayOfWeek - 1);
+      startOfWeek.setUTCDate(startOfWeek.getUTCDate() + daysToMonday);
+
+      // Return 6 days (Monday to Saturday, excluding Sunday)
+      return Array.from({ length: 6 }, (_, i) => {
         const d = new Date(startOfWeek.getTime());
         d.setUTCDate(startOfWeek.getUTCDate() + i);
         return d;

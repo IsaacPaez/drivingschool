@@ -206,6 +206,25 @@ export default function ScheduleTableImproved({
     return `${year}-${pad(month)}-${pad(day)}`;
   };
 
+  // Helper function to check if a time slot has already passed
+  const isSlotInPast = (dateString: string, slotStart: string): boolean => {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    // If the date is before today, it's in the past
+    if (dateString < today) return true;
+
+    // If the date is after today, it's not in the past
+    if (dateString > today) return false;
+
+    // If it's today, check if the time has passed
+    const [slotHours, slotMinutes] = slotStart.split(":").map(Number);
+    const slotTimeInMinutes = slotHours * 60 + slotMinutes;
+    const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+
+    return slotTimeInMinutes <= currentTimeInMinutes;
+  };
+
   const timeToMinutes = React.useCallback((time: string): number => {
     if (!time || typeof time !== 'string') return 0;
     const [hours, minutes] = time.split(':').map(Number);
@@ -541,15 +560,22 @@ export default function ScheduleTableImproved({
               <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">Time</th>
               {weekDates.map((date) => {
                 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                // Check if this date is in the past (before today)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const checkDate = new Date(date);
+                checkDate.setHours(0, 0, 0, 0);
+                const isPastDate = checkDate < today;
+
                 return (
                   <th
                     key={date.toDateString()}
-                    className="border border-gray-300 p-1 text-black min-w-[80px] w-[80px]"
+                    className={`border border-gray-300 p-1 min-w-[80px] w-[80px] ${isPastDate ? "bg-gray-200" : ""}`}
                   >
-                    <span className="block font-bold text-black text-xs">
+                    <span className={`block font-bold text-xs ${isPastDate ? "text-gray-400" : "text-black"}`}>
                       {dayNames[date.getDay()]}
                     </span>
-                    <span className="block text-black text-xs">
+                    <span className={`block text-xs ${isPastDate ? "text-gray-400" : "text-black"}`}>
                       {date.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -684,6 +710,24 @@ export default function ScheduleTableImproved({
                         } else if ((slot.status === 'available' || slot.status === 'free' || slot.status === 'cancelled' || isPendingButNotInCart) && !pendingSlotKeysInCart.has(slotKey)) {
                           // ONLY show as available if it's NOT in the cart
                           const isSelected = isSlotSelected(slot);
+
+                          // Check if this slot has already passed (for today's date)
+                          const slotPassed = isSlotInPast(dateString, slot.start);
+
+                          // If slot has passed, show as unavailable
+                          if (slotPassed) {
+                            return (
+                              <td
+                                key={date.toDateString()}
+                                rowSpan={rowSpan}
+                                className="border border-gray-300 py-1 bg-gray-200 text-gray-500 font-bold min-w-[80px] w-[80px] cursor-not-allowed"
+                              >
+                                <div className="text-xs font-semibold">Driving Lesson</div>
+                                <div className="text-xs">{slot.start} - {slot.end}</div>
+                                <div className="text-xs">Passed</div>
+                              </td>
+                            );
+                          }
 
                           if (multipleInstructors) {
                             // Special design for multiple instructors - split the cell
@@ -828,8 +872,9 @@ export default function ScheduleTableImproved({
                           );
                         }
                         // Empty slot or other states - show "-"
+                        const emptyPassed1 = isSlotInPast(dateString, block.start);
                         return (
-                          <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px] text-center text-xs">-</td>
+                          <td key={date.toDateString()} className={`border border-gray-300 py-1 min-w-[80px] w-[80px] text-center text-xs ${emptyPassed1 ? "bg-gray-200 text-gray-400" : "bg-gray-50 text-black"}`}>-</td>
                         );
                       } else {
                         // This block is covered by a slot that started in a previous row
@@ -840,14 +885,16 @@ export default function ScheduleTableImproved({
 
                     // If there's a driving test conflict, show "-" (unavailable)
                     if (hasDrivingTestConflict) {
+                      const conflictPassed = isSlotInPast(dateString, block.start);
                       return (
-                        <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-gray-500 min-w-[80px] w-[80px] text-center text-xs">-</td>
+                        <td key={date.toDateString()} className={`border border-gray-300 py-1 min-w-[80px] w-[80px] text-center text-xs ${conflictPassed ? "bg-gray-200 text-gray-400" : "bg-gray-50 text-gray-500"}`}>-</td>
                       );
                     }
 
                     // Always show something - if no slot, show "-"
+                    const emptyPassed2 = isSlotInPast(dateString, block.start);
                     return (
-                      <td key={date.toDateString()} className="border border-gray-300 py-1 bg-gray-50 text-black min-w-[80px] w-[80px] text-center text-xs">-</td>
+                      <td key={date.toDateString()} className={`border border-gray-300 py-1 min-w-[80px] w-[80px] text-center text-xs ${emptyPassed2 ? "bg-gray-200 text-gray-400" : "bg-gray-50 text-black"}`}>-</td>
                     );
                   })}
                 </tr>
