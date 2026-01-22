@@ -11,7 +11,7 @@ import LoginModal from "@/components/LoginModal";
 import TicketClassBookingModal from "./components/TicketClassBookingModal";
 import { useSearchParams } from "next/navigation";
 import useRegisterOnlineSSE from "@/hooks/useRegisterOnlineSSE";
-import { formatDateForDisplay } from "@/utils/dateFormat";
+import { formatDateForDisplay, formatTo12Hour } from "@/utils/dateFormat";
 
 interface Instructor {
   _id: string;
@@ -669,7 +669,7 @@ function RegisterOnlineContent() {
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-white text-center">
-              <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">Time</th>
+              <th className="border border-gray-300 p-1 text-black min-w-[110px] w-[110px] text-xs">Time</th>
               {weekDates.map((date) => {
                 // Check if this date is in the past (before today)
                 const today = new Date();
@@ -700,8 +700,8 @@ function RegisterOnlineContent() {
           <tbody>
             {allTimes.map((timeBlock, index) => (
               <tr key={index} className="text-center">
-                <td className="border border-gray-300 p-1 font-bold text-black min-w-[70px] w-[70px] text-xs">
-                  {timeBlock.start}-{timeBlock.end}
+                <td className="border border-gray-300 p-1 font-bold text-black min-w-[110px] w-[110px] text-xs whitespace-nowrap">
+                  {formatTo12Hour(timeBlock.start)} - {formatTo12Hour(timeBlock.end)}
                 </td>
                 {weekDates.map((date) => {
                   // Find classes for this date
