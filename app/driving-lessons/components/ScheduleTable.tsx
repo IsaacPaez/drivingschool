@@ -377,7 +377,7 @@ export default function ScheduleTable({
             <table className="w-full border-collapse border border-gray-300 text-sm">
               <thead>
                 <tr className="bg-white text-center">
-                  <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">Time</th>
+                  <th className="border border-gray-300 p-1 text-black min-w-[110px] w-[110px] text-xs">Time</th>
                   {weekDates.map((date) => (
                     <th
                       key={date.toDateString()}
@@ -466,7 +466,7 @@ export default function ScheduleTable({
                   return allTimeSlots.map((timeBlock, index) => {
                     return (
                       <tr key={index} className="text-center">
-                        <td className="border border-gray-300 p-1 font-bold text-black min-w-[70px] w-[70px] text-xs">
+                        <td className="border border-gray-300 p-1 font-bold text-black min-w-[110px] w-[110px] text-xs whitespace-nowrap">
                           {timeBlock.display}
                         </td>
                         {weekDates.map((date) => {

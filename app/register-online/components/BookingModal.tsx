@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "@/components/Modal";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import { formatTo12Hour } from "@/utils/dateFormat";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -121,7 +122,7 @@ export default function BookingModal({
                 <strong>Date:</strong> {selectedSlot?.date}
               </p>
               <p className="mb-2">
-                <strong>Time:</strong> {selectedSlot?.start} - {selectedSlot?.end}
+                <strong>Time:</strong> {formatTo12Hour(selectedSlot?.start || '')} - {formatTo12Hour(selectedSlot?.end || '')}
               </p>
             </div>
             

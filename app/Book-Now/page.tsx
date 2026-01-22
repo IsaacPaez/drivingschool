@@ -12,6 +12,7 @@ import { useAuth } from "@/components/AuthContext";
 import { useCart } from "@/app/context/CartContext";
 import LoginModal from "@/components/LoginModal";
 import { useDrivingTestSSE } from "@/hooks/useDrivingTestSSE";
+import { formatTo12Hour } from "@/utils/dateFormat";
 
 // Google Maps configuration - removed as not needed for driving test
 
@@ -307,7 +308,7 @@ export default function BookNowPage() {
             <table className="w-full border-collapse border border-gray-300 text-sm">
               <thead>
                 <tr className="bg-gray-100 text-center">
-                  <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">
+                  <th className="border border-gray-300 p-1 text-black min-w-[110px] w-[110px] text-xs">
                     Time
                   </th>
                   {getWeekDates(selectedDate || new Date()).map((date) => {
@@ -384,7 +385,7 @@ export default function BookNowPage() {
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-gray-100 text-center">
-              <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">
+              <th className="border border-gray-300 p-1 text-black min-w-[110px] w-[110px] text-xs">
                 Time
               </th>
               {weekDates.map((date) => {
@@ -438,7 +439,7 @@ export default function BookNowPage() {
                 // SIEMPRE renderizar todas las filas para evitar espacios vacíos
                 return (
                   <tr key={index} className="text-center">
-                    <td className="border border-gray-300 p-1 font-bold text-black min-w-[70px] w-[70px] text-xs">{`${block.start}-${block.end}`}</td>
+                    <td className="border border-gray-300 p-1 font-bold text-black min-w-[110px] w-[110px] text-xs whitespace-nowrap">{`${formatTo12Hour(block.start)} - ${formatTo12Hour(block.end)}`}</td>
                     {weekDates.map((date) => {
                       const dateString = `${date.getFullYear()}-${pad(
                         date.getMonth() + 1

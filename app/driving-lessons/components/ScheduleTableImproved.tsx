@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Modal from "@/components/Modal";
 import { useCart } from "@/app/context/CartContext";
+import { formatTo12Hour } from "@/utils/dateFormat";
 
 interface Instructor {
   _id: string;
@@ -582,7 +583,7 @@ export default function ScheduleTableImproved({
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-gray-100 text-center">
-              <th className="border border-gray-300 p-1 text-black min-w-[70px] w-[70px] text-xs">Time</th>
+              <th className="border border-gray-300 p-1 text-black min-w-[110px] w-[110px] text-xs">Time</th>
               {weekDates.map((date) => {
                 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 // Check if this date is in the past (before today)
@@ -622,8 +623,8 @@ export default function ScheduleTableImproved({
 
               return (
                 <tr key={index} className="text-center">
-                  <td className="border border-gray-300 p-1 font-bold text-black min-w-[70px] w-[70px] text-xs">
-                    {`${block.start} -${block.end} `}
+                  <td className="border border-gray-300 p-1 font-bold text-black min-w-[110px] w-[110px] text-xs whitespace-nowrap">
+                    {`${formatTo12Hour(block.start)} - ${formatTo12Hour(block.end)}`}
                   </td>
                   {weekDates.map((date) => {
                     const dateString = formatDate(date);
@@ -751,7 +752,7 @@ export default function ScheduleTableImproved({
                                 className="border border-gray-300 py-1 bg-gray-200 text-gray-500 font-bold min-w-[80px] w-[80px] cursor-not-allowed"
                               >
                                 <div className="text-xs font-semibold">Driving Lesson</div>
-                                <div className="text-xs">{slot.start} - {slot.end}</div>
+                                <div className="text-xs">{formatTo12Hour(slot.start)} - {formatTo12Hour(slot.end)}</div>
                                 <div className="text-xs">Passed</div>
                               </td>
                             );
@@ -764,7 +765,7 @@ export default function ScheduleTableImproved({
                                 key={date.toDateString()}
                                 rowSpan={rowSpan}
                                 className="border border-gray-300 py-1 font-bold cursor-pointer min-w-[80px] w-[80px] relative overflow-hidden"
-                                onClick={() => handleMultipleInstructorsClick(slotsAtTime, dateString, `${block.start} -${block.end} `)}
+                                onClick={() => handleMultipleInstructorsClick(slotsAtTime, dateString, `${formatTo12Hour(block.start)} - ${formatTo12Hour(block.end)}`)}
                                 title={`Multiple instructors available: ${slotsAtTime.map(s => s.instructor.name).join(', ')} `}
                               >
                                 {/* Split design - top half and bottom half */}
@@ -772,7 +773,7 @@ export default function ScheduleTableImproved({
                                   <div className="flex-1 bg-green-200 hover:bg-green-300 flex items-center justify-center">
                                     <div className="text-xs text-center">
                                       <div className="font-bold">Driving Lesson</div>
-                                      <div className="text-xs">{slot.start} - {slot.end}</div>
+                                      <div className="text-xs">{formatTo12Hour(slot.start)} - {formatTo12Hour(slot.end)}</div>
                                       <div className="text-xs">Available</div>
                                     </div>
                                   </div>
@@ -803,7 +804,7 @@ export default function ScheduleTableImproved({
                               >
                                 <div className="text-xs font-semibold">Driving Lesson</div>
                                 <div className="text-xs">
-                                  {slot.start} - {slot.end}
+                                  {formatTo12Hour(slot.start)} - {formatTo12Hour(slot.end)}
                                 </div>
                                 <div className="text-xs">
                                   {isSelected ? 'Selected' : 'Available'}
@@ -836,7 +837,7 @@ export default function ScheduleTableImproved({
                               title={isLocalPayment ? 'Click to cancel this pending lesson' : undefined}
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
-                              <div className="text-xs">{slot.start} - {slot.end}</div>
+                              <div className="text-xs">{formatTo12Hour(slot.start)} - {formatTo12Hour(slot.end)}</div>
                               <div className="text-xs">
                                 {isLocalPayment ? 'Pay at Location' : isOnlinePayment ? 'Payment Pending' : isInCart ? 'In Cart' : 'Pending'}
                               </div>
@@ -864,7 +865,7 @@ export default function ScheduleTableImproved({
                               title="Click to cancel this booking"
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
-                              <div className="text-xs">{slot.start} - {slot.end}</div>
+                              <div className="text-xs">{formatTo12Hour(slot.start)} - {formatTo12Hour(slot.end)}</div>
                               <div className="text-xs">Your Booking</div>
                             </td>
                           );
@@ -879,7 +880,7 @@ export default function ScheduleTableImproved({
                               className="border border-gray-300 py-1 bg-gray-300 text-gray-600 font-bold min-w-[80px] w-[80px]"
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
-                              <div className="text-xs">{slot.start} - {slot.end}</div>
+                              <div className="text-xs">{formatTo12Hour(slot.start)} - {formatTo12Hour(slot.end)}</div>
                               <div className="text-xs">Reserved</div>
                             </td>
                           );
@@ -895,7 +896,7 @@ export default function ScheduleTableImproved({
                               className="border border-gray-300 py-1 bg-blue-200 text-blue-800 font-bold min-w-[80px] w-[80px]"
                             >
                               <div className="text-xs font-semibold">Driving Lesson</div>
-                              <div className="text-xs">{slot.start} - {slot.end}</div>
+                              <div className="text-xs">{formatTo12Hour(slot.start)} - {formatTo12Hour(slot.end)}</div>
                               <div className="text-xs">Booked</div>
                             </td>
                           );

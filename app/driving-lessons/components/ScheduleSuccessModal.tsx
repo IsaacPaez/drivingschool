@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Modal from "@/components/Modal";
+import { formatTo12Hour } from "@/utils/dateFormat";
 
 interface SlotInfo {
   date: string;
@@ -53,7 +54,7 @@ export default function ScheduleSuccessModal({
             <div className="flex justify-between"><span className="text-gray-600">Price:</span><span className="font-semibold text-gray-800">${price}</span></div>
           )}
           {slot && (
-            <div className="flex justify-between"><span className="text-gray-600">Selected:</span><span className="font-semibold text-gray-800">{slot.date} • {slot.start}-{slot.end}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">Selected:</span><span className="font-semibold text-gray-800">{slot.date} • {formatTo12Hour(slot.start)} - {formatTo12Hour(slot.end)}</span></div>
           )}
           <div className="flex justify-between"><span className="text-gray-600">Status:</span><span className="font-semibold text-orange-600">Pending Payment</span></div>
           <div className="mt-1 text-gray-700">Next Step: Contact us to complete your payment</div>

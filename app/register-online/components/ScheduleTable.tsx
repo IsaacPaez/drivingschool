@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { formatTo12Hour } from "@/utils/dateFormat";
 
 interface Slot {
   _id: string;
@@ -210,7 +211,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
           {allTimes.map((block, index) => (
             <tr key={index} className="text-center">
               <td className="border border-gray-300 p-2 font-bold text-black">
-                {`${block.start}-${block.end}`}
+                {`${formatTo12Hour(block.start)} - ${formatTo12Hour(block.end)}`}
               </td>
               {weekDates.map((date) => {
                 const dateString = `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
@@ -275,7 +276,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                         });
                       }}
                     >
-                      <div className="text-xs text-gray-600">{matchingGroup.start}-{matchingGroup.end}</div>
+                      <div className="text-xs text-gray-600">{formatTo12Hour(matchingGroup.start)} - {formatTo12Hour(matchingGroup.end)}</div>
                       <SimpleClassInfo ticketClassId={matchingGroup.ticketClassId} />
                     </td>
                   );
@@ -290,7 +291,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                       title="Click to cancel registration"
                     >
                       <div>Your Registration</div>
-                      <div className="text-xs text-gray-200">{matchingGroup.start}-{matchingGroup.end}</div>
+                      <div className="text-xs text-gray-200">{formatTo12Hour(matchingGroup.start)} - {formatTo12Hour(matchingGroup.end)}</div>
                       <SimpleClassInfo ticketClassId={matchingGroup.ticketClassId} />
                     </td>
                   );
@@ -304,7 +305,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                       className="border border-gray-300 py-1 bg-blue-100 text-blue-900"
                     >
                       <div>Booked</div>
-                      <div className="text-xs text-blue-700">{matchingGroup.start}-{matchingGroup.end}</div>
+                      <div className="text-xs text-blue-700">{formatTo12Hour(matchingGroup.start)} - {formatTo12Hour(matchingGroup.end)}</div>
                       <SimpleClassInfo ticketClassId={matchingGroup.ticketClassId} />
                     </td>
                   );
@@ -318,7 +319,7 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
                       className="border border-gray-300 py-1 bg-gray-300 text-gray-600"
                     >
                       <div>Cancelled</div>
-                      <div className="text-xs text-gray-500">{matchingGroup.start}-{matchingGroup.end}</div>
+                      <div className="text-xs text-gray-500">{formatTo12Hour(matchingGroup.start)} - {formatTo12Hour(matchingGroup.end)}</div>
                       <SimpleClassInfo ticketClassId={matchingGroup.ticketClassId} />
                     </td>
                   );
